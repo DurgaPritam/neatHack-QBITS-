@@ -139,6 +139,15 @@ class GitHubClient:
             "archived": data.get("archived", False),
         }
 
+    @span("TOOL", "github.get_head_sha")
+    async def get_head_sha(self, ref: RepoRef) -> str:
+        """Latest commit SHA on the default branch (cache key). One cheap API call."""
+        r = await self._get(f"{API}/repos/{ref.full_name}/commits", params={"per_page": 1})
+        commits = r.json()
+        if not commits:
+            raise GitHubError("not_found", f"{ref.full_name} has no commits", 404)
+        return commits[0]["sha"]
+
     @span("TOOL", "github.get_readme")
     async def get_readme(self, ref: RepoRef) -> dict:
         data = (await self._get(f"{API}/repos/{ref.full_name}/readme")).json()

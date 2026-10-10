@@ -5,7 +5,7 @@ Failures are first-class — they are evidence the agent recovers, not crashes.
 import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 
 @dataclass
@@ -19,8 +19,17 @@ class Step:
 
 
 class StepLog:
-    def __init__(self) -> None:
+    def __init__(self, on_change: Callable[["StepLog"], None] | None = None) -> None:
         self.steps: list[Step] = []
+        self.on_change = on_change  # e.g. persist progress so the UI can show a live log
+
+    def _append(self, step: Step) -> None:
+        self.steps.append(step)
+        if self.on_change:
+            try:
+                self.on_change(self)
+            except Exception:
+                pass  # progress reporting must never break an audit
 
     @contextmanager
     def step(self, name: str):
@@ -35,14 +44,14 @@ class StepLog:
             s.detail = str(exc)[:300]
         finally:
             s.duration_ms = int((time.perf_counter() - start) * 1000)
-            self.steps.append(s)
+            self._append(s)
 
     def skip(self, name: str, reason: str) -> None:
         self.note(name, reason, status="skipped")
 
     def note(self, name: str, detail: str, status: str = "ok", **data: Any) -> None:
         """Record an instantaneous step (a decision, fallback, or skip)."""
-        self.steps.append(Step(name=name, status=status, detail=detail, data=data))
+        self._append(Step(name=name, status=status, detail=detail, data=data))
 
     def to_list(self) -> list[dict[str, Any]]:
         return [asdict(s) for s in self.steps]
