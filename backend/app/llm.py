@@ -60,9 +60,8 @@ class BudgetExhausted(Exception):
 
 
 def judge_models() -> list[str]:
-    """Models trusted to extract and judge claims (JUDGE_MODELS); defaults to all models."""
-    models = [m.strip() for m in config.env("JUDGE_MODELS").split(",") if m.strip()]
-    return models or configured_models()
+    """Models trusted to extract and judge claims (JUDGE_MODELS); empty means "all models"."""
+    return [m.strip() for m in config.env("JUDGE_MODELS").split(",") if m.strip()]
 
 
 def configured_models() -> list[str]:
@@ -423,7 +422,7 @@ class LLM:
     def judging(self, models: list[str] | None = None):
         """Claim extraction/judging: only JUDGE_MODELS, and wait for budget rather than degrade."""
         prev = self._judging
-        self._judging = models or judge_models()
+        self._judging = models or judge_models() or self.models
         try:
             yield
         finally:

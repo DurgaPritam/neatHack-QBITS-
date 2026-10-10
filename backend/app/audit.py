@@ -190,7 +190,8 @@ def _usage_dict(llm) -> dict:
 
 async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",
                           log: StepLog | None = None, llm=None, transport=None,
-                          token: str | None = None, ctx: dict | None = None) -> dict:
+                          token: str | None = None, ctx: dict | None = None,
+                          use_reserve: bool = False) -> dict:
     """Quick phase (~15s, <3k tokens): deterministic checks + score + short verdict/roast.
 
     `ctx` is filled with what the deep phase needs (README, tree, commits) so it doesn't refetch.
@@ -213,7 +214,7 @@ async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kin
         report = await run_deterministic_audit(repo_url, token=token, transport=transport, log=log, ctx=ctx)
         score = compute_score(report["checks"])
         if ctx.get("repo_available"):
-            llm = llm or LLM(log, deadline=time.monotonic() + 45, priority="high")
+            llm = llm or LLM(log, deadline=time.monotonic() + 45, priority="high", use_reserve=use_reserve)
             try:
                 verdict, source = await write_verdict(
                     llm, score, report, [], purpose="quick_verdict",
@@ -237,7 +238,7 @@ async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kin
 
 
 async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None, llm=None,
-                         transport=None, token: str | None = None) -> dict:
+                         transport=None, token: str | None = None, use_reserve: bool = False) -> dict:
     """Deep phase (queued): tarball + claims + tool verification + rescore + new verdict."""
     import time
 
@@ -255,7 +256,7 @@ async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None,
             report.update(phase="complete", mode="full", steps=log.to_list())
             report["phases"] = {**report.get("phases", {}), "deep": deep}
             return report
-        llm = llm or LLM(log, priority="low")
+        llm = llm or LLM(log, priority="low", use_reserve=use_reserve)
         async with GitHubClient(token=token, transport=transport) as gh:
             agent = await run_agent(report, ctx, log, llm=llm, gh=gh)
 
@@ -274,6 +275,14 @@ async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None,
         steps=log.to_list(), partial=any(s.status == "failed" for s in log.steps),
     )
     return report
+
+
+async def rebuild_context(report: dict, *, transport=None, token: str | None = None) -> dict:
+    """Deep phase requested after the quick context expired (or a restart): regather the
+    repo data. Deterministic only, no LLM tokens; the quick verdict/score are kept."""
+    ctx: dict = {}
+    await run_deterministic_audit(report["repo_url"], token=token, transport=transport, log=StepLog(), ctx=ctx)
+    return ctx
 
 
 async def run_full_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",

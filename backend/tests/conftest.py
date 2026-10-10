@@ -7,6 +7,10 @@ import pytest
 from app import config, db
 
 config.NEATLOGS_API_KEY = ""
+# Tests pin their own settings instead of inheriting the developer's .env
+os.environ["LLM_MODE"] = "live"      # tests use scripted fake clients; replay has its own tests
+os.environ["JUDGE_MODELS"] = ""
+os.environ["ADMIN_TOKEN"] = "test-admin-token"
 os.environ["PREJUDGE_DB"] = os.path.join(tempfile.mkdtemp(prefix="prejudge-test-"), "test.db")
 
 

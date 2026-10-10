@@ -8,7 +8,7 @@ from app import db, jobs, main
 
 
 class Gate:
-    """Lets a test hold the deep phase open to prove quick results don't wait for it."""
+    """Lets a test hold the deep phase open."""
 
     def __init__(self):
         self.open = True
@@ -17,133 +17,188 @@ class Gate:
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("PREJUDGE_DB", str(tmp_path / "t.db"))
-    calls = {"quick": [], "deep": []}
+    calls = {"quick": [], "deep": [], "reserve": []}
     gate = Gate()
 
-    async def fake_quick(repo_url, audit_id, run_kind, steps, ctx):
+    async def fake_quick(repo_url, audit_id, run_kind, steps, ctx, use_reserve=False):
         calls["quick"].append(repo_url)
+        calls["reserve"].append(("quick", use_reserve))
         steps.note("github.get_repo", "ok")
-        ctx["repo_available"] = True
+        ctx["repo_available"] = "missing" not in repo_url
         await asyncio.sleep(0.02)
+        source = "template" if "flaky" in repo_url else "llm"
         return {"audit_id": audit_id, "repo_url": repo_url, "phase": "quick", "score": {"score": 30},
-                "verdict": {"source": "llm", "roast": "quick roast"}, "steps": steps.to_list()}
+                "verdict": {"source": source, "roast": "quick roast"}, "steps": steps.to_list()}
 
-    async def fake_deep(report, ctx, steps):
+    async def fake_deep(report, ctx, steps, use_reserve=False):
         calls["deep"].append(report["repo_url"])
+        calls["reserve"].append(("deep", use_reserve))
         while not gate.open:
             await asyncio.sleep(0.01)
         steps.note("llm.claims", "ok")
-        source = "template" if "flaky" in report["repo_url"] else "llm"
         return {**report, "phase": "complete", "score": {"score": 42},
-                "verdict": {"source": source, "roast": "deep roast"}, "steps": steps.to_list()}
+                "verdict": {"source": "llm", "roast": "deep roast"}, "steps": steps.to_list()}
+
+    async def fake_rebuild(report):
+        return {"repo_available": True, "rebuilt": True}
 
     async def fake_sha(repo_url):
         return "deadbeef"
 
     monkeypatch.setattr(jobs, "_run_quick", fake_quick)
     monkeypatch.setattr(jobs, "_run_deep", fake_deep)
+    monkeypatch.setattr(jobs, "_rebuild_ctx", fake_rebuild)
     monkeypatch.setattr(main, "resolve_head_sha", fake_sha)
     with TestClient(main.app) as c:
-        db.connect(tmp_path / "t.db")
         c.calls, c.gate = calls, gate
         yield c
 
 
-def wait_for(c, audit_id, statuses, timeout=5):
+def wait_for(c, audit_id, statuses, timeout=5, key="status"):
     end = time.time() + timeout
     while time.time() < end:
         r = c.get(f"/api/audits/{audit_id}").json()
-        if r["status"] in statuses:
+        val = r["phases"]["deep"] if key == "deep" else r[key]
+        if val in statuses:
             return r
         time.sleep(0.01)
     raise AssertionError(f"audit never reached {statuses}: {r}")
 
 
 def post(c, repo, **kw):
-    return c.post("/api/audits", json={"repo_url": repo, **kw})
+    return c.post("/api/audits", json={"repo_url": repo, **kw.pop("body", {})}, **kw)
 
 
-def test_quick_ready_then_complete(client):
+def test_quick_only_by_default(client):
     r = post(client, "https://github.com/acme/demo")
-    assert r.status_code == 202 and r.json()["status"] == "queued"
-    assert r.json()["queue"]["lane"] == "quick"
-    quick = wait_for(client, r.json()["id"], ("quick_ready", "complete"))
-    done = wait_for(client, r.json()["id"], ("complete",))
-    assert done["result"]["score"]["score"] == 42 and done["phases"] == {"quick": "done", "deep": "done"}
-    assert [s["name"] for s in done["steps"]] == ["github.get_repo", "llm.claims"]
-    assert client.get("/api/stats").json() == {"total_audits": 1, "completed_audits": 1, "including_test_runs": 1}
-    assert quick["result"]["score"]["score"] in (30, 42)
+    assert r.status_code == 202 and r.json()["status"] == "queued" and r.json()["queue"]["lane"] == "quick"
+    quick = wait_for(client, r.json()["id"], ("quick_ready",))
+    assert quick["phases"] == {"quick": "done", "deep": "available"}
+    time.sleep(0.1)
+    assert client.calls["deep"] == []  # deep never starts on its own
 
 
-def test_quick_result_never_waits_on_deep(client):
-    client.gate.open = False  # deep phase blocked
-    a = post(client, "https://github.com/acme/one").json()["id"]
-    first = wait_for(client, a, ("quick_ready",))
-    assert first["result"]["verdict"]["roast"] == "quick roast"
-    assert first["phases"]["quick"] == "done" and first["phases"]["deep"] in ("queued", "running")
-    # a second audit still gets its quick result while the first is stuck in deep
-    b = post(client, "https://github.com/acme/two").json()["id"]
-    second = wait_for(client, b, ("quick_ready",))
-    assert second["queue"]["lane"] == "deep" and second["queue"]["position"] == 2
-    assert second["queue"]["estimated_wait_s"] > 0
+def test_deep_on_request_then_complete(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    d = client.post(f"/api/audits/{aid}/deep")
+    assert d.status_code == 202 and d.json()["queue"]["lane"] == "deep"
+    assert {"position", "estimated_wait_s"} <= set(d.json()["queue"])
+    done = wait_for(client, aid, ("complete",))
+    assert done["result"]["score"]["score"] == 42 and done["phases"]["deep"] == "done"
+    assert [s["name"] for s in done["steps"]] == ["github.get_repo", "llm.claims"]  # one continuous log
+    again = client.post(f"/api/audits/{aid}/deep").json()
+    assert again["status"] == "complete" and len(client.calls["deep"]) == 1
+
+
+def test_deep_queue_positions_and_one_at_a_time(client):
+    client.gate.open = False
+    ids = [post(client, f"https://github.com/acme/r{i}").json()["id"] for i in range(3)]
+    for i in ids:
+        wait_for(client, i, ("quick_ready",))
+    queued = [client.post(f"/api/audits/{i}/deep").json()["queue"] for i in ids]
+    assert [q["position"] for q in queued] == [1, 2, 3]
+    assert queued[2]["estimated_wait_s"] > queued[1]["estimated_wait_s"]
+    assert client.get("/api/stats").json()["deep_queue"] == 3
     client.gate.open = True
+    for i in ids:
+        wait_for(client, i, ("complete",))
+
+
+def test_deep_waits_for_judge_budget_instead_of_degrading(client, monkeypatch):
+    ok = {"v": False}
+    monkeypatch.setattr(jobs, "deep_budget_ok", lambda use_reserve: ok["v"])
+    monkeypatch.setattr(jobs, "BUDGET_RECHECK_S", 0.05)
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    client.post(f"/api/audits/{aid}/deep")
+    waiting = wait_for(client, aid, ("waiting_budget",), key="deep")
+    assert waiting["queue"]["waiting_for_budget"] is True and client.calls["deep"] == []
+    ok["v"] = True
+    wait_for(client, aid, ("complete",))
+
+
+def test_admin_token_unlocks_reserve(client):
+    a = post(client, "https://github.com/acme/admin", headers={"X-Admin-Token": "test-admin-token"}).json()["id"]
+    wait_for(client, a, ("quick_ready",))
+    client.post(f"/api/audits/{a}/deep", headers={"X-Admin-Token": "test-admin-token"})
     wait_for(client, a, ("complete",))
-    wait_for(client, b, ("complete",))
+    b = post(client, "https://github.com/acme/public", headers={"X-Admin-Token": "wrong"}).json()["id"]
+    wait_for(client, b, ("quick_ready",))
+    assert client.calls["reserve"] == [("quick", True), ("deep", True), ("quick", False)]
 
 
-def test_cache_by_repo_and_sha(client):
+def test_deep_after_context_expired_rebuilds_without_llm(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    main.queues.ctx_cache.clear()
+    client.post(f"/api/audits/{aid}/deep")
+    done = wait_for(client, aid, ("complete",))
+    assert "deep.rebuild_context" in [s["name"] for s in done["steps"]]
+
+
+def test_deep_rejected_when_not_possible(client):
+    aid = post(client, "https://github.com/acme/missing").json()["id"]
+    r = wait_for(client, aid, ("quick_ready",))
+    assert r["phases"]["deep"] == "skipped"
+    assert client.post(f"/api/audits/{aid}/deep").status_code == 409
+    assert client.post("/api/audits/nope/deep").status_code == 404
+
+
+def test_cache_reuses_quick_and_complete_results(client):
     first = post(client, "https://github.com/acme/demo").json()
+    wait_for(client, first["id"], ("quick_ready",))
+    again = post(client, "github.com/ACME/demo").json()
+    assert again["cached"] is True and again["status"] == "quick_ready"
+    client.post(f"/api/audits/{first['id']}/deep")
     wait_for(client, first["id"], ("complete",))
-    second = post(client, "github.com/ACME/demo").json()
-    assert second["cached"] is True and second["status"] == "complete"
-    got = client.get(f"/api/audits/{second['id']}").json()
-    assert got["result"]["cached_from"] == first["id"] and got["result"]["audit_id"] == second["id"]
+    third = post(client, "https://github.com/acme/demo").json()
+    assert third["status"] == "complete"
+    assert client.get(f"/api/audits/{third['id']}").json()["result"]["cached_from"] == first["id"]
     assert len(client.calls["quick"]) == 1
 
 
-def test_same_commit_in_progress_is_deduplicated(client):
-    client.gate.open = False
-    first = post(client, "https://github.com/acme/demo").json()
-    wait_for(client, first["id"], ("quick_ready",))
-    again = post(client, "https://github.com/acme/demo").json()
-    assert again["id"] == first["id"] and again["deduplicated"] is True
-    client.gate.open = True
-    wait_for(client, first["id"], ("complete",))
-
-
-def test_degraded_results_are_not_cached(client):
+def test_template_results_are_not_cached(client):
     a = post(client, "https://github.com/acme/flaky").json()
-    wait_for(client, a["id"], ("complete",))
+    wait_for(client, a["id"], ("quick_ready",))
     b = post(client, "https://github.com/acme/flaky").json()
     assert b["cached"] is False and b.get("deduplicated") is None
 
 
-def test_test_runs_excluded_from_public_counter(client):
-    r = post(client, "https://github.com/acme/demo", run_kind="test")
-    wait_for(client, r.json()["id"], ("complete",))
+def test_stats_counter_states_and_test_runs(client, monkeypatch):
+    base = client.get("/api/stats").json()
+    assert base["budget_state"] == "normal"
+    r = post(client, "https://github.com/acme/demo", body={"run_kind": "test"})
+    wait_for(client, r.json()["id"], ("quick_ready",))
     s = client.get("/api/stats").json()
-    assert s["total_audits"] == 0 and s["including_test_runs"] == 1
+    assert s["total_audits"] == base["total_audits"]
+    assert s["including_test_runs"] == base["including_test_runs"] + 1
+    monkeypatch.setattr(main.queues, "busy", lambda: True)
+    assert client.get("/api/stats").json()["budget_state"] == "busy"
+    monkeypatch.setattr(main.POOL, "budget", lambda *a, **k: {"public_available": False})
+    monkeypatch.setattr(main.replay, "mode", lambda: "live")
+    assert client.get("/api/stats").json()["budget_state"] == "cooling"
 
 
-def test_deep_runs_one_at_a_time(client, monkeypatch):
-    running, peak = {"n": 0}, {"n": 0}
+def test_examples_are_the_saved_real_audits(client):
+    ex = client.get("/api/examples").json()
+    assert {e["repo"] for e in ex} == {"openai/swarm", "huggingface/smolagents", "langchain-ai/open_deep_research"}
+    assert all(e["roast"] and isinstance(e["score"], int) for e in ex)
+    full = client.get(f"/api/audits/{ex[0]['id']}").json()
+    assert full["status"] == "complete" and full["result"]["agent"]["claims"]
 
-    async def slow(report, ctx, steps):
-        running["n"] += 1
-        peak["n"] = max(peak["n"], running["n"])
-        await asyncio.sleep(0.03)
-        running["n"] -= 1
-        return {**report, "phase": "complete", "verdict": {"source": "llm"}, "steps": []}
 
-    monkeypatch.setattr(jobs, "_run_deep", slow)
-    ids = [post(client, f"https://github.com/acme/r{i}").json()["id"] for i in range(3)]
-    for i in ids:
-        wait_for(client, i, ("complete",))
-    assert peak["n"] == 1
+def test_feedback(client):
+    aid = client.get("/api/examples").json()[0]["id"]
+    r = client.post(f"/api/audits/{aid}/feedback", json={"check_id": "demo_video", "note": "it's 2:59"})
+    assert r.status_code == 201 and db.feedback_for(aid) == [{"check_id": "demo_video", "is_wrong": 1,
+                                                              "note": "it's 2:59"}]
+    assert client.post("/api/audits/nope/feedback", json={"check_id": "x"}).status_code == 404
+    assert client.post(f"/api/audits/{aid}/feedback", json={"check_id": ""}).status_code == 422
 
 
 def test_quick_crash_is_recorded(client, monkeypatch):
-    async def boom(*a):
+    async def boom(*a, **k):
         raise RuntimeError("kaboom")
 
     monkeypatch.setattr(jobs, "_run_quick", boom)
@@ -153,28 +208,25 @@ def test_quick_crash_is_recorded(client, monkeypatch):
 
 
 def test_deep_crash_keeps_quick_result(client, monkeypatch):
-    async def boom(*a):
+    async def boom(*a, **k):
         raise RuntimeError("deep kaboom")
 
     monkeypatch.setattr(jobs, "_run_deep", boom)
-    r = post(client, "https://github.com/acme/x").json()
-    end = time.time() + 5
-    while time.time() < end:
-        got = client.get(f"/api/audits/{r['id']}").json()
-        if got["phases"]["deep"] == "failed":
-            break
-        time.sleep(0.01)
+    aid = post(client, "https://github.com/acme/x").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    client.post(f"/api/audits/{aid}/deep")
+    got = wait_for(client, aid, ("failed",), key="deep")
     assert got["status"] == "quick_ready" and got["result"]["verdict"]["roast"] == "quick roast"
     assert got["steps"][-1]["name"] == "deep.crashed"
 
 
 def test_restart_marks_interrupted_jobs(tmp_path):
     db.connect(tmp_path / "restart.db")
-    db.create("a1", "u", "acme/a", "s", "real")                       # queued
-    db.create("a2", "u", "acme/b", "s", "real", status="quick_ready", phase_deep="queued")
+    db.create("a1", "u", "acme/a", "s", "real")
+    db.create("a2", "u", "acme/b", "s", "real", status="quick_ready", phase_deep="running")
     assert db.mark_interrupted() == 2
     assert db.get("a1")["status"] == "failed"
-    assert db.get("a2")["status"] == "quick_ready" and db.get("a2")["phase_deep"] == "failed"
+    assert db.get("a2")["phase_deep"] == "available"  # user can ask for the deep check again
 
 
 def test_bad_input_and_404_and_cors(client):

@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS audits (
     head_sha    TEXT,              -- latest commit SHA when the audit was requested
     status      TEXT NOT NULL,     -- queued | quick_ready | complete | failed
     phase_quick TEXT DEFAULT 'queued',   -- queued | running | done | failed
-    phase_deep  TEXT DEFAULT 'waiting',  -- waiting | queued | running | done | failed | skipped
+    phase_deep  TEXT DEFAULT 'waiting',  -- waiting | available | queued | waiting_budget | running | done | failed | skipped
+    is_example  INTEGER DEFAULT 0,
     run_kind    TEXT NOT NULL DEFAULT 'real',
     cached_from TEXT,              -- id of the audit whose result was reused
     steps       TEXT NOT NULL DEFAULT '[]',
@@ -27,6 +28,14 @@ CREATE TABLE IF NOT EXISTS audits (
     updated_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audits_cache ON audits (repo_key, head_sha, status);
+CREATE TABLE IF NOT EXISTS feedback (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    audit_id   TEXT NOT NULL,
+    check_id   TEXT NOT NULL,       -- rubric check id or claim id
+    is_wrong   INTEGER NOT NULL,
+    note       TEXT,
+    created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS roasts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_key   TEXT,
@@ -60,7 +69,8 @@ def connect(path: str | Path | None = None) -> None:
 def _migrate(conn: sqlite3.Connection) -> None:
     """Add columns introduced after a db file was created (no data loss)."""
     have = {r[1] for r in conn.execute("PRAGMA table_info(audits)")}
-    for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'")):
+    for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'"),
+                     ("is_example", "INTEGER DEFAULT 0")):
         if col not in have:
             conn.execute(f"ALTER TABLE audits ADD COLUMN {col} {ddl}")
     conn.execute("UPDATE audits SET status = 'complete' WHERE status = 'done'")  # M2 naming
@@ -109,19 +119,21 @@ def get(audit_id: str) -> dict | None:
 
 
 def find_cached(repo_key: str, head_sha: str) -> dict | None:
-    """Most recent complete, non-reused audit of this exact commit."""
+    """Most recent reusable audit of this exact commit: complete first, else quick_ready.
+    Only LLM-written results keep a head_sha (templates are retried), see jobs.cacheable."""
     with _lock:
         r = _db().execute(
-            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status = 'complete' "
-            "AND cached_from IS NULL ORDER BY created_at DESC LIMIT 1", (repo_key, head_sha)).fetchone()
+            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status IN ('complete', 'quick_ready') "
+            "AND cached_from IS NULL ORDER BY status = 'complete' DESC, created_at DESC LIMIT 1",
+            (repo_key, head_sha)).fetchone()
     return _row(r)
 
 
 def find_in_progress(repo_key: str, head_sha: str) -> dict | None:
-    """An audit of this exact commit that is still running: reuse it instead of starting another."""
+    """An audit of this exact commit whose quick phase is still running: follow it instead."""
     with _lock:
         r = _db().execute(
-            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status IN ('queued', 'quick_ready') "
+            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status = 'queued' "
             "AND cached_from IS NULL ORDER BY created_at DESC LIMIT 1", (repo_key, head_sha)).fetchone()
     return _row(r)
 
@@ -133,10 +145,46 @@ def mark_interrupted() -> int:
             "UPDATE audits SET status = 'failed', phase_quick = 'failed', error = 'server restarted' "
             "WHERE status = 'queued'")
         d = _db().execute(
-            "UPDATE audits SET phase_deep = 'failed', error = 'server restarted before deep phase' "
-            "WHERE status = 'quick_ready' AND phase_deep IN ('queued', 'running')")
+            "UPDATE audits SET phase_deep = 'available', error = 'server restarted during deep check; ask again' "
+            "WHERE status = 'quick_ready' AND phase_deep IN ('queued', 'running', 'waiting_budget')")
         _db().commit()
         return c.rowcount + d.rowcount
+
+
+def add_feedback(audit_id: str, check_id: str, is_wrong: bool, note: str) -> None:
+    with _lock:
+        _db().execute("INSERT INTO feedback (audit_id, check_id, is_wrong, note, created_at) VALUES (?, ?, ?, ?, ?)",
+                      (audit_id, check_id, int(is_wrong), note, _now()))
+        _db().commit()
+
+
+def feedback_for(audit_id: str) -> list[dict]:
+    with _lock:
+        rows = _db().execute("SELECT check_id, is_wrong, note FROM feedback WHERE audit_id = ?", (audit_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def seed_examples(folder: Path | None = None) -> int:
+    """Load saved real audits (fixtures/audits) as example results, once."""
+    folder = folder or Path(__file__).resolve().parent.parent / "fixtures" / "audits"
+    added = 0
+    for f in sorted(folder.glob("*.json")) if folder.exists() else []:
+        report = json.loads(f.read_text())
+        aid = report["audit_id"]
+        if get(aid):
+            continue
+        create(aid, report["repo_url"], report["repo"]["full_name"].lower(), None, report.get("run_kind", "real"),
+               status="complete", phase_quick="done", phase_deep="done", is_example=1,
+               steps=report["steps"], result=report)
+        added += 1
+    return added
+
+
+def examples(limit: int = 3) -> list[dict]:
+    with _lock:
+        rows = _db().execute("SELECT * FROM audits WHERE is_example = 1 ORDER BY created_at, id LIMIT ?",
+                             (limit,)).fetchall()
+    return [_row(r) for r in rows]
 
 
 def stats() -> dict:

@@ -23,6 +23,13 @@ class StepLog:
         self.steps: list[Step] = []
         self.on_change = on_change  # e.g. persist progress so the UI can show a live log
 
+    @classmethod
+    def from_list(cls, steps: list[dict], on_change=None) -> "StepLog":
+        """Continue a saved step log (e.g. the deep phase after the quick one)."""
+        log = cls(on_change=on_change)
+        log.steps = [Step(**{k: v for k, v in s.items() if k in Step.__dataclass_fields__}) for s in steps]
+        return log
+
     def _append(self, step: Step) -> None:
         self.steps.append(step)
         if self.on_change:
