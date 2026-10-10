@@ -362,6 +362,9 @@ async def _rewrite_roast(llm: LLM, purpose: str, style: str, fact_lines: str, re
 
 
 def _recent_roasts() -> list[str]:
+    from app import replay
+    if replay.mode() == "replay":
+        return []  # a replayed roast would otherwise "repeat" itself
     try:
         from app import db
         return db.recent_roasts(roast_rules.RECENT_ROASTS)
@@ -370,6 +373,9 @@ def _recent_roasts() -> list[str]:
 
 
 def _remember_roast(repo_key: str, style: str, roast: str) -> None:
+    from app import replay
+    if replay.mode() == "replay":
+        return
     try:
         from app import db
         db.add_roast(repo_key, style, roast)

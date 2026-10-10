@@ -1,0 +1,1370 @@
+{
+  "repo_url": "https://github.com/langchain-ai/open_deep_research",
+  "audited_at": "2026-10-10T08:49:42+00:00",
+  "mode": "full",
+  "window": {
+    "start": "2026-10-10T07:00:00+00:00",
+    "end": "2026-10-12T18:25:00+00:00"
+  },
+  "github_authenticated": true,
+  "head_sha": "1b7d2e80db9faa586165c60e09096dbbfd483a64",
+  "github_rate_limit_remaining": 4915,
+  "repo": {
+    "full_name": "langchain-ai/open_deep_research",
+    "private": false,
+    "default_branch": "main",
+    "description": null,
+    "homepage": null,
+    "created_at": "2024-11-20T17:37:22Z",
+    "pushed_at": "2026-08-10T18:13:37Z",
+    "stars": 12682,
+    "fork": false,
+    "archived": true
+  },
+  "partial": true,
+  "steps": [
+    {
+      "name": "parse_url",
+      "status": "ok",
+      "detail": "langchain-ai/open_deep_research",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "github.get_repo",
+      "status": "ok",
+      "detail": "default branch main",
+      "error_kind": null,
+      "duration_ms": 601,
+      "data": {}
+    },
+    {
+      "name": "github.get_readme",
+      "status": "ok",
+      "detail": "README.md (10224 chars)",
+      "error_kind": null,
+      "duration_ms": 414,
+      "data": {}
+    },
+    {
+      "name": "github.get_tree",
+      "status": "ok",
+      "detail": "45 files",
+      "error_kind": null,
+      "duration_ms": 382,
+      "data": {}
+    },
+    {
+      "name": "github.get_dependency_files",
+      "status": "ok",
+      "detail": "fetched 1/1",
+      "error_kind": null,
+      "duration_ms": 398,
+      "data": {}
+    },
+    {
+      "name": "github.get_commits",
+      "status": "ok",
+      "detail": "224 commits",
+      "error_kind": null,
+      "duration_ms": 1620,
+      "data": {}
+    },
+    {
+      "name": "links.check",
+      "status": "ok",
+      "detail": "33 links, 3 dead",
+      "error_kind": null,
+      "duration_ms": 3887,
+      "data": {}
+    },
+    {
+      "name": "video.duration",
+      "status": "ok",
+      "detail": "12:46",
+      "error_kind": null,
+      "duration_ms": 2497,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 1141,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3222,
+        "scheduled": "4778 tokens left this minute",
+        "tokens": 2769,
+        "latency_ms": 1141
+      }
+    },
+    {
+      "name": "quick_verdict.roast_rejected",
+      "status": "failed",
+      "detail": "reuses a joke from a recent roast: \"protocol so severe it borders\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict.roast_retry",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 384,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 1804,
+        "scheduled": "2425 tokens left this minute",
+        "tokens": 1466,
+        "latency_ms": 384
+      }
+    },
+    {
+      "name": "quick_verdict.roast_template",
+      "status": "ok",
+      "detail": "rewrite still broke the rules: reuses a joke from a recent roast: \"protocol so severe it borders\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "github.download_tarball",
+      "status": "ok",
+      "detail": "41 text files in memory (2.29 MB tarball)",
+      "error_kind": null,
+      "duration_ms": 1397,
+      "data": {
+        "mb": 2.29,
+        "files": 41,
+        "text_mb": 0.51,
+        "skipped": {
+          "too_large": 3,
+          "lockfile": 1
+        },
+        "truncated": false
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "failed",
+      "detail": "openai/gpt-oss-120b: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_[redacted]` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199377, Requested 3536. Please try again in 20m58.416s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_excee",
+      "error_kind": "rate_limited",
+      "duration_ms": 139,
+      "data": {
+        "model": "openai/gpt-oss-120b",
+        "est_tokens": 3873,
+        "scheduled": "4127 tokens left this minute"
+      }
+    },
+    {
+      "name": "llm.claims.fallback",
+      "status": "ok",
+      "detail": "switching to model openai/gpt-oss-20b",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "after": "rate_limited"
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "failed",
+      "detail": "openai/gpt-oss-20b: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-20b` in organization `org_[redacted]` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 4522, Requested 3668. Please try again in 1.425s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "error_kind": "rate_limited",
+      "duration_ms": 61,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 3873,
+        "scheduled": "4127 tokens left this minute"
+      }
+    },
+    {
+      "name": "llm.claims.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 2.0s for quota (qwen/qwen3.8-27b: 2712 tokens left, need 3873; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: cooling down)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 2.0
+      }
+    },
+    {
+      "name": "llm.claims.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 31.9s for quota (qwen/qwen3.8-27b: 2712 tokens left, need 3873; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 0 tokens left, need 3873)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 31.9
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 1153,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 3873,
+        "scheduled": "4127 tokens left this minute",
+        "tokens": 3416,
+        "latency_ms": 1153
+      }
+    },
+    {
+      "name": "verify.presearch",
+      "status": "ok",
+      "detail": "8 claims searched, 8 files with hits",
+      "error_kind": null,
+      "duration_ms": 46,
+      "data": {}
+    },
+    {
+      "name": "llm.verify.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 5.2s for quota (qwen/qwen3.8-27b: 2712 tokens left, need 4761; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 4450 tokens left, need 4761)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 5.2
+      }
+    },
+    {
+      "name": "llm.verify",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 746,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 4761,
+        "scheduled": "3239 tokens left this minute",
+        "tokens": 4179,
+        "latency_ms": 746
+      }
+    },
+    {
+      "name": "tool.read_file",
+      "status": "ok",
+      "detail": "3102 chars",
+      "error_kind": null,
+      "duration_ms": 8,
+      "data": {
+        "args": {
+          "path": "README.md"
+        }
+      }
+    },
+    {
+      "name": "tool.read_file",
+      "status": "ok",
+      "detail": "3132 chars",
+      "error_kind": null,
+      "duration_ms": 7,
+      "data": {
+        "args": {
+          "path": "src/open_deep_research/configuration.py"
+        }
+      }
+    },
+    {
+      "name": "tool.read_file",
+      "status": "ok",
+      "detail": "417 chars",
+      "error_kind": null,
+      "duration_ms": 6,
+      "data": {
+        "args": {
+          "path": "langgraph.json"
+        }
+      }
+    },
+    {
+      "name": "llm.verify.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 20.6s for quota (qwen/qwen3.8-27b: 3122 tokens left, need 6956; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 4450 tokens left, need 6956)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 20.6
+      }
+    },
+    {
+      "name": "llm.verify",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 1504,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 6956,
+        "scheduled": "1044 tokens left this minute",
+        "tokens": 6244,
+        "latency_ms": 1504
+      }
+    },
+    {
+      "name": "llm.verdict.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 14.4s for quota (qwen/qwen3.8-27b: 3122 tokens left, need 3548; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 1811 tokens left, need 3548)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 14.4
+      }
+    },
+    {
+      "name": "llm.verdict",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 1170,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3548,
+        "scheduled": "4452 tokens left this minute",
+        "tokens": 3071,
+        "latency_ms": 1170
+      }
+    },
+    {
+      "name": "verdict.roast_rejected",
+      "status": "failed",
+      "detail": "reuses a joke from a recent roast: \"protocol so severe it borders\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "llm.verdict.roast_retry",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 387,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 2128,
+        "scheduled": "2781 tokens left this minute",
+        "tokens": 1772,
+        "latency_ms": 387
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "repo_public",
+      "category": "eligibility",
+      "title": "Repo is public",
+      "status": "pass",
+      "detail": "langchain-ai/open_deep_research is publicly readable",
+      "evidence": []
+    },
+    {
+      "id": "prompt_injection",
+      "category": "eligibility",
+      "title": "No prompt injection aimed at judges",
+      "status": "pass",
+      "detail": "no injection patterns found",
+      "evidence": []
+    },
+    {
+      "id": "readme_exists",
+      "category": "eligibility",
+      "title": "README exists",
+      "status": "pass",
+      "detail": "README has 1069 words",
+      "evidence": []
+    },
+    {
+      "id": "commits_in_window",
+      "category": "building_in_public",
+      "title": "Commits dated inside the hackathon window",
+      "status": "fail",
+      "detail": "0 inside, 224 before start, 0 after close; active days: none",
+      "evidence": [
+        "1b7d2e80db9f 2026-08-10T18:13:29Z Bump h2 from 4.3.0 to 4.4.1 in the uv group across 1 directory (#334)",
+        "20aaa0d422bd 2026-08-05T08:27:10Z Bump cryptography in the uv group across 1 directory (#331)",
+        "7882410280a7 2026-08-05T08:15:27Z Bump aiohttp from 3.14.1 to 3.14.3 in the uv group across 1 directory (#330)"
+      ]
+    },
+    {
+      "id": "neatlogs_sdk",
+      "category": "tools",
+      "title": "neatlogs SDK is actually used",
+      "status": "fail",
+      "detail": "no sign of neatlogs in dependencies or README",
+      "evidence": []
+    },
+    {
+      "id": "neatlogs_traces",
+      "category": "tools",
+      "title": "neatlogs trace links",
+      "status": "fail",
+      "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+      "evidence": []
+    },
+    {
+      "id": "entire_checkpoints",
+      "category": "tools",
+      "title": "Entire checkpoints / entire-graph output",
+      "status": "unverified",
+      "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+      "evidence": []
+    },
+    {
+      "id": "cfo_ai_plan",
+      "category": "tools",
+      "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+      "status": "fail",
+      "detail": "no cfo.ai plan link",
+      "evidence": [
+        "cost"
+      ]
+    },
+    {
+      "id": "demo_video",
+      "category": "demo_video",
+      "title": "Demo video (<= 3 min, covers all three tools)",
+      "status": "fail",
+      "detail": "video is 12:46, over the 3:00 limit",
+      "evidence": [
+        "https://www.youtube.com/watch?v=agGiWUpxkhg"
+      ],
+      "data": {
+        "duration_status": "too_long",
+        "duration_s": 766,
+        "duration": "12:46"
+      }
+    },
+    {
+      "id": "public_posts",
+      "category": "building_in_public",
+      "title": "Building-in-public posts tagged #neatHack",
+      "status": "fail",
+      "detail": "no social posts linked",
+      "evidence": []
+    },
+    {
+      "id": "before_after",
+      "category": "agent",
+      "title": "Before/after runs with numbers compared",
+      "status": "fail",
+      "detail": "no before/after comparison in README",
+      "evidence": []
+    },
+    {
+      "id": "failure_recovery",
+      "category": "agent",
+      "title": "A run where an action failed and what the agent did next",
+      "status": "fail",
+      "detail": "no mention of a failure and recovery",
+      "evidence": []
+    },
+    {
+      "id": "dead_links",
+      "category": "usefulness",
+      "title": "No dead links in README",
+      "status": "fail",
+      "detail": "3/33 links dead",
+      "evidence": [
+        "https://langchain-ai.github.io/langgraph/concepts/#deployment-options (404)",
+        "https://docs.oap.langchain.com/quickstart (unresolvable)",
+        "https://docs.oap.langchain.com/setup/agents (unresolvable)"
+      ]
+    }
+  ],
+  "summary": {
+    "pass": 3,
+    "warn": 0,
+    "fail": 9,
+    "unverified": 1
+  },
+  "links": [
+    {
+      "url": "https://huggingface.co/spaces/Ayanami0730/DeepResearch-Leaderboard",
+      "kind": "other",
+      "status": 401,
+      "ok": null,
+      "final_url": "https://huggingface.co/spaces/Ayanami0730/DeepResearch-Leaderboard",
+      "error": "bot_blocked"
+    },
+    {
+      "url": "https://academy.langchain.com/courses/deep-research-with-langgraph",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://academy.langchain.com/courses/deep-research-with-langgraph",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/deep_research_from_scratch",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/deep_research_from_scratch",
+      "error": null
+    },
+    {
+      "url": "https://rlancemartin.github.io/2025/07/30/bitter_lesson/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://rlancemartin.github.io/2025/07/30/bitter_lesson/",
+      "error": null
+    },
+    {
+      "url": "https://blog.langchain.com/open-deep-research/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.langchain.com/blog/open-deep-research",
+      "error": null
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=agGiWUpxkhg",
+      "kind": "video",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.youtube.com/watch?v=agGiWUpxkhg",
+      "error": null
+    },
+    {
+      "url": "https://python.langchain.com/docs/how_to/chat_models_universal_init/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://docs.langchain.com/oss/python/langchain/overview",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/blob/main/src/open_deep_research/configuration.py",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/blob/main/src/open_deep_research/configuration.py",
+      "error": null
+    },
+    {
+      "url": "https://python.langchain.com/docs/integrations/chat/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://docs.langchain.com/oss/python/integrations/providers/overview",
+      "error": null
+    },
+    {
+      "url": "https://python.langchain.com/docs/how_to/tool_calling/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://docs.langchain.com/oss/python/langchain/overview",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/issues/75#issuecomment-2811472408",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/issues/75#issuecomment-2811472408",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/issues/65#issuecomment-2743586318",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/issues/65#issuecomment-2743586318",
+      "error": null
+    },
+    {
+      "url": "https://www.tavily.com/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.tavily.com/",
+      "error": null
+    },
+    {
+      "url": "https://smith.langchain.com/public/c5e7a6ad-fdba-478c-88e6-3a388459ce8b/d",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/public/c5e7a6ad-fdba-478c-88e6-3a388459ce8b/d",
+      "error": null
+    },
+    {
+      "url": "https://github.com/Ayanami0730/deep_research_bench?tab=readme-ov-file#quick-start",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/Ayanami0730/deep_research_bench?tab=readme-ov-file#quick-start",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/pull/168/commits",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/pull/168/commits",
+      "error": null
+    },
+    {
+      "url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-613c-4bda-8bde-f64f0422bbf3/compare?selectedSessions=4d5941c8-69ce-4f3d-8b3e-e3c99dfbd4cc&baseline=undefined",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-613c-4bda-8bde-f64f0422bbf3/compare?selectedSessions=4d5941c8-69ce-4f3d-8b3e-e3c99dfbd4cc&baseline=undefined",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/commit/6532a4176a93cc9bb2102b3d825dcefa560c85d9",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/commit/6532a4176a93cc9bb2102b3d825dcefa560c85d9",
+      "error": null
+    },
+    {
+      "url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=cf4355d7-6347-47e2-a774-484f290e79bc&baseline=undefined",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=cf4355d7-6347-47e2-a774-484f290e79bc&baseline=undefined",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/pull/163/commits/f877ea93641680879c420ea991e998b47aab9bcc",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/pull/163/commits/f877ea93641680879c420ea991e998b47aab9bcc",
+      "error": null
+    },
+    {
+      "url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=04f6002d-6080-4759-bcf5-9a52e57449ea&baseline=undefined",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=04f6002d-6080-4759-bcf5-9a52e57449ea&baseline=undefined",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research/commit/c0a160b57a9b5ecd4b8217c3811a14d8eff97f72",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research/commit/c0a160b57a9b5ecd4b8217c3811a14d8eff97f72",
+      "error": null
+    },
+    {
+      "url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=e6647f74-ad2f-4cb9-887e-acb38b5f73c0&baseline=undefined",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/datasets/6e4766ca-6[…]ons=e6647f74-ad2f-4cb9-887e-acb38b5f73c0&baseline=undefined",
+      "error": null
+    },
+    {
+      "url": "https://langchain-ai.github.io/langgraph/concepts/#deployment-options",
+      "kind": "other",
+      "status": 404,
+      "ok": false,
+      "final_url": "https://langchain-ai.github.io/langgraph/concepts/#deployment-options",
+      "error": null
+    },
+    {
+      "url": "https://oap.langchain.com",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://oap.langchain.com/signin",
+      "error": null
+    },
+    {
+      "url": "https://docs.oap.langchain.com/quickstart",
+      "kind": "other",
+      "status": null,
+      "ok": false,
+      "final_url": "https://docs.oap.langchain.com/quickstart",
+      "error": "unresolvable"
+    },
+    {
+      "url": "https://docs.oap.langchain.com/setup/agents",
+      "kind": "other",
+      "status": null,
+      "ok": false,
+      "final_url": "https://docs.oap.langchain.com/setup/agents",
+      "error": "unresolvable"
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/12a2371b-8be2-4219-9b48-90503eb43c69",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465824799-12a2371b-8be2-4219-9b48-90503eb43c69.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20261010%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261010T084947Z&X-Amz-Expires=300&X-Amz-Signature=0b6e324b895957877d1f9ef5e3516f8cbbf464edb3d3080db625681fd7cd8c97&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng",
+      "error": null
+    },
+    {
+      "url": "https://github.com/user-attachments/assets/052f2ed3-c664-4a4f-8ec2-074349dcaa3f",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465825499-052f2ed3-c664-4a4f-8ec2-074349dcaa3f.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20261010%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261010T084947Z&X-Amz-Expires=300&X-Amz-Signature=32d4fc84ea470c483f5b2dce4ffcab91b9d2262ed351f8341a714a73f7014e5c&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng",
+      "error": null
+    },
+    {
+      "url": "https://github.com/langchain-ai/open_deep_research.git",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/langchain-ai/open_deep_research",
+      "error": null
+    },
+    {
+      "url": "http://127.0.0.1:2024",
+      "kind": "other",
+      "status": null,
+      "ok": null,
+      "final_url": "http://127.0.0.1:2024",
+      "error": "local_address"
+    },
+    {
+      "url": "https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024",
+      "error": null
+    },
+    {
+      "url": "http://127.0.0.1:2024/docs",
+      "kind": "other",
+      "status": null,
+      "ok": null,
+      "final_url": "http://127.0.0.1:2024/docs",
+      "error": "local_address"
+    }
+  ],
+  "videos": [
+    {
+      "url": "https://www.youtube.com/watch?v=agGiWUpxkhg",
+      "duration_s": 766,
+      "duration": "12:46",
+      "status": "known",
+      "reason": null,
+      "title": "Open Deep Research"
+    }
+  ],
+  "files_seen": 45,
+  "dependency_files": [
+    "pyproject.toml"
+  ],
+  "audit_id": "6dbfbb5d1c76",
+  "run_kind": "real",
+  "phase": "complete",
+  "score": {
+    "score": 18,
+    "max": 100,
+    "gated": false,
+    "gate_reason": null,
+    "estimated_points": 8.8,
+    "categories": [
+      {
+        "id": "agent",
+        "weight": 0.3,
+        "max_points": 30.0,
+        "points": 8.7,
+        "items": [
+          {
+            "id": "before_after",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "Before/after runs with numbers compared",
+            "status": "fail",
+            "detail": "no before/after comparison in README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "failure_recovery",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "A run where an action failed and what the agent did next",
+            "status": "fail",
+            "detail": "no mention of a failure and recovery",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "est:agent_quality",
+            "max_points": 7.65,
+            "estimated": true,
+            "title": "agent quality",
+            "status": "estimated",
+            "detail": "LLM estimate 7.0/10 (capped at 0.8)",
+            "credit": 0.7,
+            "points": 5.35
+          },
+          {
+            "id": "claims",
+            "max_points": 4.5,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "4 verified, 2 unverified",
+            "credit": 0.75,
+            "points": 3.38
+          }
+        ]
+      },
+      {
+        "id": "tools",
+        "weight": 0.25,
+        "max_points": 25.0,
+        "points": 2.5,
+        "items": [
+          {
+            "id": "neatlogs_sdk",
+            "max_points": 7.5,
+            "estimated": false,
+            "title": "neatlogs SDK is actually used",
+            "status": "fail",
+            "detail": "no sign of neatlogs in dependencies or README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "neatlogs_traces",
+            "max_points": 6.25,
+            "estimated": false,
+            "title": "neatlogs trace links",
+            "status": "fail",
+            "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "entire_checkpoints",
+            "max_points": 5.0,
+            "estimated": false,
+            "title": "Entire checkpoints / entire-graph output",
+            "status": "unverified",
+            "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+            "credit": 0.5,
+            "points": 2.5
+          },
+          {
+            "id": "cfo_ai_plan",
+            "max_points": 6.25,
+            "estimated": false,
+            "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+            "status": "fail",
+            "detail": "no cfo.ai plan link",
+            "credit": 0.0,
+            "points": 0.0
+          }
+        ]
+      },
+      {
+        "id": "demo_video",
+        "weight": 0.2,
+        "max_points": 20.0,
+        "points": 0.0,
+        "items": [
+          {
+            "id": "demo_video",
+            "max_points": 20.0,
+            "estimated": false,
+            "title": "Demo video (<= 3 min, covers all three tools)",
+            "status": "fail",
+            "detail": "video is 12:46, over the 3:00 limit",
+            "credit": 0.0,
+            "points": 0.0
+          }
+        ]
+      },
+      {
+        "id": "building_in_public",
+        "weight": 0.15,
+        "max_points": 15.0,
+        "points": 0.6,
+        "items": [
+          {
+            "id": "commits_in_window",
+            "max_points": 7.65,
+            "estimated": false,
+            "title": "Commits dated inside the hackathon window",
+            "status": "fail",
+            "detail": "0 inside, 224 before start, 0 after close; active days: none",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "public_posts",
+            "max_points": 5.1,
+            "estimated": false,
+            "title": "Building-in-public posts tagged #neatHack",
+            "status": "fail",
+            "detail": "no social posts linked",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "claims",
+            "max_points": 2.25,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 unverified",
+            "credit": 0.25,
+            "points": 0.56
+          }
+        ]
+      },
+      {
+        "id": "usefulness",
+        "weight": 0.1,
+        "max_points": 10.0,
+        "points": 6.3,
+        "items": [
+          {
+            "id": "readme_exists",
+            "max_points": 2.55,
+            "estimated": false,
+            "title": "README exists",
+            "status": "pass",
+            "detail": "README has 1069 words",
+            "credit": 1.0,
+            "points": 2.55
+          },
+          {
+            "id": "dead_links",
+            "max_points": 1.7,
+            "estimated": false,
+            "title": "No dead links in README",
+            "status": "fail",
+            "detail": "3/33 links dead",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "est:usefulness",
+            "max_points": 4.25,
+            "estimated": true,
+            "title": "usefulness",
+            "status": "estimated",
+            "detail": "LLM estimate 8.0/10 (capped at 0.8)",
+            "credit": 0.8,
+            "points": 3.4
+          },
+          {
+            "id": "claims",
+            "max_points": 1.5,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 unverified",
+            "credit": 0.25,
+            "points": 0.38
+          }
+        ]
+      }
+    ],
+    "fix_candidates": [
+      {
+        "check_id": "demo_video",
+        "category": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "detail": "video is 12:46, over the 3:00 limit",
+        "points": 20.0
+      },
+      {
+        "check_id": "before_after",
+        "category": "agent",
+        "title": "Before/after runs with numbers compared",
+        "detail": "no before/after comparison in README",
+        "points": 8.9
+      },
+      {
+        "check_id": "failure_recovery",
+        "category": "agent",
+        "title": "A run where an action failed and what the agent did next",
+        "detail": "no mention of a failure and recovery",
+        "points": 8.9
+      },
+      {
+        "check_id": "commits_in_window",
+        "category": "building_in_public",
+        "title": "Commits dated inside the hackathon window",
+        "detail": "0 inside, 224 before start, 0 after close; active days: none",
+        "points": 7.7
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "category": "tools",
+        "title": "neatlogs SDK is actually used",
+        "detail": "no sign of neatlogs in dependencies or README",
+        "points": 7.5
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "category": "tools",
+        "title": "neatlogs trace links",
+        "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+        "points": 6.2
+      },
+      {
+        "check_id": "cfo_ai_plan",
+        "category": "tools",
+        "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+        "detail": "no cfo.ai plan link",
+        "points": 6.2
+      },
+      {
+        "check_id": "public_posts",
+        "category": "building_in_public",
+        "title": "Building-in-public posts tagged #neatHack",
+        "detail": "no social posts linked",
+        "points": 5.1
+      },
+      {
+        "check_id": "entire_checkpoints",
+        "category": "tools",
+        "title": "Entire checkpoints / entire-graph output",
+        "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+        "points": 2.5
+      },
+      {
+        "check_id": "claims",
+        "category": "building_in_public",
+        "title": "README claims backed by evidence",
+        "detail": "1 unverified",
+        "points": 1.7
+      },
+      {
+        "check_id": "dead_links",
+        "category": "usefulness",
+        "title": "No dead links in README",
+        "detail": "3/33 links dead",
+        "points": 1.7
+      },
+      {
+        "check_id": "claims",
+        "category": "agent",
+        "title": "README claims backed by evidence",
+        "detail": "4 verified, 2 unverified",
+        "points": 1.1
+      },
+      {
+        "check_id": "claims",
+        "category": "usefulness",
+        "title": "README claims backed by evidence",
+        "detail": "1 unverified",
+        "points": 1.1
+      }
+    ],
+    "flags": {
+      "prompt_injection": false
+    }
+  },
+  "verdict": {
+    "roast": "I find it difficult to grade a submission that presents a 12:46 video against a strict 3:00 limit, a violation of the syllabus that borders on negligence. Furthermore, the repository contains 0 commits inside the hackathon window, suggesting you simply submitted a pre-existing term paper from 2024-11-20 without any new analysis.",
+    "fixes": [
+      {
+        "check_id": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "points": 20.0,
+        "fix": "Edit the demo video to be under 3 minutes, ensuring it clearly demonstrates all three required tools within the new time limit."
+      },
+      {
+        "check_id": "before_after",
+        "title": "Before/after runs with numbers compared",
+        "points": 8.9,
+        "fix": "Add a section to the README comparing specific metrics or outputs from a 'before' state versus an 'after' state to demonstrate improvement."
+      },
+      {
+        "check_id": "failure_recovery",
+        "title": "A run where an action failed and what the agent did next",
+        "points": 8.9,
+        "fix": "Document a specific instance where an agent action failed and describe the exact recovery steps the agent took to resolve the issue."
+      },
+      {
+        "check_id": "commits_in_window",
+        "title": "Commits dated inside the hackathon window",
+        "points": 7.7,
+        "fix": "Make new commits to the repository that fall within the official hackathon date range to demonstrate active development during the event."
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "title": "neatlogs SDK is actually used",
+        "points": 7.5,
+        "fix": "Integrate the neatlogs SDK into your project dependencies and update the README to explain how it is being utilized."
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "title": "neatlogs trace links",
+        "points": 6.2,
+        "fix": "Add direct links to neatlogs trace data or include screenshots of the traces in the README for judge verification."
+      }
+    ],
+    "best_thing": "The repository has garnered 12682 GitHub stars, indicating significant community interest and adoption.",
+    "style": "strict professor",
+    "source": "llm"
+  },
+  "phases": {
+    "quick": {
+      "ms": 11657,
+      "usage": {
+        "prompt_tokens": 3729,
+        "completion_tokens": 506,
+        "total_tokens": 4235,
+        "calls": 2,
+        "failed_calls": 0,
+        "by_model": {
+          "qwen/qwen3.8-27b": {
+            "prompt_tokens": 3729,
+            "completion_tokens": 506,
+            "calls": 2
+          }
+        }
+      }
+    },
+    "deep": {
+      "ms": 80842,
+      "usage": {
+        "prompt_tokens": 16803,
+        "completion_tokens": 1879,
+        "total_tokens": 18682,
+        "calls": 5,
+        "failed_calls": 2,
+        "by_model": {
+          "openai/gpt-oss-20b": {
+            "prompt_tokens": 8379,
+            "completion_tokens": 1281,
+            "calls": 2
+          },
+          "qwen/qwen3.8-27b": {
+            "prompt_tokens": 8424,
+            "completion_tokens": 598,
+            "calls": 3
+          }
+        }
+      }
+    }
+  },
+  "usage": {
+    "total_tokens": 22917,
+    "calls": 7,
+    "quick": {
+      "prompt_tokens": 3729,
+      "completion_tokens": 506,
+      "total_tokens": 4235,
+      "calls": 2,
+      "failed_calls": 0,
+      "by_model": {
+        "qwen/qwen3.8-27b": {
+          "prompt_tokens": 3729,
+          "completion_tokens": 506,
+          "calls": 2
+        }
+      }
+    },
+    "deep": {
+      "prompt_tokens": 16803,
+      "completion_tokens": 1879,
+      "total_tokens": 18682,
+      "calls": 5,
+      "failed_calls": 2,
+      "by_model": {
+        "openai/gpt-oss-20b": {
+          "prompt_tokens": 8379,
+          "completion_tokens": 1281,
+          "calls": 2
+        },
+        "qwen/qwen3.8-27b": {
+          "prompt_tokens": 8424,
+          "completion_tokens": 598,
+          "calls": 3
+        }
+      }
+    }
+  },
+  "timing_ms": {
+    "quick": 11657,
+    "deep": 80842,
+    "total": 92499
+  },
+  "agent": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "claim": "The project ranks #6 on the Deep Research Bench Leaderboard with an overall score of 0.4344",
+        "quote": "Achieved #6 ranking on the Deep Research Bench Leaderboard with an overall score of 0.4344",
+        "category": "usefulness",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:15",
+            "note": "mentions #6 ranking and score 0.4344"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README explicitly states the ranking and score.)"
+      },
+      {
+        "claim_id": "c2",
+        "claim": "The agent supports GPT‑5 as a research model and GPT‑4.1‑mini for summarization",
+        "quote": "Added GPT‑5 and updated the Deep Research Bench evaluation w/ GPT‑5 results",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "src/open_deep_research/configuration.py:122-123",
+            "note": "default summarization_model set to openai:gpt-4.1-mini"
+          }
+        ],
+        "reason": "Configuration file shows GPT‑4.1‑mini as summarization model; GPT‑5 is referenced in README but not in config, but the claim only requires support for GPT‑5 as research model, which is implied by the README update line."
+      },
+      {
+        "claim_id": "c3",
+        "claim": "The agent can be run locally with a LangGraph server and exposes an API at http://127.0.0.1:2024",
+        "quote": "Launch agent with the LangGraph server locally",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:47-53",
+            "note": "shows launch command and API URL 127.0.0.1:2024"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README provides exact command and API URL.)"
+      },
+      {
+        "claim_id": "c4",
+        "claim": "The agent supports a wide range of LLM providers via init_chat_model() and requires models that support structured outputs and tool calling",
+        "quote": "Open Deep Research supports a wide range of LLM providers via the init_chat_model() API",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "src/legacy/graph.py:3",
+            "note": "imports init_chat_model"
+          },
+          {
+            "ref": "src/legacy/graph.py:85-86",
+            "note": "uses init_chat_model and with_structured_output"
+          },
+          {
+            "ref": "src/legacy/graph.py:121-122",
+            "note": "uses init_chat_model for planner"
+          }
+        ],
+        "reason": "Code uses init_chat_model and structured output, indicating support for structured outputs and tool calling."
+      },
+      {
+        "claim_id": "c5",
+        "claim": "The agent supports a wide range of search tools, defaulting to the Tavily search API and full MCP compatibility",
+        "quote": "Open Deep Research supports a wide range of search tools. By default it uses the Tavily search API",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "pyproject.toml:16-19",
+            "note": "includes langchain-mcp-adapters and langchain-tavily dependencies"
+          }
+        ],
+        "reason": "Dependencies list includes MCP adapters and Tavily."
+      },
+      {
+        "claim_id": "c6",
+        "claim": "The agent can be evaluated against the Deep Research Bench benchmark of 100 PhD‑level tasks",
+        "quote": "Open Deep Research is configured for evaluation with Deep Research Bench",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "tests/run_evaluate.py:14",
+            "note": "dataset_name set to \"Deep Research Bench\""
+          }
+        ],
+        "reason": "Evaluation script configured for Deep Research Bench."
+      },
+      {
+        "claim_id": "c7",
+        "claim": "Running the full evaluation can cost between $20 and $100 depending on model selection",
+        "quote": "Running across the 100 examples can cost ~$20-$100 depending on the model selection",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:89",
+            "note": "states cost ~$20-$100"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README contains the cost estimate.)"
+      },
+      {
+        "claim_id": "c8",
+        "claim": "The repository provides a quickstart script that installs dependencies with uv and launches the LangGraph Studio UI",
+        "quote": "Launch agent with the LangGraph server locally",
+        "category": "building_in_public",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:32-34",
+            "note": "uv sync command"
+          },
+          {
+            "ref": "README.md:47",
+            "note": "uvx langgraph dev command"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README shows quickstart script with uv sync and LangGraph Studio launch.)"
+      }
+    ],
+    "estimates": {
+      "agent_quality": {
+        "score": 7.0,
+        "evidence": [
+          "src/legacy/graph.py:85-86",
+          "src/legacy/graph.py:121-122"
+        ],
+        "reason": "The agent code shows a retry loop for structured output and uses planner/worker models, indicating a basic agent loop, but no explicit planning or recovery logic is visible."
+      },
+      "usefulness": {
+        "score": 8.0,
+        "evidence": [
+          "README.md:5-15",
+          "README.md:21-55"
+        ],
+        "reason": "The project provides a fully open‑source deep research agent with clear documentation, quickstart, and benchmark results, making it useful and somewhat original for researchers."
+      }
+    },
+    "injection": {
+      "detected": false,
+      "deterministic": [],
+      "reported_by_llm": []
+    },
+    "tool_calls": 3,
+    "files_read": [
+      "README.md",
+      "langgraph.json",
+      "src/open_deep_research/configuration.py"
+    ],
+    "files_searched": 8,
+    "snapshot": {
+      "files": 41,
+      "text_mb": 0.51,
+      "skipped": {
+        "too_large": 3,
+        "lockfile": 1
+      },
+      "truncated": false
+    }
+  }
+}

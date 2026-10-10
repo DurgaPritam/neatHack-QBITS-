@@ -1,0 +1,1035 @@
+{
+  "repo_url": "https://github.com/openai/swarm",
+  "audited_at": "2026-10-10T08:48:22+00:00",
+  "mode": "full",
+  "window": {
+    "start": "2026-10-10T07:00:00+00:00",
+    "end": "2026-10-12T18:25:00+00:00"
+  },
+  "github_authenticated": true,
+  "head_sha": "6af0b4caf37dca4526dfd98e9fbd8ce36e7eeb22",
+  "github_rate_limit_remaining": 4927,
+  "repo": {
+    "full_name": "openai/swarm",
+    "private": false,
+    "default_branch": "main",
+    "description": "Educational framework exploring ergonomic, lightweight multi-agent orchestration. Managed by OpenAI Solution team.",
+    "homepage": "",
+    "created_at": "2024-02-22T20:53:54Z",
+    "pushed_at": "2026-04-15T17:10:28Z",
+    "stars": 22047,
+    "fork": false,
+    "archived": false
+  },
+  "partial": true,
+  "steps": [
+    {
+      "name": "parse_url",
+      "status": "ok",
+      "detail": "openai/swarm",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "github.get_repo",
+      "status": "ok",
+      "detail": "default branch main",
+      "error_kind": null,
+      "duration_ms": 631,
+      "data": {}
+    },
+    {
+      "name": "github.get_readme",
+      "status": "ok",
+      "detail": "README.md (16856 chars)",
+      "error_kind": null,
+      "duration_ms": 392,
+      "data": {}
+    },
+    {
+      "name": "github.get_tree",
+      "status": "ok",
+      "detail": "288 files",
+      "error_kind": null,
+      "duration_ms": 389,
+      "data": {}
+    },
+    {
+      "name": "github.get_dependency_files",
+      "status": "ok",
+      "detail": "fetched 3/3",
+      "error_kind": null,
+      "duration_ms": 1025,
+      "data": {}
+    },
+    {
+      "name": "github.get_commits",
+      "status": "ok",
+      "detail": "29 commits",
+      "error_kind": null,
+      "duration_ms": 458,
+      "data": {}
+    },
+    {
+      "name": "links.check",
+      "status": "ok",
+      "detail": "10 links, 0 dead",
+      "error_kind": null,
+      "duration_ms": 1356,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 1139,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3154,
+        "scheduled": "4846 tokens left this minute",
+        "tokens": 2664,
+        "latency_ms": 1139
+      }
+    },
+    {
+      "name": "quick_verdict.roast_rejected",
+      "status": "failed",
+      "detail": "reuses a joke from a recent roast: \"readme that reads like a\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict.roast_retry",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 377,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 1731,
+        "scheduled": "3315 tokens left this minute",
+        "tokens": 1384,
+        "latency_ms": 377
+      }
+    },
+    {
+      "name": "quick_verdict.roast_template",
+      "status": "ok",
+      "detail": "rewrite still broke the rules: reuses a joke from a recent roast: \"readme that reads like a\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "github.download_tarball",
+      "status": "ok",
+      "detail": "285 text files in memory (0.51 MB tarball)",
+      "error_kind": null,
+      "duration_ms": 1141,
+      "data": {
+        "mb": 0.51,
+        "files": 285,
+        "text_mb": 0.54,
+        "skipped": {
+          "binary": 3
+        },
+        "truncated": false
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "failed",
+      "detail": "qwen/qwen3.8-27b: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_[redacted]` service tier `on_demand` on output tokens per minute (OTPM): Limit 1000, Used 459, Requested 905. Please try again in 21.84s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceede",
+      "error_kind": "rate_limited",
+      "duration_ms": 140,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3880,
+        "scheduled": "5 tokens left this minute"
+      }
+    },
+    {
+      "name": "llm.claims.fallback",
+      "status": "ok",
+      "detail": "switching to model openai/gpt-oss-120b",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "model": "openai/gpt-oss-120b",
+        "after": "rate_limited"
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "failed",
+      "detail": "openai/gpt-oss-120b: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_[redacted]` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199577, Requested 2676. Please try again in 16m13.296s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_excee",
+      "error_kind": "rate_limited",
+      "duration_ms": 60,
+      "data": {
+        "model": "openai/gpt-oss-120b",
+        "est_tokens": 3880,
+        "scheduled": "4120 tokens left this minute"
+      }
+    },
+    {
+      "name": "llm.claims.fallback",
+      "status": "ok",
+      "detail": "switching to model openai/gpt-oss-20b",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "after": "rate_limited"
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 958,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 3880,
+        "scheduled": "4120 tokens left this minute",
+        "tokens": 2416,
+        "latency_ms": 958
+      }
+    },
+    {
+      "name": "verify.presearch",
+      "status": "ok",
+      "detail": "7 claims searched, 7 files with hits",
+      "error_kind": null,
+      "duration_ms": 37,
+      "data": {}
+    },
+    {
+      "name": "llm.verify",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 1019,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 4084,
+        "scheduled": "998 tokens left this minute",
+        "tokens": 3342,
+        "latency_ms": 1019
+      }
+    },
+    {
+      "name": "llm.verdict.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 19.9s for quota (qwen/qwen3.8-27b: cooling down; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 2188 tokens left, need 3360)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 19.9
+      }
+    },
+    {
+      "name": "llm.verdict.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 5.7s for quota (qwen/qwen3.8-27b: 0 tokens left, need 3360; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 2188 tokens left, need 3360)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 5.7
+      }
+    },
+    {
+      "name": "llm.verdict",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 1186,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3360,
+        "scheduled": "4640 tokens left this minute",
+        "tokens": 2797,
+        "latency_ms": 1186
+      }
+    },
+    {
+      "name": "verdict.roast_rejected",
+      "status": "failed",
+      "detail": "reuses a joke from a recent roast: \"scoreboard is frozen in time\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "llm.verdict.roast_retry",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 419,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 1941,
+        "scheduled": "3184 tokens left this minute",
+        "tokens": 1590,
+        "latency_ms": 419
+      }
+    },
+    {
+      "name": "verdict.roast_template",
+      "status": "ok",
+      "detail": "rewrite still broke the rules: reuses a joke from a recent roast: \"scoreboard is frozen in time\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    }
+  ],
+  "checks": [
+    {
+      "id": "repo_public",
+      "category": "eligibility",
+      "title": "Repo is public",
+      "status": "pass",
+      "detail": "openai/swarm is publicly readable",
+      "evidence": []
+    },
+    {
+      "id": "prompt_injection",
+      "category": "eligibility",
+      "title": "No prompt injection aimed at judges",
+      "status": "pass",
+      "detail": "no injection patterns found",
+      "evidence": []
+    },
+    {
+      "id": "readme_exists",
+      "category": "eligibility",
+      "title": "README exists",
+      "status": "pass",
+      "detail": "README has 1942 words",
+      "evidence": []
+    },
+    {
+      "id": "commits_in_window",
+      "category": "building_in_public",
+      "title": "Commits dated inside the hackathon window",
+      "status": "fail",
+      "detail": "0 inside, 29 before start, 0 after close; active days: none",
+      "evidence": [
+        "6af0b4caf37d 2026-04-15T17:10:28Z Pin pre-commit hook revisions to immutable commits (#83)",
+        "0c82d7d868bb 2025-03-11T17:27:22Z update readme",
+        "b186492333e5 2025-03-11T17:22:35Z update pointer to Agents SDK"
+      ]
+    },
+    {
+      "id": "neatlogs_sdk",
+      "category": "tools",
+      "title": "neatlogs SDK is actually used",
+      "status": "fail",
+      "detail": "no sign of neatlogs in dependencies or README",
+      "evidence": []
+    },
+    {
+      "id": "neatlogs_traces",
+      "category": "tools",
+      "title": "neatlogs trace links",
+      "status": "fail",
+      "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+      "evidence": []
+    },
+    {
+      "id": "entire_checkpoints",
+      "category": "tools",
+      "title": "Entire checkpoints / entire-graph output",
+      "status": "unverified",
+      "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+      "evidence": []
+    },
+    {
+      "id": "cfo_ai_plan",
+      "category": "tools",
+      "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+      "status": "fail",
+      "detail": "no cfo.ai plan link",
+      "evidence": []
+    },
+    {
+      "id": "demo_video",
+      "category": "demo_video",
+      "title": "Demo video (<= 3 min, covers all three tools)",
+      "status": "fail",
+      "detail": "no YouTube/Loom/Vimeo link in README",
+      "evidence": [],
+      "data": {
+        "duration_status": "no_video"
+      }
+    },
+    {
+      "id": "public_posts",
+      "category": "building_in_public",
+      "title": "Building-in-public posts tagged #neatHack",
+      "status": "fail",
+      "detail": "no social posts linked",
+      "evidence": []
+    },
+    {
+      "id": "before_after",
+      "category": "agent",
+      "title": "Before/after runs with numbers compared",
+      "status": "fail",
+      "detail": "no before/after comparison in README",
+      "evidence": []
+    },
+    {
+      "id": "failure_recovery",
+      "category": "agent",
+      "title": "A run where an action failed and what the agent did next",
+      "status": "unverified",
+      "detail": "README talks about failures/recovery; needs LLM + trace verification",
+      "evidence": [
+        "e will be appended to the chat so the `Agent` can recover gracefully. - If multiple functions are called by"
+      ]
+    },
+    {
+      "id": "dead_links",
+      "category": "usefulness",
+      "title": "No dead links in README",
+      "status": "pass",
+      "detail": "10 links checked, 2 unknown (bot-blocked or local)",
+      "evidence": [
+        "https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages",
+        "https://platform.openai.com/docs/api-reference/streaming"
+      ]
+    }
+  ],
+  "summary": {
+    "pass": 4,
+    "warn": 0,
+    "fail": 7,
+    "unverified": 2
+  },
+  "links": [
+    {
+      "url": "https://github.com/openai/openai-agents-python",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/openai/openai-agents-python",
+      "error": null
+    },
+    {
+      "url": "https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages",
+      "kind": "other",
+      "status": 403,
+      "ok": null,
+      "final_url": "https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages",
+      "error": "bot_blocked"
+    },
+    {
+      "url": "https://platform.openai.com/docs/api-reference/streaming",
+      "kind": "other",
+      "status": 403,
+      "ok": null,
+      "final_url": "https://platform.openai.com/docs/api-reference/streaming",
+      "error": "bot_blocked"
+    },
+    {
+      "url": "https://github.com/ibigio",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/ibigio",
+      "error": null
+    },
+    {
+      "url": "https://github.com/jhills20",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/jhills20",
+      "error": null
+    },
+    {
+      "url": "https://github.com/shyamal-anadkat",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/shyamal-anadkat",
+      "error": null
+    },
+    {
+      "url": "https://github.com/charuj",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/charuj",
+      "error": null
+    },
+    {
+      "url": "https://github.com/colin-openai",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/colin-openai",
+      "error": null
+    },
+    {
+      "url": "https://github.com/katia-openai",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/katia-openai",
+      "error": null
+    },
+    {
+      "url": "https://github.com/openai/swarm.git",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/openai/swarm",
+      "error": null
+    }
+  ],
+  "videos": [],
+  "files_seen": 288,
+  "dependency_files": [
+    "pyproject.toml",
+    "setup.cfg",
+    "examples/support_bot/requirements.txt"
+  ],
+  "audit_id": "4d5dbd1bf972",
+  "run_kind": "real",
+  "phase": "complete",
+  "score": {
+    "score": 24,
+    "max": 100,
+    "gated": false,
+    "gate_reason": null,
+    "estimated_points": 7.3,
+    "categories": [
+      {
+        "id": "agent",
+        "weight": 0.3,
+        "max_points": 30.0,
+        "points": 10.5,
+        "items": [
+          {
+            "id": "before_after",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "Before/after runs with numbers compared",
+            "status": "fail",
+            "detail": "no before/after comparison in README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "failure_recovery",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "A run where an action failed and what the agent did next",
+            "status": "unverified",
+            "detail": "README talks about failures/recovery; needs LLM + trace verification",
+            "credit": 0.5,
+            "points": 4.46
+          },
+          {
+            "id": "est:agent_quality",
+            "max_points": 7.65,
+            "estimated": true,
+            "title": "agent quality",
+            "status": "estimated",
+            "detail": "LLM estimate 5.0/10 (capped at 0.8)",
+            "credit": 0.5,
+            "points": 3.83
+          },
+          {
+            "id": "claims",
+            "max_points": 4.5,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "2 verified, 4 unverified",
+            "credit": 0.5,
+            "points": 2.25
+          }
+        ]
+      },
+      {
+        "id": "tools",
+        "weight": 0.25,
+        "max_points": 25.0,
+        "points": 2.5,
+        "items": [
+          {
+            "id": "neatlogs_sdk",
+            "max_points": 7.5,
+            "estimated": false,
+            "title": "neatlogs SDK is actually used",
+            "status": "fail",
+            "detail": "no sign of neatlogs in dependencies or README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "neatlogs_traces",
+            "max_points": 6.25,
+            "estimated": false,
+            "title": "neatlogs trace links",
+            "status": "fail",
+            "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "entire_checkpoints",
+            "max_points": 5.0,
+            "estimated": false,
+            "title": "Entire checkpoints / entire-graph output",
+            "status": "unverified",
+            "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+            "credit": 0.5,
+            "points": 2.5
+          },
+          {
+            "id": "cfo_ai_plan",
+            "max_points": 6.25,
+            "estimated": false,
+            "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+            "status": "fail",
+            "detail": "no cfo.ai plan link",
+            "credit": 0.0,
+            "points": 0.0
+          }
+        ]
+      },
+      {
+        "id": "demo_video",
+        "weight": 0.2,
+        "max_points": 20.0,
+        "points": 0.0,
+        "items": [
+          {
+            "id": "demo_video",
+            "max_points": 20.0,
+            "estimated": false,
+            "title": "Demo video (<= 3 min, covers all three tools)",
+            "status": "fail",
+            "detail": "no YouTube/Loom/Vimeo link in README",
+            "credit": 0.0,
+            "points": 0.0
+          }
+        ]
+      },
+      {
+        "id": "building_in_public",
+        "weight": 0.15,
+        "max_points": 15.0,
+        "points": 2.2,
+        "items": [
+          {
+            "id": "commits_in_window",
+            "max_points": 7.65,
+            "estimated": false,
+            "title": "Commits dated inside the hackathon window",
+            "status": "fail",
+            "detail": "0 inside, 29 before start, 0 after close; active days: none",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "public_posts",
+            "max_points": 5.1,
+            "estimated": false,
+            "title": "Building-in-public posts tagged #neatHack",
+            "status": "fail",
+            "detail": "no social posts linked",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "claims",
+            "max_points": 2.25,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 verified",
+            "credit": 1.0,
+            "points": 2.25
+          }
+        ]
+      },
+      {
+        "id": "usefulness",
+        "weight": 0.1,
+        "max_points": 10.0,
+        "points": 8.5,
+        "items": [
+          {
+            "id": "readme_exists",
+            "max_points": 3.0,
+            "estimated": false,
+            "title": "README exists",
+            "status": "pass",
+            "detail": "README has 1942 words",
+            "credit": 1.0,
+            "points": 3.0
+          },
+          {
+            "id": "dead_links",
+            "max_points": 2.0,
+            "estimated": false,
+            "title": "No dead links in README",
+            "status": "pass",
+            "detail": "10 links checked, 2 unknown (bot-blocked or local)",
+            "credit": 1.0,
+            "points": 2.0
+          },
+          {
+            "id": "est:usefulness",
+            "max_points": 5.0,
+            "estimated": true,
+            "title": "usefulness",
+            "status": "estimated",
+            "detail": "LLM estimate 7.0/10 (capped at 0.8)",
+            "credit": 0.7,
+            "points": 3.5
+          }
+        ]
+      }
+    ],
+    "fix_candidates": [
+      {
+        "check_id": "demo_video",
+        "category": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "detail": "no YouTube/Loom/Vimeo link in README",
+        "points": 20.0
+      },
+      {
+        "check_id": "before_after",
+        "category": "agent",
+        "title": "Before/after runs with numbers compared",
+        "detail": "no before/after comparison in README",
+        "points": 8.9
+      },
+      {
+        "check_id": "commits_in_window",
+        "category": "building_in_public",
+        "title": "Commits dated inside the hackathon window",
+        "detail": "0 inside, 29 before start, 0 after close; active days: none",
+        "points": 7.7
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "category": "tools",
+        "title": "neatlogs SDK is actually used",
+        "detail": "no sign of neatlogs in dependencies or README",
+        "points": 7.5
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "category": "tools",
+        "title": "neatlogs trace links",
+        "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+        "points": 6.2
+      },
+      {
+        "check_id": "cfo_ai_plan",
+        "category": "tools",
+        "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+        "detail": "no cfo.ai plan link",
+        "points": 6.2
+      },
+      {
+        "check_id": "public_posts",
+        "category": "building_in_public",
+        "title": "Building-in-public posts tagged #neatHack",
+        "detail": "no social posts linked",
+        "points": 5.1
+      },
+      {
+        "check_id": "failure_recovery",
+        "category": "agent",
+        "title": "A run where an action failed and what the agent did next",
+        "detail": "README talks about failures/recovery; needs LLM + trace verification",
+        "points": 4.5
+      },
+      {
+        "check_id": "entire_checkpoints",
+        "category": "tools",
+        "title": "Entire checkpoints / entire-graph output",
+        "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+        "points": 2.5
+      },
+      {
+        "check_id": "claims",
+        "category": "agent",
+        "title": "README claims backed by evidence",
+        "detail": "2 verified, 4 unverified",
+        "points": 2.2
+      }
+    ],
+    "flags": {
+      "prompt_injection": false
+    }
+  },
+  "verdict": {
+    "roast": "Play-by-play update: README has 1942 words. Judges grade evidence, not intentions.",
+    "fixes": [
+      {
+        "check_id": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "points": 20.0,
+        "fix": "Record a demo of at most 3 minutes that shows neatlogs, Entire and cfo.ai in action, and link it at the top of the README."
+      },
+      {
+        "check_id": "before_after",
+        "title": "Before/after runs with numbers compared",
+        "points": 8.9,
+        "fix": "Add a section to the README comparing before and after runs with specific numerical metrics to demonstrate improvement."
+      },
+      {
+        "check_id": "commits_in_window",
+        "title": "Commits dated inside the hackathon window",
+        "points": 7.7,
+        "fix": "Make new commits to the repository that are dated within the hackathon window to show active development during the event."
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "title": "neatlogs SDK is actually used",
+        "points": 7.5,
+        "fix": "Integrate the neatlogs SDK into the project dependencies and document its usage in the README."
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "title": "neatlogs trace links",
+        "points": 6.2,
+        "fix": "Add neatlogs trace links or screenshots to the README to provide evidence of the agent's execution path."
+      },
+      {
+        "check_id": "cfo_ai_plan",
+        "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+        "points": 6.2,
+        "fix": "Create and link a cfo.ai business plan in the README that details pricing, costs, revenue, and runway."
+      }
+    ],
+    "best_thing": "The repo has a verified claim that it handles Agent function execution and hand-offs, as evidenced by specific lines in swarm/core.py.",
+    "style": "sports commentator",
+    "source": "llm"
+  },
+  "phases": {
+    "quick": {
+      "ms": 6125,
+      "usage": {
+        "prompt_tokens": 3546,
+        "completion_tokens": 502,
+        "total_tokens": 4048,
+        "calls": 2,
+        "failed_calls": 0,
+        "by_model": {
+          "qwen/qwen3.8-27b": {
+            "prompt_tokens": 3546,
+            "completion_tokens": 502,
+            "calls": 2
+          }
+        }
+      }
+    },
+    "deep": {
+      "ms": 30606,
+      "usage": {
+        "prompt_tokens": 8819,
+        "completion_tokens": 1326,
+        "total_tokens": 10145,
+        "calls": 4,
+        "failed_calls": 2,
+        "by_model": {
+          "openai/gpt-oss-20b": {
+            "prompt_tokens": 4888,
+            "completion_tokens": 870,
+            "calls": 2
+          },
+          "qwen/qwen3.8-27b": {
+            "prompt_tokens": 3931,
+            "completion_tokens": 456,
+            "calls": 2
+          }
+        }
+      }
+    }
+  },
+  "usage": {
+    "total_tokens": 14193,
+    "calls": 6,
+    "quick": {
+      "prompt_tokens": 3546,
+      "completion_tokens": 502,
+      "total_tokens": 4048,
+      "calls": 2,
+      "failed_calls": 0,
+      "by_model": {
+        "qwen/qwen3.8-27b": {
+          "prompt_tokens": 3546,
+          "completion_tokens": 502,
+          "calls": 2
+        }
+      }
+    },
+    "deep": {
+      "prompt_tokens": 8819,
+      "completion_tokens": 1326,
+      "total_tokens": 10145,
+      "calls": 4,
+      "failed_calls": 2,
+      "by_model": {
+        "openai/gpt-oss-20b": {
+          "prompt_tokens": 4888,
+          "completion_tokens": 870,
+          "calls": 2
+        },
+        "qwen/qwen3.8-27b": {
+          "prompt_tokens": 3931,
+          "completion_tokens": 456,
+          "calls": 2
+        }
+      }
+    }
+  },
+  "timing_ms": {
+    "quick": 6125,
+    "deep": 30606,
+    "total": 36731
+  },
+  "agent": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "claim": "Swarm requires Python 3.10 or newer",
+        "quote": "Requires Python 3.10+",
+        "category": "building_in_public",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "setup.cfg:22",
+            "note": "python_requires >=3.10"
+          }
+        ],
+        "reason": "setup.cfg specifies python_requires >=3.10, matching claim."
+      },
+      {
+        "claim_id": "c2",
+        "claim": "Swarm provides a client class named Swarm that internally uses an OpenAI client",
+        "quote": "instantiates an `OpenAI` client",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Search results show many matches but no clear evidence that Swarm class instantiates an OpenAI client. The search returned many unrelated lines. No file path shows Swarm class definition with OpenAI import."
+      },
+      {
+        "claim_id": "c3",
+        "claim": "Swarm's client.run() handles function calls, hand-offs, context variables, and can perform multiple turns before returning",
+        "quote": "handles Agent function execution, hand-offs, context variable references, and can take multiple turns",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "swarm/core.py:146",
+            "note": "max_turns parameter defined"
+          },
+          {
+            "ref": "swarm/core.py:154",
+            "note": "loop uses max_turns"
+          },
+          {
+            "ref": "swarm/core.py:198",
+            "note": "handles tool calls and execution"
+          }
+        ],
+        "reason": "Core client.run implements max_turns, execute_tools, and handles function calls."
+      },
+      {
+        "claim_id": "c4",
+        "claim": "Swarm's client.run() accepts a stream flag to enable streaming responses",
+        "quote": "If `True`, enables streaming responses",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "swarm/core.py:176",
+            "note": "stream=True passed to API call"
+          }
+        ],
+        "reason": "Code shows stream flag usage."
+      },
+      {
+        "claim_id": "c5",
+        "claim": "Swarm's client.run() accepts a debug flag to enable debug logging",
+        "quote": "If `True`, enables debug logging",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Only example usage shows debug=True; no evidence that client.run accepts a debug flag."
+      },
+      {
+        "claim_id": "c6",
+        "claim": "Swarm supports hand-offs between agents via a primitive abstraction called handoffs",
+        "quote": "can at any point choose to hand off a conversation to another `Agent`",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Search results do not show a handoff abstraction; only references to Agent class. No concrete implementation found."
+      },
+      {
+        "claim_id": "c7",
+        "claim": "Swarm is stateless between calls and does not store state",
+        "quote": "Swarm is entirely powered by the Chat Completions API and is hence stateless between calls",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:116",
+            "note": "run() saves no state"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README states run() does not store state.)"
+      }
+    ],
+    "estimates": {
+      "agent_quality": {
+        "score": 5.0,
+        "evidence": [
+          "README.md:116",
+          "swarm/core.py:146"
+        ],
+        "reason": "The code shows a simple loop and state handling, but no advanced planning or recovery logic visible."
+      },
+      "usefulness": {
+        "score": 7.0,
+        "evidence": [
+          "README.md",
+          "examples"
+        ],
+        "reason": "The library provides a lightweight stateless agent framework with streaming and function calls, useful for simple multi-agent orchestration."
+      }
+    },
+    "injection": {
+      "detected": false,
+      "deterministic": [],
+      "reported_by_llm": []
+    },
+    "tool_calls": 0,
+    "files_read": [],
+    "files_searched": 7,
+    "snapshot": {
+      "files": 285,
+      "text_mb": 0.54,
+      "skipped": {
+        "binary": 3
+      },
+      "truncated": false
+    }
+  }
+}

@@ -1,0 +1,1223 @@
+{
+  "repo_url": "https://github.com/huggingface/smolagents",
+  "audited_at": "2026-10-10T08:49:00+00:00",
+  "mode": "full",
+  "window": {
+    "start": "2026-10-10T07:00:00+00:00",
+    "end": "2026-10-12T18:25:00+00:00"
+  },
+  "github_authenticated": true,
+  "head_sha": "96f33faaf028479119ec8d34507b47694cf14e34",
+  "github_rate_limit_remaining": 4921,
+  "repo": {
+    "full_name": "huggingface/smolagents",
+    "private": false,
+    "default_branch": "main",
+    "description": "🤗 smolagents: a barebones library for agents that think in code.",
+    "homepage": "https://huggingface.co/docs/smolagents",
+    "created_at": "2024-12-05T11:28:04Z",
+    "pushed_at": "2026-10-06T18:35:07Z",
+    "stars": 29763,
+    "fork": false,
+    "archived": false
+  },
+  "partial": true,
+  "steps": [
+    {
+      "name": "parse_url",
+      "status": "ok",
+      "detail": "huggingface/smolagents",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "github.get_repo",
+      "status": "ok",
+      "detail": "default branch main",
+      "error_kind": null,
+      "duration_ms": 512,
+      "data": {}
+    },
+    {
+      "name": "github.get_readme",
+      "status": "ok",
+      "detail": "README.md (14105 chars)",
+      "error_kind": null,
+      "duration_ms": 417,
+      "data": {}
+    },
+    {
+      "name": "github.get_tree",
+      "status": "ok",
+      "detail": "185 files",
+      "error_kind": null,
+      "duration_ms": 380,
+      "data": {}
+    },
+    {
+      "name": "github.get_dependency_files",
+      "status": "ok",
+      "detail": "fetched 3/3",
+      "error_kind": null,
+      "duration_ms": 1045,
+      "data": {}
+    },
+    {
+      "name": "github.get_commits",
+      "status": "ok",
+      "detail": "300 commits (truncated)",
+      "error_kind": null,
+      "duration_ms": 2180,
+      "data": {}
+    },
+    {
+      "name": "links.check",
+      "status": "ok",
+      "detail": "40 links, 0 dead",
+      "error_kind": null,
+      "duration_ms": 4101,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 1067,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 3176,
+        "scheduled": "4824 tokens left this minute",
+        "tokens": 2630,
+        "latency_ms": 1067
+      }
+    },
+    {
+      "name": "quick_verdict.roast_rejected",
+      "status": "failed",
+      "detail": "reuses a joke from a recent roast: \"zero commits during the hackathon\"",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {}
+    },
+    {
+      "name": "llm.quick_verdict.roast_retry",
+      "status": "ok",
+      "detail": "qwen/qwen3.8-27b ok",
+      "error_kind": null,
+      "duration_ms": 351,
+      "data": {
+        "model": "qwen/qwen3.8-27b",
+        "est_tokens": 1711,
+        "scheduled": "783 tokens left this minute",
+        "tokens": 1351,
+        "latency_ms": 351
+      }
+    },
+    {
+      "name": "github.download_tarball",
+      "status": "ok",
+      "detail": "184 text files in memory (1.14 MB tarball)",
+      "error_kind": null,
+      "duration_ms": 1165,
+      "data": {
+        "mb": 1.14,
+        "files": 184,
+        "text_mb": 1.91,
+        "skipped": {
+          "binary": 1
+        },
+        "truncated": false
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "failed",
+      "detail": "openai/gpt-oss-120b: Error code: 429 - {'error': {'message': 'Rate limit reached for model `openai/gpt-oss-120b` in organization `org_[redacted]` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199479, Requested 3360. Please try again in 20m26.447999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit",
+      "error_kind": "rate_limited",
+      "duration_ms": 187,
+      "data": {
+        "model": "openai/gpt-oss-120b",
+        "est_tokens": 3918,
+        "scheduled": "4082 tokens left this minute"
+      }
+    },
+    {
+      "name": "llm.claims.fallback",
+      "status": "ok",
+      "detail": "switching to model openai/gpt-oss-20b",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "after": "rate_limited"
+      }
+    },
+    {
+      "name": "llm.claims",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 1011,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 3918,
+        "scheduled": "4082 tokens left this minute",
+        "tokens": 3182,
+        "latency_ms": 1011
+      }
+    },
+    {
+      "name": "verify.presearch",
+      "status": "ok",
+      "detail": "8 claims searched, 15 files with hits",
+      "error_kind": null,
+      "duration_ms": 129,
+      "data": {}
+    },
+    {
+      "name": "llm.verify.wait_for_quota",
+      "status": "ok",
+      "detail": "waiting 25.9s for quota (qwen/qwen3.8-27b: 1123 tokens left, need 4674; openai/gpt-oss-120b: cooling down; openai/gpt-oss-20b: 4529 tokens left, need 4674)",
+      "error_kind": null,
+      "duration_ms": 0,
+      "data": {
+        "wait_s": 25.9
+      }
+    },
+    {
+      "name": "llm.verify",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 1231,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 4674,
+        "scheduled": "3326 tokens left this minute",
+        "tokens": 3996,
+        "latency_ms": 1231
+      }
+    },
+    {
+      "name": "llm.verdict",
+      "status": "ok",
+      "detail": "openai/gpt-oss-20b ok",
+      "error_kind": null,
+      "duration_ms": 583,
+      "data": {
+        "model": "openai/gpt-oss-20b",
+        "est_tokens": 3406,
+        "scheduled": "296 tokens left this minute",
+        "tokens": 2782,
+        "latency_ms": 583
+      }
+    }
+  ],
+  "checks": [
+    {
+      "id": "repo_public",
+      "category": "eligibility",
+      "title": "Repo is public",
+      "status": "pass",
+      "detail": "huggingface/smolagents is publicly readable",
+      "evidence": []
+    },
+    {
+      "id": "prompt_injection",
+      "category": "eligibility",
+      "title": "No prompt injection aimed at judges",
+      "status": "pass",
+      "detail": "no injection patterns found",
+      "evidence": []
+    },
+    {
+      "id": "readme_exists",
+      "category": "eligibility",
+      "title": "README exists",
+      "status": "pass",
+      "detail": "README has 1490 words",
+      "evidence": []
+    },
+    {
+      "id": "commits_in_window",
+      "category": "building_in_public",
+      "title": "Commits dated inside the hackathon window",
+      "status": "fail",
+      "detail": "0 inside, 300 before start, 0 after close (only latest 300 checked); active days: none",
+      "evidence": [
+        "96f33faaf028 2026-10-06T09:38:53Z Bump doc-builder workflow pin (#2906)",
+        "c30b115286e0 2026-09-30T05:07:22Z fix(ci): harden GitHub Actions workflows (#2558) (#2868)",
+        "fcc81e9999db 2026-09-30T05:05:48Z Bump the actions group across 1 directory with 6 updates (#2558)"
+      ]
+    },
+    {
+      "id": "neatlogs_sdk",
+      "category": "tools",
+      "title": "neatlogs SDK is actually used",
+      "status": "fail",
+      "detail": "no sign of neatlogs in dependencies or README",
+      "evidence": []
+    },
+    {
+      "id": "neatlogs_traces",
+      "category": "tools",
+      "title": "neatlogs trace links",
+      "status": "fail",
+      "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+      "evidence": []
+    },
+    {
+      "id": "entire_checkpoints",
+      "category": "tools",
+      "title": "Entire checkpoints / entire-graph output",
+      "status": "unverified",
+      "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+      "evidence": []
+    },
+    {
+      "id": "cfo_ai_plan",
+      "category": "tools",
+      "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+      "status": "fail",
+      "detail": "no cfo.ai plan link",
+      "evidence": []
+    },
+    {
+      "id": "demo_video",
+      "category": "demo_video",
+      "title": "Demo video (<= 3 min, covers all three tools)",
+      "status": "fail",
+      "detail": "no YouTube/Loom/Vimeo link in README",
+      "evidence": [],
+      "data": {
+        "duration_status": "no_video"
+      }
+    },
+    {
+      "id": "public_posts",
+      "category": "building_in_public",
+      "title": "Building-in-public posts tagged #neatHack",
+      "status": "fail",
+      "detail": "no social posts linked",
+      "evidence": []
+    },
+    {
+      "id": "before_after",
+      "category": "agent",
+      "title": "Before/after runs with numbers compared",
+      "status": "fail",
+      "detail": "no before/after comparison in README",
+      "evidence": []
+    },
+    {
+      "id": "failure_recovery",
+      "category": "agent",
+      "title": "A run where an action failed and what the agent did next",
+      "status": "fail",
+      "detail": "no mention of a failure and recovery",
+      "evidence": []
+    },
+    {
+      "id": "dead_links",
+      "category": "usefulness",
+      "title": "No dead links in README",
+      "status": "pass",
+      "detail": "40 links checked",
+      "evidence": []
+    }
+  ],
+  "summary": {
+    "pass": 4,
+    "warn": 0,
+    "fail": 8,
+    "unverified": 1
+  },
+  "links": [
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/src/smolagents/agents.py",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/src/smolagents/agents.py",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/agents#smolagents.CodeAgent",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/agents#smolagents.CodeAgent",
+      "error": null
+    },
+    {
+      "url": "https://blaxel.ai",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://blaxel.ai",
+      "error": null
+    },
+    {
+      "url": "https://e2b.dev/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://e2b.dev/",
+      "error": null
+    },
+    {
+      "url": "https://modal.com/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://modal.com/",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_hub",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_hub",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/blog/inference-providers",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/blog/inference-providers",
+      "error": null
+    },
+    {
+      "url": "https://www.litellm.ai/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.litellm.ai/",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/examples/web_browser",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/examples/web_browser",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.ToolCollection.from_mcp",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.ToolCollection.from_mcp",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_langchain",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_langchain",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_space",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/tools#smolagents.Tool.from_space",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/index",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/index",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/blog/smolagents",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/blog/smolagents",
+      "error": null
+    },
+    {
+      "url": "https://github.com/mherrmann/helium",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/mherrmann/helium",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/src/smolagents/vision_web_browser.py",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/src/smolagents/vision_web_browser.py",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/papers/2402.01030",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/papers/2402.01030",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/papers/2411.01747",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/papers/2411.01747",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/conceptual_guides/intro_agents",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/conceptual_guides/intro_agents",
+      "error": null
+    },
+    {
+      "url": "https://www.docker.com/",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.docker.com/",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents/reference/agents#smolagents.ToolCallingAgent",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/reference/agents#smolagents.ToolCallingAgent",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/datasets/m-ric/agents_medium_benchmark_2",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/datasets/m-ric/agents_medium_benchmark_2",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/examples/smolagents_benchmark/run.py",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/examples/smolagents_benchmark/run.py",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/CONTRIBUTING.md",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/CONTRIBUTING.md",
+      "error": null
+    },
+    {
+      "url": "https://circleci.com/gh/huggingface/accelerate",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://app.circleci.com/pipelines/github/huggingface/accelerate",
+      "error": null
+    },
+    {
+      "url": "https://img.shields.io/circleci/build/github/huggingface/transformers/master",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://img.shields.io/circleci/build/github/huggingface/transformers/master",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/LICENSE",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/LICENSE",
+      "error": null
+    },
+    {
+      "url": "https://img.shields.io/github/license/huggingface/smolagents.svg?color=blue",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://img.shields.io/github/license/huggingface/smolagents.svg?color=blue",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/smolagents",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/smolagents/index",
+      "error": null
+    },
+    {
+      "url": "https://img.shields.io/website/http/huggingface.co/docs/smolagents/index.html.svg?down_color=red&down_message=offline&up_message=online",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://img.shields.io/website.svg?down_color=red&down_message=offline&up_message=online&url=http%3A%2F%2Fhuggingface.co%2Fdocs%2Fsmolagents%2Findex.html",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/releases",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/releases",
+      "error": null
+    },
+    {
+      "url": "https://img.shields.io/github/release/huggingface/smolagents.svg",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://img.shields.io/github/v/release/huggingface/smolagents.svg",
+      "error": null
+    },
+    {
+      "url": "https://github.com/huggingface/smolagents/blob/main/CODE_OF_CONDUCT.md",
+      "kind": "github",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://github.com/huggingface/smolagents/blob/main/CODE_OF_CONDUCT.md",
+      "error": null
+    },
+    {
+      "url": "https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg",
+      "error": null
+    },
+    {
+      "url": "https://deepwiki.com/huggingface/smolagents",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://deepwiki.com/huggingface/smolagents",
+      "error": null
+    },
+    {
+      "url": "https://deepwiki.com/badge.svg",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://deepwiki.com/badge.svg",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/smolagents/smolagents.png",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/621ffdd236468d709f1835cf/aaae6d62e81e4be2dc59e93a08abb613be970699ab60f481cf6513297d63dcc7?response-content-type=image%2Fpng&X-Xet-Cas-Uid=public&user_id=public&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27smolagents.png%3B+filename%3D%22smolagents.png%22%3B&xip=bQtnfMpnDuk&Expires=1791625746&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjIxZmZkZDIzNjQ2OGQ3MDlmMTgzNWNmL2FhYWU2ZDYyZTgxZTRiZTJkYzU5ZTkzYTA4YWJiNjEzYmU5NzA2OTlhYjYwZjQ4MWNmNjUxMzI5N2Q2M2RjYzdcXD9yZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcmWC1YZXQtQ2FzLVVpZD1wdWJsaWMmdXNlcl9pZD1wdWJsaWMmcmVzcG9uc2UtY29udGVudC1kaXNwb3NpdGlvbj1pbmxpbmUlM0IrZmlsZW5hbWUlMkElM0RVVEYtOCUyNyUyN3Ntb2xhZ2VudHMucG5nJTNCK2ZpbGVuYW1lJTNEJTIyc21vbGFnZW50cy5wbmclMjIlM0ImeGlwPWJRdG5mTXBuRHVrIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJFcG9jaFRpbWUiOjE3OTE2MjU3NDZ9fX1dfQ__&Signature=MEQCICX%7EulFgRloigMb9RrBp1BhwJiBghDyNS2tUUp%7EC9cljAiAQbodHIEU6LKflLS91t0r0vOSCu4MTrHMboGPFcptZTQ__&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/docs/inference-providers/index",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://huggingface.co/docs/inference-providers/index",
+      "error": null
+    },
+    {
+      "url": "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/smolagents/benchmark_code_agents.jpeg",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://us.aws.cdn.hf.co/xet-bridge-us/621ffdd236468d709f1835cf/93f2a36cc7c91f07c0e311e93dc5f9b26ee6c9a75f3cfcff30cb06301721a25b?response-content-disposition=inline%3B+filename*%3DUTF-8%27%27benchmark_code_agents.jpeg%3B+filename%3D%22benchmark_code_agents.jpeg%22%3B&xip=bQtnfMpnDuk&X-Xet-Cas-Uid=public&user_id=public&response-content-type=image%2Fjpeg&Expires=1791625746&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly91cy5hd3MuY2RuLmhmLmNvL3hldC1icmlkZ2UtdXMvNjIxZmZkZDIzNjQ2OGQ3MDlmMTgzNWNmLzkzZjJhMzZjYzdjOTFmMDdjMGUzMTFlOTNkYzVmOWIyNmVlNmM5YTc1ZjNjZmNmZjMwY2IwNjMwMTcyMWEyNWJcXD9yZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWlubGluZSUzQitmaWxlbmFtZSUyQSUzRFVURi04JTI3JTI3YmVuY2htYXJrX2NvZGVfYWdlbnRzLmpwZWclM0IrZmlsZW5hbWUlM0QlMjJiZW5jaG1hcmtfY29kZV9hZ2VudHMuanBlZyUyMiUzQiZ4aXA9YlF0bmZNcG5EdWsmWC1YZXQtQ2FzLVVpZD1wdWJsaWMmdXNlcl9pZD1wdWJsaWMmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGanBlZyIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiRXBvY2hUaW1lIjoxNzkxNjI1NzQ2fX19XX0_&Signature=MEYCIQDmswV0ZDV45NrFR7NAxKTQJyOWCr2Dc3zMG4NkHz8XpQIhANUIcBrEjEl9pi1w8BwNtUJveQs%7Elt6t4pC%7EvmqSbbdr&Key-Pair-Id=01KXEF4KZ1B6FV465MAWR4M21F&Hash-Algorithm=SHA256",
+      "error": null
+    },
+    {
+      "url": "http://www.apache.org/licenses/LICENSE-2.0",
+      "kind": "other",
+      "status": 200,
+      "ok": true,
+      "final_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "error": null
+    }
+  ],
+  "videos": [],
+  "files_seen": 185,
+  "dependency_files": [
+    "pyproject.toml",
+    "examples/async_agent/requirements.txt",
+    "examples/open_deep_research/requirements.txt"
+  ],
+  "audit_id": "fa16370b7b8b",
+  "run_kind": "real",
+  "phase": "complete",
+  "score": {
+    "score": 18,
+    "max": 100,
+    "gated": false,
+    "gate_reason": null,
+    "estimated_points": 5.6,
+    "categories": [
+      {
+        "id": "agent",
+        "weight": 0.3,
+        "max_points": 30.0,
+        "points": 5.0,
+        "items": [
+          {
+            "id": "before_after",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "Before/after runs with numbers compared",
+            "status": "fail",
+            "detail": "no before/after comparison in README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "failure_recovery",
+            "max_points": 8.92,
+            "estimated": false,
+            "title": "A run where an action failed and what the agent did next",
+            "status": "fail",
+            "detail": "no mention of a failure and recovery",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "est:agent_quality",
+            "max_points": 7.65,
+            "estimated": true,
+            "title": "agent quality",
+            "status": "estimated",
+            "detail": "LLM estimate 4.0/10 (capped at 0.8)",
+            "credit": 0.4,
+            "points": 3.06
+          },
+          {
+            "id": "claims",
+            "max_points": 4.5,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 verified, 3 unverified",
+            "credit": 0.438,
+            "points": 1.97
+          }
+        ]
+      },
+      {
+        "id": "tools",
+        "weight": 0.25,
+        "max_points": 25.0,
+        "points": 4.5,
+        "items": [
+          {
+            "id": "neatlogs_sdk",
+            "max_points": 6.38,
+            "estimated": false,
+            "title": "neatlogs SDK is actually used",
+            "status": "fail",
+            "detail": "no sign of neatlogs in dependencies or README",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "neatlogs_traces",
+            "max_points": 5.31,
+            "estimated": false,
+            "title": "neatlogs trace links",
+            "status": "fail",
+            "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "entire_checkpoints",
+            "max_points": 4.25,
+            "estimated": false,
+            "title": "Entire checkpoints / entire-graph output",
+            "status": "unverified",
+            "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+            "credit": 0.5,
+            "points": 2.12
+          },
+          {
+            "id": "cfo_ai_plan",
+            "max_points": 5.31,
+            "estimated": false,
+            "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+            "status": "fail",
+            "detail": "no cfo.ai plan link",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "claims",
+            "max_points": 3.75,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 verified, 1 unverified",
+            "credit": 0.625,
+            "points": 2.34
+          }
+        ]
+      },
+      {
+        "id": "demo_video",
+        "weight": 0.2,
+        "max_points": 20.0,
+        "points": 0.0,
+        "items": [
+          {
+            "id": "demo_video",
+            "max_points": 20.0,
+            "estimated": false,
+            "title": "Demo video (<= 3 min, covers all three tools)",
+            "status": "fail",
+            "detail": "no YouTube/Loom/Vimeo link in README",
+            "credit": 0.0,
+            "points": 0.0
+          }
+        ]
+      },
+      {
+        "id": "building_in_public",
+        "weight": 0.15,
+        "max_points": 15.0,
+        "points": 0.6,
+        "items": [
+          {
+            "id": "commits_in_window",
+            "max_points": 7.65,
+            "estimated": false,
+            "title": "Commits dated inside the hackathon window",
+            "status": "fail",
+            "detail": "0 inside, 300 before start, 0 after close (only latest 300 checked); active days: none",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "public_posts",
+            "max_points": 5.1,
+            "estimated": false,
+            "title": "Building-in-public posts tagged #neatHack",
+            "status": "fail",
+            "detail": "no social posts linked",
+            "credit": 0.0,
+            "points": 0.0
+          },
+          {
+            "id": "claims",
+            "max_points": 2.25,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 unverified",
+            "credit": 0.25,
+            "points": 0.56
+          }
+        ]
+      },
+      {
+        "id": "usefulness",
+        "weight": 0.1,
+        "max_points": 10.0,
+        "points": 8.3,
+        "items": [
+          {
+            "id": "readme_exists",
+            "max_points": 2.55,
+            "estimated": false,
+            "title": "README exists",
+            "status": "pass",
+            "detail": "README has 1490 words",
+            "credit": 1.0,
+            "points": 2.55
+          },
+          {
+            "id": "dead_links",
+            "max_points": 1.7,
+            "estimated": false,
+            "title": "No dead links in README",
+            "status": "pass",
+            "detail": "40 links checked",
+            "credit": 1.0,
+            "points": 1.7
+          },
+          {
+            "id": "est:usefulness",
+            "max_points": 4.25,
+            "estimated": true,
+            "title": "usefulness",
+            "status": "estimated",
+            "detail": "LLM estimate 6.0/10 (capped at 0.8)",
+            "credit": 0.6,
+            "points": 2.55
+          },
+          {
+            "id": "claims",
+            "max_points": 1.5,
+            "estimated": false,
+            "title": "README claims backed by evidence",
+            "status": "claims",
+            "detail": "1 verified",
+            "credit": 1.0,
+            "points": 1.5
+          }
+        ]
+      }
+    ],
+    "fix_candidates": [
+      {
+        "check_id": "demo_video",
+        "category": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "detail": "no YouTube/Loom/Vimeo link in README",
+        "points": 20.0
+      },
+      {
+        "check_id": "before_after",
+        "category": "agent",
+        "title": "Before/after runs with numbers compared",
+        "detail": "no before/after comparison in README",
+        "points": 8.9
+      },
+      {
+        "check_id": "failure_recovery",
+        "category": "agent",
+        "title": "A run where an action failed and what the agent did next",
+        "detail": "no mention of a failure and recovery",
+        "points": 8.9
+      },
+      {
+        "check_id": "commits_in_window",
+        "category": "building_in_public",
+        "title": "Commits dated inside the hackathon window",
+        "detail": "0 inside, 300 before start, 0 after close (only latest 300 checked); active days: none",
+        "points": 7.7
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "category": "tools",
+        "title": "neatlogs SDK is actually used",
+        "detail": "no sign of neatlogs in dependencies or README",
+        "points": 6.4
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "category": "tools",
+        "title": "neatlogs trace links",
+        "detail": "no neatlogs trace links in README (judges expect links or screenshots)",
+        "points": 5.3
+      },
+      {
+        "check_id": "cfo_ai_plan",
+        "category": "tools",
+        "title": "cfo.ai business plan (pricing, costs, revenue, runway)",
+        "detail": "no cfo.ai plan link",
+        "points": 5.3
+      },
+      {
+        "check_id": "public_posts",
+        "category": "building_in_public",
+        "title": "Building-in-public posts tagged #neatHack",
+        "detail": "no social posts linked",
+        "points": 5.1
+      },
+      {
+        "check_id": "claims",
+        "category": "agent",
+        "title": "README claims backed by evidence",
+        "detail": "1 verified, 3 unverified",
+        "points": 2.5
+      },
+      {
+        "check_id": "entire_checkpoints",
+        "category": "tools",
+        "title": "Entire checkpoints / entire-graph output",
+        "detail": "STUB: Entire evidence format not yet confirmed; hints listed",
+        "points": 2.1
+      },
+      {
+        "check_id": "claims",
+        "category": "building_in_public",
+        "title": "README claims backed by evidence",
+        "detail": "1 unverified",
+        "points": 1.7
+      },
+      {
+        "check_id": "claims",
+        "category": "tools",
+        "title": "README claims backed by evidence",
+        "detail": "1 verified, 1 unverified",
+        "points": 1.4
+      }
+    ],
+    "flags": {
+      "prompt_injection": false
+    }
+  },
+  "verdict": {
+    "roast": "As a discerning food critic, I sampled the 1490‑word README and found a menu that boasts a grand opening on 2024‑12‑05 yet serves zero commits inside the hackathon window—an empty plate that leaves the palate craving activity.",
+    "fixes": [
+      {
+        "check_id": "demo_video",
+        "title": "Demo video (<= 3 min, covers all three tools)",
+        "points": 20.0,
+        "fix": "Add a YouTube, Loom, or Vimeo link to a demo video in the README that is 3 minutes or shorter and showcases all three tools."
+      },
+      {
+        "check_id": "before_after",
+        "title": "Before/after runs with numbers compared",
+        "points": 8.9,
+        "fix": "Include a before/after comparison in the README, with concrete numbers illustrating performance gains."
+      },
+      {
+        "check_id": "failure_recovery",
+        "title": "A run where an action failed and what the agent did next",
+        "points": 8.9,
+        "fix": "Document a run where an action failed and describe how the agent recovered, adding this narrative to the README."
+      },
+      {
+        "check_id": "commits_in_window",
+        "title": "Commits dated inside the hackathon window",
+        "points": 7.7,
+        "fix": "Make at least one commit dated within the hackathon window to demonstrate active development during the event."
+      },
+      {
+        "check_id": "neatlogs_sdk",
+        "title": "neatlogs SDK is actually used",
+        "points": 6.4,
+        "fix": "Add neatlogs to the dependencies and show its usage in the code, then provide trace links in the README."
+      },
+      {
+        "check_id": "neatlogs_traces",
+        "title": "neatlogs trace links",
+        "points": 5.3,
+        "fix": "Include screenshots or URLs of neatlogs trace logs in the README to satisfy the trace link requirement."
+      }
+    ],
+    "best_thing": "The README accurately claims that smolagents supports any LLM, as verified by examples/agent_from_any_llm.py.",
+    "style": "food critic",
+    "source": "llm"
+  },
+  "phases": {
+    "quick": {
+      "ms": 10398,
+      "usage": {
+        "prompt_tokens": 3549,
+        "completion_tokens": 432,
+        "total_tokens": 3981,
+        "calls": 2,
+        "failed_calls": 0,
+        "by_model": {
+          "qwen/qwen3.8-27b": {
+            "prompt_tokens": 3549,
+            "completion_tokens": 432,
+            "calls": 2
+          }
+        }
+      }
+    },
+    "deep": {
+      "ms": 30270,
+      "usage": {
+        "prompt_tokens": 8639,
+        "completion_tokens": 1321,
+        "total_tokens": 9960,
+        "calls": 3,
+        "failed_calls": 1,
+        "by_model": {
+          "openai/gpt-oss-20b": {
+            "prompt_tokens": 8639,
+            "completion_tokens": 1321,
+            "calls": 3
+          }
+        }
+      }
+    }
+  },
+  "usage": {
+    "total_tokens": 13941,
+    "calls": 5,
+    "quick": {
+      "prompt_tokens": 3549,
+      "completion_tokens": 432,
+      "total_tokens": 3981,
+      "calls": 2,
+      "failed_calls": 0,
+      "by_model": {
+        "qwen/qwen3.8-27b": {
+          "prompt_tokens": 3549,
+          "completion_tokens": 432,
+          "calls": 2
+        }
+      }
+    },
+    "deep": {
+      "prompt_tokens": 8639,
+      "completion_tokens": 1321,
+      "total_tokens": 9960,
+      "calls": 3,
+      "failed_calls": 1,
+      "by_model": {
+        "openai/gpt-oss-20b": {
+          "prompt_tokens": 8639,
+          "completion_tokens": 1321,
+          "calls": 3
+        }
+      }
+    }
+  },
+  "timing_ms": {
+    "quick": 10398,
+    "deep": 30270,
+    "total": 40668
+  },
+  "agent": {
+    "claims": [
+      {
+        "claim_id": "c1",
+        "claim": "The library supports running agents in a few lines of code",
+        "quote": "`smolagents` is a library that enables you to run powerful agents in a few lines of code",
+        "category": "usefulness",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "examples/gradio_ui.py:1",
+            "note": "imports CodeAgent"
+          }
+        ],
+        "reason": "The example imports CodeAgent and shows usage in a few lines."
+      },
+      {
+        "claim_id": "c2",
+        "claim": "Agents fit in about 1,000 lines of code",
+        "quote": "the logic for agents fits in ~1,000 lines of code",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [
+          {
+            "ref": "README.md:36",
+            "note": "mentions ~1,000 lines of agents.py"
+          }
+        ],
+        "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README explicitly states agents logic fits in ~1,000 lines and links to agents.py.)"
+      },
+      {
+        "claim_id": "c3",
+        "claim": "First‑class support for Code Agents that write actions in code",
+        "quote": "First‑class support for Code Agents",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Search results show no definition of class CodeAgent or a run method in the library source; examples reference CodeAgent but the class is not present in src/smolagents."
+      },
+      {
+        "claim_id": "c4",
+        "claim": "Execution of Code Agents can be sandboxed via Blaxel, E2B, Modal, or Docker",
+        "quote": "support executing in sandboxed environments via [Blaxel]",
+        "category": "tools",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Only e2b.toml config found; no code shows sandbox execution via Blaxel, E2B, Modal, or Docker."
+      },
+      {
+        "claim_id": "c5",
+        "claim": "Agents can be shared to or pulled from the Hugging Face Hub",
+        "quote": "share/pull tools or agents to/from the Hub",
+        "category": "building_in_public",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Only example scripts use push_to_hub, not library API for agents."
+      },
+      {
+        "claim_id": "c6",
+        "claim": "The library is model‑agnostic and supports any LLM, including local transformers, ollama, OpenAI, Anthropic, and many via LiteLLM",
+        "quote": "smolagents supports any LLM",
+        "category": "agent",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "examples/agent_from_any_llm.py:3-7",
+            "note": "imports various model classes"
+          }
+        ],
+        "reason": "Examples import InferenceClientModel, LiteLLMModel, OpenAIModel, TransformersModel, indicating support."
+      },
+      {
+        "claim_id": "c7",
+        "claim": "Agents are modality‑agnostic, supporting text, vision, video, and audio inputs",
+        "quote": "Agents support text, vision, video, even audio inputs",
+        "category": "agent",
+        "status": "unverified",
+        "evidence": [],
+        "reason": "Search shows dependencies but no code confirming multimodal support."
+      },
+      {
+        "claim_id": "c8",
+        "claim": "Agents can use tools from any MCP server, LangChain, or Hub Space",
+        "quote": "you can use tools from any MCP server",
+        "category": "tools",
+        "status": "verified",
+        "evidence": [
+          {
+            "ref": "src/smolagents/tools.py:627-635",
+            "note": "Tool.from_space usage"
+          }
+        ],
+        "reason": "Code shows ability to load tools from Hugging Face Spaces."
+      }
+    ],
+    "estimates": {
+      "agent_quality": {
+        "score": 4.0,
+        "evidence": [
+          "README.md:36"
+        ],
+        "reason": "The repo contains examples and documentation but no evidence of a real agent loop or recovery logic in the source."
+      },
+      "usefulness": {
+        "score": 6.0,
+        "evidence": [
+          "README.md",
+          "examples"
+        ],
+        "reason": "The library provides a concise API for agents and examples, but lacks full documentation of advanced features."
+      }
+    },
+    "injection": {
+      "detected": false,
+      "deterministic": [],
+      "reported_by_llm": []
+    },
+    "tool_calls": 0,
+    "files_read": [],
+    "files_searched": 15,
+    "snapshot": {
+      "files": 184,
+      "text_mb": 1.91,
+      "skipped": {
+        "binary": 1
+      },
+      "truncated": false
+    }
+  }
+}

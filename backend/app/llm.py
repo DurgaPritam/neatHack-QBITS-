@@ -27,6 +27,7 @@ import httpx
 import openai
 
 from app import config
+from app import replay
 from app.steps import StepLog
 from app.tracing import event, span
 
@@ -370,6 +371,8 @@ class LLM:
 
         `prefer` reorders the models for this call (e.g. one that makes parallel tool calls).
         """
+        if replay.mode() == "replay":
+            return self._replay(purpose, messages, tools)
         if not self.models:
             raise LLMError("not_configured", "no GROQ_MODELS configured")
         order = sorted(self.models, key=lambda m: prefer.index(m) if prefer and m in prefer else 99)
@@ -421,6 +424,8 @@ class LLM:
                     resp = None
                 if resp is not None:
                     self.usage.add(model, resp.usage)
+                    if replay.mode() == "record":
+                        replay.record(purpose, resp.choices[0].message, resp.usage)
                     tokens = getattr(resp.usage, "total_tokens", 0) or 0
                     self.pool.record(model, tokens)
                     s.detail = f"{model} ok"
@@ -461,3 +466,21 @@ class LLM:
                     event("llm retry in {delay}s", level="info", delay=round(delay, 2), model=model)
                     await self.sleep(delay)
         return kind
+
+    def _replay(self, purpose: str, messages: list[dict], tools: list | None):
+        """LLM_MODE=replay: answer from fixtures, no network, no quota spent."""
+        miss = None
+        with self.steps.step(f"llm.{purpose}") as s:
+            s.data["model"] = "replay"
+            try:
+                message, usage = replay.respond(purpose, messages, tools)
+            except replay.ReplayMiss as exc:
+                s.status, s.error_kind, s.detail = "failed", "replay_miss", str(exc)
+                miss = exc
+            else:
+                self.usage.add("replay", usage)
+                s.data["tokens"] = usage.total_tokens
+                s.detail = "replayed from fixture"
+        if miss is not None:  # raised outside the step: StepLog.step() swallows exceptions
+            raise LLMError("replay_miss", str(miss))
+        return message

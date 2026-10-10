@@ -1,0 +1,274 @@
+{
+  "repo": "langchain-ai/open_deep_research",
+  "source": "rebuilt from real audit 6dbfbb5d1c76 (2026-10-10T08:49:42+00:00); see scripts/build_fixtures.py",
+  "responses": {
+    "quick_verdict": {
+      "roast": "As a strict professor, I must point out that the demo video runs a staggering 12:46, far exceeding the 3:00 limit set by the syllabus.",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Edit the demo video to be under 3 minutes, ensuring it clearly demonstrates all three required tools within the new time limit."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Add a section to the README comparing specific metrics or outputs from a 'before' state versus an 'after' state to demonstrate improvement."
+        },
+        {
+          "check_id": "failure_recovery",
+          "fix": "Document a specific instance where an agent action failed and describe the exact recovery steps the agent took to resolve the issue."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make new commits to the repository that fall within the official hackathon date range to demonstrate active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Integrate the neatlogs SDK into your project dependencies and update the README to explain how it is being utilized."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Add direct links to neatlogs trace data or include screenshots of the traces in the README for judge verification."
+        }
+      ],
+      "best_thing": "The repository has garnered 12682 GitHub stars, indicating significant community interest and adoption."
+    },
+    "claims": {
+      "claims": [
+        {
+          "id": "c1",
+          "text": "The project ranks #6 on the Deep Research Bench Leaderboard with an overall score of 0.4344",
+          "quote": "Achieved #6 ranking on the Deep Research Bench Leaderboard with an overall score of 0.4344",
+          "category": "usefulness"
+        },
+        {
+          "id": "c2",
+          "text": "The agent supports GPT‑5 as a research model and GPT‑4.1‑mini for summarization",
+          "quote": "Added GPT‑5 and updated the Deep Research Bench evaluation w/ GPT‑5 results",
+          "category": "agent"
+        },
+        {
+          "id": "c3",
+          "text": "The agent can be run locally with a LangGraph server and exposes an API at http://127.0.0.1:2024",
+          "quote": "Launch agent with the LangGraph server locally",
+          "category": "agent"
+        },
+        {
+          "id": "c4",
+          "text": "The agent supports a wide range of LLM providers via init_chat_model() and requires models that support structured outputs and tool calling",
+          "quote": "Open Deep Research supports a wide range of LLM providers via the init_chat_model() API",
+          "category": "agent"
+        },
+        {
+          "id": "c5",
+          "text": "The agent supports a wide range of search tools, defaulting to the Tavily search API and full MCP compatibility",
+          "quote": "Open Deep Research supports a wide range of search tools. By default it uses the Tavily search API",
+          "category": "agent"
+        },
+        {
+          "id": "c6",
+          "text": "The agent can be evaluated against the Deep Research Bench benchmark of 100 PhD‑level tasks",
+          "quote": "Open Deep Research is configured for evaluation with Deep Research Bench",
+          "category": "agent"
+        },
+        {
+          "id": "c7",
+          "text": "Running the full evaluation can cost between $20 and $100 depending on model selection",
+          "quote": "Running across the 100 examples can cost ~$20-$100 depending on the model selection",
+          "category": "agent"
+        },
+        {
+          "id": "c8",
+          "text": "The repository provides a quickstart script that installs dependencies with uv and launches the LangGraph Studio UI",
+          "quote": "Launch agent with the LangGraph server locally",
+          "category": "building_in_public"
+        }
+      ],
+      "injection_attempts": []
+    },
+    "verify": {
+      "results": [
+        {
+          "claim_id": "c1",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:15",
+              "note": "mentions #6 ranking and score 0.4344"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README explicitly states the ranking and score.)"
+        },
+        {
+          "claim_id": "c2",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "src/open_deep_research/configuration.py:122-123",
+              "note": "default summarization_model set to openai:gpt-4.1-mini"
+            }
+          ],
+          "reason": "Configuration file shows GPT‑4.1‑mini as summarization model; GPT‑5 is referenced in README but not in config, but the claim only requires support for GPT‑5 as research model, which is implied by the README update line."
+        },
+        {
+          "claim_id": "c3",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:47-53",
+              "note": "shows launch command and API URL 127.0.0.1:2024"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README provides exact command and API URL.)"
+        },
+        {
+          "claim_id": "c4",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "src/legacy/graph.py:3",
+              "note": "imports init_chat_model"
+            },
+            {
+              "ref": "src/legacy/graph.py:85-86",
+              "note": "uses init_chat_model and with_structured_output"
+            },
+            {
+              "ref": "src/legacy/graph.py:121-122",
+              "note": "uses init_chat_model for planner"
+            }
+          ],
+          "reason": "Code uses init_chat_model and structured output, indicating support for structured outputs and tool calling."
+        },
+        {
+          "claim_id": "c5",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "pyproject.toml:16-19",
+              "note": "includes langchain-mcp-adapters and langchain-tavily dependencies"
+            }
+          ],
+          "reason": "Dependencies list includes MCP adapters and Tavily."
+        },
+        {
+          "claim_id": "c6",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "tests/run_evaluate.py:14",
+              "note": "dataset_name set to \"Deep Research Bench\""
+            }
+          ],
+          "reason": "Evaluation script configured for Deep Research Bench."
+        },
+        {
+          "claim_id": "c7",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:89",
+              "note": "states cost ~$20-$100"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README contains the cost estimate.)"
+        },
+        {
+          "claim_id": "c8",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:32-34",
+              "note": "uv sync command"
+            },
+            {
+              "ref": "README.md:47",
+              "note": "uvx langgraph dev command"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README shows quickstart script with uv sync and LangGraph Studio launch.)"
+        }
+      ],
+      "estimates": {
+        "agent_quality": {
+          "score": 7.0,
+          "evidence": [
+            "src/legacy/graph.py:85-86",
+            "src/legacy/graph.py:121-122"
+          ],
+          "reason": "The agent code shows a retry loop for structured output and uses planner/worker models, indicating a basic agent loop, but no explicit planning or recovery logic is visible."
+        },
+        "usefulness": {
+          "score": 8.0,
+          "evidence": [
+            "README.md:5-15",
+            "README.md:21-55"
+          ],
+          "reason": "The project provides a fully open‑source deep research agent with clear documentation, quickstart, and benchmark results, making it useful and somewhat original for researchers."
+        }
+      },
+      "injection_attempts": []
+    },
+    "verdict": {
+      "roast": "I find it difficult to grade a submission that presents a 12:46 video against a strict 3:00 limit, a violation of the syllabus that borders on negligence. Furthermore, the repository contains 0 commits inside the hackathon window, suggesting you simply submitted a pre-existing term paper from 2024-11-20 without any new analysis.",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Edit the demo video to be under 3 minutes, ensuring it clearly demonstrates all three required tools within the new time limit."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Add a section to the README comparing specific metrics or outputs from a 'before' state versus an 'after' state to demonstrate improvement."
+        },
+        {
+          "check_id": "failure_recovery",
+          "fix": "Document a specific instance where an agent action failed and describe the exact recovery steps the agent took to resolve the issue."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make new commits to the repository that fall within the official hackathon date range to demonstrate active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Integrate the neatlogs SDK into your project dependencies and update the README to explain how it is being utilized."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Add direct links to neatlogs trace data or include screenshots of the traces in the README for judge verification."
+        }
+      ],
+      "best_thing": "The repository has garnered 12682 GitHub stars, indicating significant community interest and adoption."
+    }
+  },
+  "verify_tool_calls": [
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "src/open_deep_research/configuration.py"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "src/legacy/graph.py"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "pyproject.toml"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "tests/run_evaluate.py"
+      }
+    }
+  ],
+  "usage": {
+    "quick_verdict": 2118,
+    "claims": 3736,
+    "verify": 3736,
+    "verdict": 3736
+  }
+}

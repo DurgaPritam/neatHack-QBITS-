@@ -1,0 +1,235 @@
+{
+  "repo": "huggingface/smolagents",
+  "source": "rebuilt from real audit fa16370b7b8b (2026-10-10T08:49:00+00:00); see scripts/build_fixtures.py",
+  "responses": {
+    "quick_verdict": {
+      "roast": "I am deeply disappointed to find that this establishment, boasting a 1490-word README and 29763 stars, has served absolutely no fresh courses during the hackathon window, with 0 commits inside the period and the last push dated 2026-10-06. It is akin to a restaurant that has perfected its menu description but has not actually cooked a single dish for the current service.",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Add a YouTube, Loom, or Vimeo link to a demo video in the README that is 3 minutes or shorter and showcases all three tools."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Include a before/after comparison in the README, with concrete numbers illustrating performance gains."
+        },
+        {
+          "check_id": "failure_recovery",
+          "fix": "Document a run where an action failed and describe how the agent recovered, adding this narrative to the README."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make at least one commit dated within the hackathon window to demonstrate active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Add neatlogs to the dependencies and show its usage in the code, then provide trace links in the README."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Include screenshots or URLs of neatlogs trace logs in the README to satisfy the trace link requirement."
+        }
+      ],
+      "best_thing": "The README accurately claims that smolagents supports any LLM, as verified by examples/agent_from_any_llm.py."
+    },
+    "claims": {
+      "claims": [
+        {
+          "id": "c1",
+          "text": "The library supports running agents in a few lines of code",
+          "quote": "`smolagents` is a library that enables you to run powerful agents in a few lines of code",
+          "category": "usefulness"
+        },
+        {
+          "id": "c2",
+          "text": "Agents fit in about 1,000 lines of code",
+          "quote": "the logic for agents fits in ~1,000 lines of code",
+          "category": "agent"
+        },
+        {
+          "id": "c3",
+          "text": "First‑class support for Code Agents that write actions in code",
+          "quote": "First‑class support for Code Agents",
+          "category": "agent"
+        },
+        {
+          "id": "c4",
+          "text": "Execution of Code Agents can be sandboxed via Blaxel, E2B, Modal, or Docker",
+          "quote": "support executing in sandboxed environments via [Blaxel]",
+          "category": "tools"
+        },
+        {
+          "id": "c5",
+          "text": "Agents can be shared to or pulled from the Hugging Face Hub",
+          "quote": "share/pull tools or agents to/from the Hub",
+          "category": "building_in_public"
+        },
+        {
+          "id": "c6",
+          "text": "The library is model‑agnostic and supports any LLM, including local transformers, ollama, OpenAI, Anthropic, and many via LiteLLM",
+          "quote": "smolagents supports any LLM",
+          "category": "agent"
+        },
+        {
+          "id": "c7",
+          "text": "Agents are modality‑agnostic, supporting text, vision, video, and audio inputs",
+          "quote": "Agents support text, vision, video, even audio inputs",
+          "category": "agent"
+        },
+        {
+          "id": "c8",
+          "text": "Agents can use tools from any MCP server, LangChain, or Hub Space",
+          "quote": "you can use tools from any MCP server",
+          "category": "tools"
+        }
+      ],
+      "injection_attempts": []
+    },
+    "verify": {
+      "results": [
+        {
+          "claim_id": "c1",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "examples/gradio_ui.py:1",
+              "note": "imports CodeAgent"
+            }
+          ],
+          "reason": "The example imports CodeAgent and shows usage in a few lines."
+        },
+        {
+          "claim_id": "c2",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:36",
+              "note": "mentions ~1,000 lines of agents.py"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README explicitly states agents logic fits in ~1,000 lines and links to agents.py.)"
+        },
+        {
+          "claim_id": "c3",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Search results show no definition of class CodeAgent or a run method in the library source; examples reference CodeAgent but the class is not present in src/smolagents."
+        },
+        {
+          "claim_id": "c4",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Only e2b.toml config found; no code shows sandbox execution via Blaxel, E2B, Modal, or Docker."
+        },
+        {
+          "claim_id": "c5",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Only example scripts use push_to_hub, not library API for agents."
+        },
+        {
+          "claim_id": "c6",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "examples/agent_from_any_llm.py:3-7",
+              "note": "imports various model classes"
+            }
+          ],
+          "reason": "Examples import InferenceClientModel, LiteLLMModel, OpenAIModel, TransformersModel, indicating support."
+        },
+        {
+          "claim_id": "c7",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Search shows dependencies but no code confirming multimodal support."
+        },
+        {
+          "claim_id": "c8",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "src/smolagents/tools.py:627-635",
+              "note": "Tool.from_space usage"
+            }
+          ],
+          "reason": "Code shows ability to load tools from Hugging Face Spaces."
+        }
+      ],
+      "estimates": {
+        "agent_quality": {
+          "score": 4.0,
+          "evidence": [
+            "README.md:36"
+          ],
+          "reason": "The repo contains examples and documentation but no evidence of a real agent loop or recovery logic in the source."
+        },
+        "usefulness": {
+          "score": 6.0,
+          "evidence": [
+            "README.md",
+            "examples"
+          ],
+          "reason": "The library provides a concise API for agents and examples, but lacks full documentation of advanced features."
+        }
+      },
+      "injection_attempts": []
+    },
+    "verdict": {
+      "roast": "As a discerning food critic, I sampled the 1490‑word README and found a menu that boasts a grand opening on 2024‑12‑05 yet serves zero commits inside the hackathon window—an empty plate that leaves the palate craving activity.",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Add a YouTube, Loom, or Vimeo link to a demo video in the README that is 3 minutes or shorter and showcases all three tools."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Include a before/after comparison in the README, with concrete numbers illustrating performance gains."
+        },
+        {
+          "check_id": "failure_recovery",
+          "fix": "Document a run where an action failed and describe how the agent recovered, adding this narrative to the README."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make at least one commit dated within the hackathon window to demonstrate active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Add neatlogs to the dependencies and show its usage in the code, then provide trace links in the README."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Include screenshots or URLs of neatlogs trace logs in the README to satisfy the trace link requirement."
+        }
+      ],
+      "best_thing": "The README accurately claims that smolagents supports any LLM, as verified by examples/agent_from_any_llm.py."
+    }
+  },
+  "verify_tool_calls": [
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "examples/gradio_ui.py"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "examples/agent_from_any_llm.py"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "src/smolagents/tools.py"
+      }
+    }
+  ],
+  "usage": {
+    "quick_verdict": 1990,
+    "claims": 3320,
+    "verify": 3320,
+    "verdict": 3320
+  }
+}

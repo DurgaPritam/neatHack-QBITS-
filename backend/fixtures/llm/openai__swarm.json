@@ -1,0 +1,226 @@
+{
+  "repo": "openai/swarm",
+  "source": "rebuilt from real audit 4d5dbd1bf972 (2026-10-10T08:48:22+00:00); see scripts/build_fixtures.py",
+  "responses": {
+    "quick_verdict": {
+      "roast": "We are live at the stadium with a massive 22047 GitHub stars, but the play-by-play shows 0 commits inside the hackathon window, with 29 before it started, meaning the entire squad was warming up in the locker room while the clock was already ticking!",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Record a demo of at most 3 minutes that shows neatlogs, Entire and cfo.ai in action, and link it at the top of the README."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Add a section to the README comparing before and after runs with specific numerical metrics to demonstrate improvement."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make new commits to the repository that are dated within the hackathon window to show active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Integrate the neatlogs SDK into the project dependencies and document its usage in the README."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Add neatlogs trace links or screenshots to the README to provide evidence of the agent's execution path."
+        },
+        {
+          "check_id": "cfo_ai_plan",
+          "fix": "Create and link a cfo.ai business plan in the README that details pricing, costs, revenue, and runway."
+        }
+      ],
+      "best_thing": "The repo has a verified claim that it handles Agent function execution and hand-offs, as evidenced by specific lines in swarm/core.py."
+    },
+    "claims": {
+      "claims": [
+        {
+          "id": "c1",
+          "text": "Swarm requires Python 3.10 or newer",
+          "quote": "Requires Python 3.10+",
+          "category": "building_in_public"
+        },
+        {
+          "id": "c2",
+          "text": "Swarm provides a client class named Swarm that internally uses an OpenAI client",
+          "quote": "instantiates an `OpenAI` client",
+          "category": "agent"
+        },
+        {
+          "id": "c3",
+          "text": "Swarm's client.run() handles function calls, hand-offs, context variables, and can perform multiple turns before returning",
+          "quote": "handles Agent function execution, hand-offs, context variable references, and can take multiple turns",
+          "category": "agent"
+        },
+        {
+          "id": "c4",
+          "text": "Swarm's client.run() accepts a stream flag to enable streaming responses",
+          "quote": "If `True`, enables streaming responses",
+          "category": "agent"
+        },
+        {
+          "id": "c5",
+          "text": "Swarm's client.run() accepts a debug flag to enable debug logging",
+          "quote": "If `True`, enables debug logging",
+          "category": "agent"
+        },
+        {
+          "id": "c6",
+          "text": "Swarm supports hand-offs between agents via a primitive abstraction called handoffs",
+          "quote": "can at any point choose to hand off a conversation to another `Agent`",
+          "category": "agent"
+        },
+        {
+          "id": "c7",
+          "text": "Swarm is stateless between calls and does not store state",
+          "quote": "Swarm is entirely powered by the Chat Completions API and is hence stateless between calls",
+          "category": "agent"
+        }
+      ],
+      "injection_attempts": []
+    },
+    "verify": {
+      "results": [
+        {
+          "claim_id": "c1",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "setup.cfg:22",
+              "note": "python_requires >=3.10"
+            }
+          ],
+          "reason": "setup.cfg specifies python_requires >=3.10, matching claim."
+        },
+        {
+          "claim_id": "c2",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Search results show many matches but no clear evidence that Swarm class instantiates an OpenAI client. The search returned many unrelated lines. No file path shows Swarm class definition with OpenAI import."
+        },
+        {
+          "claim_id": "c3",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "swarm/core.py:146",
+              "note": "max_turns parameter defined"
+            },
+            {
+              "ref": "swarm/core.py:154",
+              "note": "loop uses max_turns"
+            },
+            {
+              "ref": "swarm/core.py:198",
+              "note": "handles tool calls and execution"
+            }
+          ],
+          "reason": "Core client.run implements max_turns, execute_tools, and handles function calls."
+        },
+        {
+          "claim_id": "c4",
+          "status": "verified",
+          "evidence": [
+            {
+              "ref": "swarm/core.py:176",
+              "note": "stream=True passed to API call"
+            }
+          ],
+          "reason": "Code shows stream flag usage."
+        },
+        {
+          "claim_id": "c5",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Only example usage shows debug=True; no evidence that client.run accepts a debug flag."
+        },
+        {
+          "claim_id": "c6",
+          "status": "unverified",
+          "evidence": [],
+          "reason": "Search results do not show a handoff abstraction; only references to Agent class. No concrete implementation found."
+        },
+        {
+          "claim_id": "c7",
+          "status": "unverified",
+          "evidence": [
+            {
+              "ref": "README.md:116",
+              "note": "run() saves no state"
+            }
+          ],
+          "reason": "downgraded: no independent evidence the agent actually saw (README restating a claim doesn't count) (README states run() does not store state.)"
+        }
+      ],
+      "estimates": {
+        "agent_quality": {
+          "score": 5.0,
+          "evidence": [
+            "README.md:116",
+            "swarm/core.py:146"
+          ],
+          "reason": "The code shows a simple loop and state handling, but no advanced planning or recovery logic visible."
+        },
+        "usefulness": {
+          "score": 7.0,
+          "evidence": [
+            "README.md",
+            "examples"
+          ],
+          "reason": "The library provides a lightweight stateless agent framework with streaming and function calls, useful for simple multi-agent orchestration."
+        }
+      },
+      "injection_attempts": []
+    },
+    "verdict": {
+      "roast": "We are live at the stadium with a massive 22047 GitHub stars, but the play-by-play shows 0 commits inside the hackathon window, with 29 before it started, meaning the entire squad was warming up in the locker room while the clock was already ticking!",
+      "fixes": [
+        {
+          "check_id": "demo_video",
+          "fix": "Record a demo of at most 3 minutes that shows neatlogs, Entire and cfo.ai in action, and link it at the top of the README."
+        },
+        {
+          "check_id": "before_after",
+          "fix": "Add a section to the README comparing before and after runs with specific numerical metrics to demonstrate improvement."
+        },
+        {
+          "check_id": "commits_in_window",
+          "fix": "Make new commits to the repository that are dated within the hackathon window to show active development during the event."
+        },
+        {
+          "check_id": "neatlogs_sdk",
+          "fix": "Integrate the neatlogs SDK into the project dependencies and document its usage in the README."
+        },
+        {
+          "check_id": "neatlogs_traces",
+          "fix": "Add neatlogs trace links or screenshots to the README to provide evidence of the agent's execution path."
+        },
+        {
+          "check_id": "cfo_ai_plan",
+          "fix": "Create and link a cfo.ai business plan in the README that details pricing, costs, revenue, and runway."
+        }
+      ],
+      "best_thing": "The repo has a verified claim that it handles Agent function execution and hand-offs, as evidenced by specific lines in swarm/core.py."
+    }
+  },
+  "verify_tool_calls": [
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "setup.cfg"
+      }
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "swarm/core.py"
+      }
+    }
+  ],
+  "usage": {
+    "quick_verdict": 2024,
+    "claims": 2536,
+    "verify": 2536,
+    "verdict": 2536
+  }
+}

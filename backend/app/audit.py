@@ -6,7 +6,7 @@ logged and, where possible, a fallback is tried so a partial report still comes 
 import asyncio
 from datetime import datetime, timezone
 
-from app import config
+from app import config, replay
 from app.steps import StepLog
 from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
@@ -177,6 +177,13 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
     return report
 
 
+def _repo_name(repo_url: str) -> str | None:
+    try:
+        return parse_repo_url(repo_url).full_name
+    except GitHubError:
+        return None
+
+
 def _usage_dict(llm) -> dict:
     return llm.usage.to_dict() if llm is not None else {"total_tokens": 0, "calls": 0}
 
@@ -201,7 +208,8 @@ async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kin
     ctx = {} if ctx is None else ctx
     t0 = time.monotonic()
     pool = getattr(llm, "pool", POOL)
-    with audit_context(audit_id, run_kind, repo_url, phase="quick"), pool.quick_window():
+    with audit_context(audit_id, run_kind, repo_url, phase="quick"), pool.quick_window(), \
+            replay.repo_context(_repo_name(repo_url)):
         report = await run_deterministic_audit(repo_url, token=token, transport=transport, log=log, ctx=ctx)
         score = compute_score(report["checks"])
         if ctx.get("repo_available"):
@@ -239,7 +247,8 @@ async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None,
 
     log = log or StepLog()
     t0 = time.monotonic()
-    with audit_context(report["audit_id"], report.get("run_kind", "real"), report["repo_url"], phase="deep"):
+    with audit_context(report["audit_id"], report.get("run_kind", "real"), report["repo_url"], phase="deep"), \
+            replay.repo_context(_repo_name(report["repo_url"])):
         if not ctx.get("repo_available"):
             log.skip("deep", "repo unavailable; nothing to verify")
             deep = {"ms": 0, "usage": {"total_tokens": 0, "calls": 0}, "skipped": True}
