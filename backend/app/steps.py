@@ -38,7 +38,11 @@ class StepLog:
             self.steps.append(s)
 
     def skip(self, name: str, reason: str) -> None:
-        self.steps.append(Step(name=name, status="skipped", detail=reason))
+        self.note(name, reason, status="skipped")
+
+    def note(self, name: str, detail: str, status: str = "ok", **data: Any) -> None:
+        """Record an instantaneous step (a decision, fallback, or skip)."""
+        self.steps.append(Step(name=name, status=status, detail=detail, data=data))
 
     def to_list(self) -> list[dict[str, Any]]:
         return [asdict(s) for s in self.steps]
