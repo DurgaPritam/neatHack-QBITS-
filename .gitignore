@@ -1,0 +1,22 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# data
+*.db
+*.sqlite
+
+# node
+node_modules/
+dist/
+
+.DS_Store
