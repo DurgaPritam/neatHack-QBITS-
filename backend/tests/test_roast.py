@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from app import db
 from app.agent import prompts
 from app.agent import roast as R
@@ -148,3 +150,17 @@ def test_template_roasts_are_not_remembered_and_vary():
     variants = {R.template_roast("strict professor", facts, 20, variant=i) for i in range(6)}
     assert len(variants) == 6
     assert all(not R.roast_problems(v, facts, [], REPORT) for v in variants)
+
+
+@pytest.mark.parametrize("new,old,reused", [
+    ("We are live at the stadium where 37 commits landed early.", "We are live at the arena for this one.", False),
+    ("37 commits during the hackathon window? None, all before.", "Zero commits during the hackathon window, sad.", False),
+    ("A 1490-word README that reads like a Michelin guide with no food.",
+     "This README that reads like a Michelin guide, but where is dinner?", True),
+    ("An absence of evidence so severe it borders on academic malpractice.",
+     "The citations: so severe it borders on academic malpractice.", True),
+])
+def test_joke_reuse_targets_distinctive_phrases(new, old, reused):
+    facts = R.build_facts(REPORT)
+    problems = R.roast_problems(new, facts, [old], REPORT)
+    assert any("reuses a joke" in p for p in problems) == reused

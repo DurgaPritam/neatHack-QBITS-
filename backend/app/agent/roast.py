@@ -36,6 +36,10 @@ BANNED_PHRASES = [
 
 RECENT_ROASTS = 20
 SHINGLE = 5
+STOPWORDS = set("""a an the and or but of to in on at for with by from as is are was were be been it its
+this that these those there here we you your our they their i me my he she his her them us so very
+just than then too not no all any some more most such what which who whom how when where why do does
+did has have had will would can could should into out up down over under again only own same""".split())
 _TOO_LONG = re.compile(r"too long|over (3|three) min|longer than|marathon|feature[- ]length|runtime", re.I)
 _DEAD_VIDEO = re.compile(r"(dead|broken|missing)\W+(\w+\W+){0,3}(video|demo)|(video|demo)\W+(\w+\W+){0,3}(dead|broken|404)", re.I)
 
@@ -139,6 +143,25 @@ def _shingles(text: str) -> set[tuple]:
     return {tuple(w[i:i + SHINGLE]) for i in range(len(w) - SHINGLE + 1)}
 
 
+def _joke_shingles(text: str, facts: list[dict]) -> set[tuple]:
+    """5-word phrases that could carry a joke: not mostly stopwords, not about this repo's facts.
+
+    Common phrasing ("we are live at the") and fact wording ("commits inside the hackathon
+    window", "12:46") are shared by any honest roast; a distinctive turn of phrase is not.
+    """
+    fact_words = {w for f in facts for w in _words(f["fact"]) if w not in STOPWORDS}
+    fact_words |= {w for f in facts for a in f["anchors"] for w in _words(a)}
+    out = set()
+    for sh in _shingles(text):
+        content = [w for w in sh if w not in STOPWORDS]
+        if len(content) < 3:
+            continue
+        if sum(w in fact_words for w in content) >= len(content) - 1:
+            continue
+        out.add(sh)
+    return out
+
+
 def _has_anchor(roast: str, anchors: list[str]) -> bool:
     low = roast.lower()
     for a in anchors:
@@ -163,12 +186,9 @@ def roast_problems(roast: str, facts: list[dict], recent: list[str], report: dic
     if anchors and not _has_anchor(roast, anchors):
         problems.append("doesn't mention any specific fact from the list (a number, date, file name, "
                         "duration or claim quote)")
-    fact_shingles = set().union(*(_shingles(f["fact"]) for f in facts)) if facts else set()
-    numbers = {w for f in facts for a in f["anchors"] for w in _words(a) if any(ch.isdigit() for ch in w)}
-    # quoting a fact (or this repo's numbers) isn't reusing a joke
-    mine = {sh for sh in _shingles(roast) - fact_shingles if not numbers.intersection(sh)}
+    mine = _joke_shingles(roast, facts)
     for old in recent:
-        overlap = mine & _shingles(old)
+        overlap = mine & _shingles(old)  # old side unfiltered: any shared distinctive phrase counts
         if overlap:
             problems.append(f"reuses a joke from a recent roast: \"{' '.join(next(iter(overlap)))}\"")
             break
@@ -184,7 +204,8 @@ def roast_problems(roast: str, facts: list[dict], recent: list[str], report: dic
 
 def template_roast(style: str, facts: list[dict], score: int, variant: int = 0) -> str:
     """Fallback that still follows the rules: styled, factual, no stock phrases, and it varies."""
-    anchored = [f for f in facts if f["anchors"]] or [{"fact": f"a score of {score}/100"}]
+    punchy = [f for f in facts if f["anchors"] and not f["fact"].startswith("README claim")]
+    anchored = punchy or [f for f in facts if f["anchors"]] or [{"fact": f"a score of {score}/100"}]
     fact = anchored[variant % len(anchored)]["fact"]
     openers = {
         "sports commentator": ["Live from the judging arena:", "Play-by-play update:", "Official stat sheet:"],
