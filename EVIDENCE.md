@@ -24,6 +24,49 @@
 Failure-recovery evidence: every run above hit Groq 429s (8k TPM free tier) and recovered via
 backoff → fallback model → wait-for-quota; each retry/fallback is a step + neatlogs event.
 
+## M2.5: two-speed audits, tarball + search_repo, model rotation (2026-10-10)
+Before = M2 single-phase audit. After = quick phase + deep phase, two consecutive runs each
+(audit ids are neatlogs session ids; the quick and deep traces share them).
+
+| Repo | Before: tokens / time / verified | After run A: quick → deep, verified | After run B: quick → deep, verified |
+|---|---|---|---|
+| openai/swarm | 19,066 / 52s / 4 of 7 | 4,094 tok, 5.5s → 16,181 tok, 7.6s · **6 of 8** (`3c94ce84b8a5`) | 4,048 tok, 6.1s → 10,145 tok, 30.6s · 3 of 7 (`4d5dbd1bf972`) |
+| huggingface/smolagents | 15,061 / 37s / 1 of 8 | 5,812 tok, 47.5s* → 17,896 tok, 49.8s · **6 of 8** (`b8e64c021d56`) | 3,981 tok, 10.4s → 9,960 tok, 30.3s · 3 of 8 (`fa16370b7b8b`) |
+| langchain-ai/open_deep_research | 21,172 / 34s / 4 of 8 | 4,024 tok, 11.9s → 18,159 tok, 57.8s · 3 of 8 (`909e4b969177`) | 4,235 tok, 11.7s → 18,682 tok, 80.8s · 4 of 8 (`6dbfbb5d1c76`) |
+
+\* waited for per-minute quota on every model.
+
+- **Time to first result:** 34–52s → **5.5–12s** (quick phase).
+- **Verified claims:** smolagents 1/8 → 3–6/8, swarm 4/7 → 3–6/8, open_deep_research 4/8 → 3–4/8.
+  It varies run to run with the model the scheduler gets: under quota pressure the weakest
+  model (gpt-oss-20b) does more of the judging.
+- **What made the difference** (intermediate runs, same day): with the tarball + `search_repo`
+  but no pre-search, smolagents verified **0/8** at 20.8k–23.8k deep tokens, because gpt-oss
+  makes one tool call per turn. With **code pre-searching every claim** it verified 4–6/8 at
+  10–18k.
+- **Quick phase tokens:** the runs above include a roast rewrite. With the quick phase capped
+  at one LLM call (`dbec90c`), measured single-call quick audits: swarm 2,154 tok/5.5s,
+  smolagents 2,866/7.1s, open_deep_research 2,541/9.6s, pallets/itsdangerous 2,746/8.6s.
+- **Demo video duration** is now read from metadata: open_deep_research's demo is **12:46**
+  (over the 3:00 limit); before it was reported as "duration not checked".
+
+## Throughput on the Groq free tier (measured 2026-10-10)
+Limits are per model (Groq docs + headers): 8,000 tokens/min, 30 req/min, 1,000 req/day,
+**200,000 tokens/day**. Rotating 3 tool-calling models gives 24k TPM and 600k tokens/day.
+
+| | Avg tokens | Avg calls | Avg time | Burst (per hour) | Sustained over 24h |
+|---|---|---|---|---|---|
+| Quick audit | ~2,600 (single call), 3,918 with rewrites | 1–1.7 | 8–14s | **measured 256/h** (10 audits in 141s); TPM bound ≈ 370–550/h | ≈ 9/h (≈ 220/day), TPD-bound |
+| Deep audit (one at a time) | 15,170 | 4.5 | 42.8s | ≈ 84/h (latency-bound; TPM bound 95/h) | ≈ 1.6/h (≈ 40/day), TPD-bound |
+| Full audit (quick + deep) | ~18,000 | | | | **≈ 31–33/day** |
+
+- The binding limit is **tokens per day**, not tokens per minute. This was demonstrated
+  rather than estimated: by the end of the day's development runs, all three models
+  answered 429 "tokens per day (TPD): Limit 200000, Used ~199,000", and quick audits fell
+  back to template verdicts in 4–9s with each TPD failure recorded as a step
+  (`rate_limited_tpd`).
+- Reproduce: `python -m scripts.throughput --n 10 --deep-report <--full outputs>`.
+
 ## Entire
 - Checkpoint link + ID: <paste>
 
