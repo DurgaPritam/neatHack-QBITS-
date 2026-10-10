@@ -148,3 +148,26 @@ def test_usage_and_pool_accounting():
     assert llm.usage.to_dict()["total_tokens"] == 350
     assert pool.snapshot()["primary"]["tokens"] == 350
     assert time.monotonic()  # sanity: real clock untouched
+
+
+def _tpd_429(retry_after="210"):
+    import httpx
+    import openai
+    resp = httpx.Response(429, headers={"retry-after": retry_after},
+                          request=httpx.Request("POST", "https://api.groq.com/openai/v1/chat/completions"))
+    body = {"message": "Rate limit reached for model `m` in organization `o` service tier `on_demand` on "
+                       "tokens per day (TPD): Limit 200000, Used 198813, Requested 1672. Please try again in 3m29.52s."}
+    return openai.RateLimitError("rate limited", response=resp, body=body)
+
+
+def test_daily_cap_429_blocks_model_for_retry_after_and_rotates():
+    llm, fake, log, pool, sleeps, clock = make([_tpd_429(), msg("from backup"), msg("again backup")])
+    run(llm)
+    q = pool.quotas["primary"]
+    assert q.tpd_used == 198813 and pool.snapshot()["primary"]["daily_blocked_s"] == 210
+    assert [s.error_kind for s in log.steps if s.name == "llm.t"][0] == "rate_limited_tpd"
+    run(llm)
+    assert [c["model"] for c in fake.calls] == ["primary", "backup", "backup"]
+    clock.t += 211  # rolling window frees up: primary is usable again
+    model, wait, _ = pool.pick(["primary", "backup"], 100)
+    assert model == "primary"

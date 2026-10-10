@@ -80,6 +80,7 @@ class ModelQuota:
     tpd_used: int = 0
     tpd_day: str = ""
     cooldown_until: float = 0.0        # after a 429 or repeated errors
+    daily_blocked_until: float = 0.0   # after a TPD/RPD 429 (rolling 24h window)
     disabled: str | None = None        # e.g. model retired (404)
     calls: int = 0
     tokens: int = 0
@@ -92,7 +93,8 @@ class ModelQuota:
         """When this model can next be tried at all, or None if it can now."""
         if self.disabled:
             return float("inf")
-        t = max(self.cooldown_until, self.rpd_reset_at if self.rpd_remaining == 0 else 0)
+        t = max(self.cooldown_until, self.daily_blocked_until,
+                self.rpd_reset_at if self.rpd_remaining == 0 else 0)
         return t if t > now else None
 
 
@@ -154,9 +156,10 @@ class QuotaPool:
             blocked = q.blocked_until(now)
             if blocked is not None:
                 wake.append(blocked)
-                reasons.append(f"{m}: {'disabled' if q.disabled else 'cooling down'}")
+                why = "disabled" if q.disabled else ("daily cap" if q.daily_blocked_until > now else "cooling down")
+                reasons.append(f"{m}: {why}")
                 continue
-            if q.tpd_used + est_tokens > q.tpd_limit:
+            if q.tpd_used + est_tokens > q.tpd_limit and q.daily_blocked_until == 0.0:
                 reasons.append(f"{m}: daily token cap reached")
                 continue
             if q.available(now) >= est_tokens + reserve:
@@ -186,6 +189,15 @@ class QuotaPool:
             q.tpm_remaining = 0
             q.tpm_reset_at = max(q.tpm_reset_at, self.clock() + seconds)
 
+    def mark_daily(self, model: str, daily: dict, retry_after: float) -> None:
+        """A daily cap was hit: record Groq's numbers and keep the model out until it frees up."""
+        q = self._q(model)
+        self._roll_day(q)
+        if daily["kind"] == "TPD":
+            q.tpd_limit, q.tpd_used = daily["limit"], max(q.tpd_used, daily["used"])
+        q.daily_blocked_until = self.clock() + retry_after
+        q.rate_limited += 1
+
     def disable(self, model: str, reason: str) -> None:
         self._q(model).disabled = reason
 
@@ -194,6 +206,7 @@ class QuotaPool:
         return {m: {"tpm_available": int(q.available(now)), "tpm_limit": q.tpm_limit,
                     "rpd_remaining": q.rpd_remaining, "tpd_used": q.tpd_used, "tpd_limit": q.tpd_limit,
                     "calls": q.calls, "tokens": q.tokens, "rate_limited": q.rate_limited,
+                    "daily_blocked_s": max(0, round(q.daily_blocked_until - now)),
                     "disabled": q.disabled}
                 for m, q in self.quotas.items()}
 
@@ -275,6 +288,17 @@ def _retry_after(exc: Exception) -> float | None:
         return float(raw) if raw else None
     except ValueError:
         return None
+
+
+_DAILY_RX = re.compile(r"(tokens|requests) per day \((TPD|RPD)\): Limit (\d+), Used (\d+)")
+
+
+def _daily_limit(exc: Exception) -> dict | None:
+    """Parse 'on tokens per day (TPD): Limit 200000, Used 198813' from a Groq 429."""
+    m = _DAILY_RX.search(str(getattr(exc, "body", None) or exc))
+    if not m:
+        return None
+    return {"kind": m.group(2), "limit": int(m.group(3)), "used": int(m.group(4))}
 
 
 def _classify(exc: Exception) -> tuple[str, bool]:
@@ -413,7 +437,15 @@ class LLM:
         s.detail = f"{model}: {str(exc)[:400]}"
         event("llm call failed: {kind}", level="warning", kind=kind, model=model)
         if kind == "rate_limited":
-            self.pool.cooldown(model, _retry_after(exc) or 10)  # next pick rotates
+            daily = _daily_limit(exc)
+            if daily:
+                # TPD/RPD isn't in the headers; Groq's 429 text is the only signal. Rolling window:
+                # the model is usable again after retry-after.
+                self.pool.mark_daily(model, daily, _retry_after(exc) or 300)
+                s.error_kind = f"rate_limited_{daily['kind'].lower()}"
+                event("model hit its daily {limit} cap", level="warning", limit=daily["kind"], model=model)
+            else:
+                self.pool.cooldown(model, _retry_after(exc) or 10)  # next pick rotates
         elif kind == "model_not_found":
             self.pool.disable(model, kind)                       # retired model: stop using it
         elif not retryable:
