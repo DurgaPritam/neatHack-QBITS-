@@ -54,11 +54,12 @@ def classify(url: str) -> str:
     return "other"
 
 
-def _is_public_host(host: str) -> bool:
+def _host_problem(host: str) -> str | None:
+    """None if every address of `host` is public; else 'local_address' or 'unresolvable'."""
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror:
-        return False
+        return "unresolvable"
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if (
@@ -69,8 +70,8 @@ def _is_public_host(host: str) -> bool:
             or ip.is_multicast
             or ip.is_unspecified
         ):
-            return False
-    return True
+            return "local_address"
+    return None
 
 
 async def _check_one(http: httpx.AsyncClient, url: str) -> dict:
@@ -83,8 +84,12 @@ async def _check_one(http: httpx.AsyncClient, url: str) -> dict:
             if parsed.scheme not in ("http", "https") or not parsed.hostname:
                 result["error"] = "unsupported_url"
                 return result
-            if not await asyncio.to_thread(_is_public_host, parsed.hostname):
-                result["error"] = "blocked_or_unresolvable_host"
+            problem = await asyncio.to_thread(_host_problem, parsed.hostname)
+            if problem:
+                # Never fetched (SSRF guard). A localhost URL in "run it locally" docs isn't
+                # a dead link, so it's unknown; a host that doesn't resolve is dead.
+                result["error"] = problem
+                result["ok"] = None if problem == "local_address" else False
                 return result
             r = await http.head(current)
             if r.status_code in (403, 405, 501) or r.status_code >= 500:

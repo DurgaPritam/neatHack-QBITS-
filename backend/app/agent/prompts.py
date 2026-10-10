@@ -78,6 +78,8 @@ Write:
 1. "roast": 1-3 sentences, genuinely funny, about the REPO and its evidence, never the
    people. No insults about identity, appearance, nationality, gender, skill or
    intelligence. No profanity. Punch at missing evidence, dead links, empty READMEs.
+   Every fact in it must match the results exactly: never call something dead,
+   missing or broken unless the results say so (e.g. "video link live" is NOT dead).
 2. "fixes": one item per fix candidate given (keep its check_id), each a concrete,
    actionable instruction in one or two sentences. Don't add check_ids not given.
 3. "best_thing": one sincere sentence on the best thing about this repo.

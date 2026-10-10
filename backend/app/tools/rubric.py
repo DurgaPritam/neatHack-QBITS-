@@ -260,7 +260,7 @@ def check_dead_links(links: list[dict]) -> dict:
     unknown = [l["url"] for l in links if l["ok"] is None]
     if dead:
         return _check("dead_links", "usefulness", title, "fail", f"{len(dead)}/{len(links)} links dead", dead)
-    detail = f"{len(links)} links checked" + (f", {len(unknown)} unknown (bot-blocked)" if unknown else "")
+    detail = f"{len(links)} links checked" + (f", {len(unknown)} unknown (bot-blocked or local)" if unknown else "")
     return _check("dead_links", "usefulness", title, "pass", detail, unknown)
 
 
