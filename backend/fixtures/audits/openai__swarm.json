@@ -818,7 +818,8 @@
     ],
     "best_thing": "The repo has a verified claim that it handles Agent function execution and hand-offs, as evidenced by specific lines in swarm/core.py.",
     "style": "sports commentator",
-    "source": "llm"
+    "source": "llm",
+    "roast_source": "template"
   },
   "phases": {
     "quick": {

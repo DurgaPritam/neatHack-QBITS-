@@ -454,7 +454,9 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
     worded = {f.check_id: f.fix for f in verdict.fixes}
     checks_by_id = {c["id"]: c for c in report.get("checks", [])}
     fixes = [_fix_row(c, fix_text(c, worded.get(c["check_id"]), checks_by_id)) for c in candidates]
-    return {"roast": verdict.roast, "fixes": fixes, "best_thing": verdict.best_thing, "style": style}, "llm"
+    return {"roast": verdict.roast, "fixes": fixes, "best_thing": verdict.best_thing, "style": style,
+            # the LLM wrote the verdict, but a roast that failed the fact check was replaced
+            "roast_source": "template" if templated else "llm"}, "llm"
 
 
 # ---------------------------------------------------------------- entry point

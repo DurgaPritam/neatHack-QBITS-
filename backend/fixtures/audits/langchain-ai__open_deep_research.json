@@ -1115,7 +1115,8 @@
     ],
     "best_thing": "The repository has garnered 12682 GitHub stars, indicating significant community interest and adoption.",
     "style": "strict professor",
-    "source": "llm"
+    "source": "llm",
+    "roast_source": "llm"
   },
   "phases": {
     "quick": {

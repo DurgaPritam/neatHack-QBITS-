@@ -1016,7 +1016,8 @@
     ],
     "best_thing": "The README accurately claims that smolagents supports any LLM, as verified by examples/agent_from_any_llm.py.",
     "style": "food critic",
-    "source": "llm"
+    "source": "llm",
+    "roast_source": "llm"
   },
   "phases": {
     "quick": {

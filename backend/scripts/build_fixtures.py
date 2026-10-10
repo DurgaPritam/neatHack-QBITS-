@@ -33,6 +33,10 @@ def real_roasts(repo: str) -> list[str]:
 
 def build(path: str) -> str:
     report = json.loads(redact(Path(path).read_text()))
+    # Older reports didn't record roast_source; the step log does (verdict.roast_template).
+    if "roast_source" not in report["verdict"]:
+        templated = any(st["name"] == "verdict.roast_template" for st in report["steps"])
+        report["verdict"]["roast_source"] = "template" if templated else "llm"
     repo = report["repo"]["full_name"].lower()
     agent = report["agent"]
     quick_facts = R.build_facts(report)

@@ -180,3 +180,9 @@ def test_quick_phase_makes_one_call_and_uses_template_on_bad_roast():
                                        purpose="quick_verdict", allow_rewrite=False))
     assert len(calls) == 1
     assert not R.roast_problems(out["roast"], R.build_facts(REPORT), [], REPORT)
+
+
+def test_verdict_reports_when_the_roast_is_a_template():
+    llm = _llm(lambda kw: msg(_verdict("Big dreams, small evidence, as always.")))
+    out, source = asyncio.run(write_verdict(llm, compute_score(REPORT["checks"]), REPORT, []))
+    assert source == "llm" and out["roast_source"] == "template"
