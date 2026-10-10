@@ -1,0 +1,183 @@
+import { expect, test, type Page } from '@playwright/test'
+
+// Full flow against the real backend in LLM_MODE=replay (no LLM tokens). GitHub is live.
+const SHOTS = process.env.E2E_SHOTS ?? 'e2e-shots'
+
+async function shot(page: Page, name: string) {
+  await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true })
+}
+
+test('home: headline, live counter, three saved examples', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Get roasted before the judges do' })).toBeVisible()
+  await expect(page.getByTestId('counter')).toContainText(/\d+ repos roasted/)
+  await expect(page.getByTestId('example')).toHaveCount(3)
+  await shot(page, 'home-desktop')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await shot(page, 'home-mobile')
+})
+
+test('a roast that failed the fact check is labelled fact-only', async ({ page }) => {
+  await page.goto('/a/4d5dbd1bf972') // openai/swarm example: its jokes were rejected in the real run
+  await expect(page.getByTestId('fact-only')).toContainText("didn't pass our fact check")
+})
+
+test('invalid URL is caught before calling the API', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('GitHub repo URL').fill('not a repo')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  await expect(page.getByRole('alert')).toContainText('Paste a public GitHub repo')
+  await expect(page).toHaveURL('/')
+})
+
+test('saved example: score, categories, roast, fixes, claims with evidence, feedback, card', async ({ page }) => {
+  await page.goto('/')
+  await page.getByTestId('example').filter({ hasText: 'open_deep_research' }).click()
+  await expect(page.getByTestId('score')).toContainText('18')
+  await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete')
+  await expect(page.locator('.tag-estimated')).toHaveCount(2) // agent + usefulness
+  await expect(page.getByTestId('roast')).toContainText('12:46')
+  await expect(page.getByText('Best thing about this repo')).toBeVisible()
+
+  const pts = await page.locator('.fix-pts').allInnerTexts()
+  const nums = pts.map((p) => parseFloat(p.replace('+', '')))
+  expect(nums).toEqual([...nums].sort((a, b) => b - a))
+
+  const evidence = page.locator('.claims .evidence a').first()
+  await expect(evidence).toHaveAttribute('href', /^https:\/\/github\.com\/langchain-ai\/open_deep_research\/blob\/main\/.+#L\d+/)
+
+  const firstCheck = page.locator('.check').first()
+  await firstCheck.getByRole('button', { name: 'This verdict is wrong' }).click()
+  await firstCheck.getByPlaceholder("What's wrong? (optional)").fill('e2e test')
+  await firstCheck.getByRole('button', { name: 'Send' }).click()
+  await expect(firstCheck.getByText('Thanks, noted.')).toBeVisible()
+
+  const x = page.getByRole('link', { name: 'Share on X' })
+  const href = decodeURIComponent((await x.getAttribute('href')) ?? '')
+  expect(href).toContain('twitter.com/intent/tweet')
+  expect(href).toMatch(/\/r\/6dbfbb5d1c76/)
+  expect(href).toContain('#neatHack')
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download PNG' }).click(),
+  ])
+  expect(download.suggestedFilename()).toBe('prejudge-langchain-ai-open_deep_research.png')
+  await download.saveAs(`${SHOTS}/downloaded-card.png`)
+  await shot(page, 'example-result')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await shot(page, 'example-result-mobile')
+})
+
+test('new audit: live log, quick result, deep check with queue, deep badge', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/openai/swarm')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  await expect(page).toHaveURL(/\/a\/[0-9a-f]{12}$/)
+  await expect(page.getByText('Opening the repo')).toBeVisible()
+  await expect(page.getByTestId('score')).toBeVisible()
+  await expect(page.getByText('Quick check', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('roast')).not.toBeEmpty()
+  await shot(page, 'new-quick')
+
+  await page.getByRole('button', { name: 'Run deep check' }).click()
+  await expect(page.getByTestId('deep-status')).toBeVisible()
+  await shot(page, 'new-deep-queued')
+  await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete', { timeout: 60_000 })
+  await expect(page.locator('.claims .claim').first()).toBeVisible()
+  await expect(page.getByText('Pulling claims out of the README')).toBeVisible()
+  await shot(page, 'new-deep-done')
+})
+
+test('repo without a fixture in replay mode: honest quick-facts label', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/pallets/click')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  await expect(page.getByTestId('template-notice')).toContainText('Quick facts mode: the roast oven is cooling')
+  await expect(page.getByTestId('roast-card')).toContainText('quick facts mode')
+  await shot(page, 'template-mode')
+})
+
+test('repo that does not exist', async ({ page }) => {
+  await page.goto('/')
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/DurgaPritam/no-such-repo-prejudge-e2e')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  await expect(page.getByTestId('repo-unavailable')).toContainText("We can't find this repo.")
+  await expect(page.getByRole('button', { name: 'Run deep check' })).toHaveCount(0)
+  await shot(page, 'not-found')
+})
+
+test('private repo state (GitHub said private)', async ({ page }) => {
+  // A real private repo can't be fetched anonymously; reuse a saved example's shape with a private gate.
+  await page.route('**/api/audits/privatetest01', async (route) => {
+    const ex = await (await page.request.get('/api/audits/4d5dbd1bf972')).json()
+    ex.id = 'privatetest01'
+    ex.result.score.gated = true
+    ex.result.checks = [{ id: 'repo_public', title: 'Repo is public', status: 'fail', category: 'eligibility',
+      detail: "repo is private; judges can't see it", evidence: [] }]
+    ex.steps = [{ name: 'github.get_repo', status: 'failed', error_kind: 'private', detail: '', duration_ms: 1 }]
+    await route.fulfill({ json: ex })
+  })
+  await page.goto('/a/privatetest01')
+  await expect(page.getByTestId('repo-unavailable')).toContainText('This repo is private.')
+})
+
+test('deep check request fails on network error', async ({ page }) => {
+  await page.route('**/api/audits/quicktest01', async (route) => {
+    const ex = await (await page.request.get('/api/audits/4d5dbd1bf972')).json()
+    Object.assign(ex, { id: 'quicktest01', status: 'quick_ready', phases: { quick: 'done', deep: 'available' } })
+    ex.result.phase = 'quick'
+    await route.fulfill({ json: ex })
+  })
+  await page.route('**/api/audits/quicktest01/deep', (route) => route.abort('internetdisconnected'))
+  await page.goto('/a/quicktest01')
+  await expect(page.getByText('Quick check', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Run deep check' }).click()
+  await expect(page.getByText("Can't reach PreJudge. Try again?")).toBeVisible()
+})
+
+test('lost connection while on an audit page', async ({ page }) => {
+  await page.route('**/api/audits/*', (route) => route.abort('internetdisconnected'))
+  await page.goto('/a/4d5dbd1bf972')
+  await expect(page.getByTestId('offline')).toContainText('Lost connection to PreJudge')
+  await page.unroute('**/api/audits/*')
+  await page.getByRole('button', { name: 'Retry now' }).click()
+  await expect(page.getByTestId('score')).toBeVisible()
+  await expect(page.getByTestId('offline')).toHaveCount(0)
+})
+
+test('home when the API is down', async ({ page }) => {
+  await page.route('**/api/**', (route) => route.abort('internetdisconnected'))
+  await page.goto('/')
+  await expect(page.getByTestId('counter')).toContainText("Can't reach the server")
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/openai/swarm')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  await expect(page.getByRole('alert')).toContainText("Can't reach PreJudge right now")
+})
+
+test('busy and cooling banners', async ({ page }) => {
+  for (const [state, text] of [['busy', 'Busy right now'], ['cooling', 'The roast oven is cooling']] as const) {
+    await page.route('**/api/stats', (route) =>
+      route.fulfill({ json: { total_audits: 3, completed_audits: 3, budget_state: state, deep_queue: 6, deep_wait_s: 420, llm_mode: 'replay' } }))
+    await page.goto('/')
+    await expect(page.getByTestId('budget-banner')).toContainText(text)
+    await page.unroute('**/api/stats')
+  }
+})
+
+test('unknown audit id', async ({ page }) => {
+  await page.goto('/a/doesnotexist')
+  await expect(page.getByRole('heading', { name: 'No such audit.' })).toBeVisible()
+})
+
+test('share page has Open Graph card and redirects to the audit', async ({ page, request }) => {
+  const html = await (await request.get('/r/6dbfbb5d1c76', { maxRedirects: 0 })).text()
+  expect(html).toContain('og:image')
+  expect(html).toContain('/api/audits/6dbfbb5d1c76/card.png')
+  expect(html).toContain('summary_large_image')
+  const png = await request.get('/api/audits/6dbfbb5d1c76/card.png')
+  expect(png.headers()['content-type']).toBe('image/png')
+  await page.goto('/r/6dbfbb5d1c76')
+  await expect(page).toHaveURL(/\/a\/6dbfbb5d1c76$/)
+  await expect(page.getByTestId('score')).toBeVisible()
+})
