@@ -87,7 +87,7 @@ def test_search_alternatives_context_and_format():
     agent_hits = [m for m in matches if m["path"] == "src/agent.py"]
     assert [m["line"] for m in agent_hits] == [4]  # line 6 merged into line 4's context
     assert "4: " in agent_hits[0]["snippet"] and "6- " in agent_hits[0]["snippet"]
-    assert total == 2
+    assert total == 3  # README.md also says "retry"
     out = format_matches("retry", matches, total, files)
     assert "== src/agent.py:4" in out
 
