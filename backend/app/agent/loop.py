@@ -230,6 +230,34 @@ TEMPLATE_FIXES = {
 }
 
 
+_TOO_LONG_RX = re.compile(r"too long|shorten|trim|cut\b.{0,20}\bdown|over (3|three)|longer than|exceeds?|"
+                          r"under (3|three) min|condense", re.I)
+
+
+def demo_video_fix(check: dict | None) -> str:
+    data = (check or {}).get("data") or {}
+    status = data.get("duration_status")
+    if status == "too_long":
+        return (f"Your demo runs {data.get('duration')}; cut it to 3:00 or less and make sure it shows "
+                "neatlogs, Entire and cfo.ai.")
+    if status == "unknown":
+        return (f"We couldn't read the demo's length ({data.get('reason') or 'unknown reason'}). Make sure "
+                "the video is public, at most 3:00, and state its length in the README.")
+    if status == "dead_link":
+        return "The demo video link is dead; re-upload it (at most 3:00) and fix the README link."
+    return TEMPLATE_FIXES["demo_video"]
+
+
+def fix_text(candidate: dict, worded: str | None, checks_by_id: dict) -> str:
+    """LLM wording if it's consistent with the facts, else a template."""
+    cid = candidate["check_id"]
+    if cid == "demo_video":
+        status = ((checks_by_id.get(cid) or {}).get("data") or {}).get("duration_status")
+        if not worded or (status != "too_long" and _TOO_LONG_RX.search(worded)):
+            return demo_video_fix(checks_by_id.get(cid))  # never claim "too long" without a duration
+    return worded or TEMPLATE_FIXES.get(cid) or f"Fix: {candidate['title']} ({candidate['detail']})"
+
+
 def template_verdict(score: dict, report: dict) -> dict:
     s = score["score"]
     fails = [c for c in report.get("checks", []) if c["status"] == "fail"]
@@ -245,8 +273,8 @@ def template_verdict(score: dict, report: dict) -> dict:
                  "everything they can't.")
     else:
         roast = "Annoyingly well-prepared. The judges will have to work hard to find something to complain about."
-    fixes = [_fix_row(f, TEMPLATE_FIXES.get(f["check_id"], f"Fix: {f['title']} ({f['detail']})"))
-             for f in score["fix_candidates"][:MAX_FIXES]]
+    checks_by_id = {c["id"]: c for c in report.get("checks", [])}
+    fixes = [_fix_row(f, fix_text(f, None, checks_by_id)) for f in score["fix_candidates"][:MAX_FIXES]]
     best = (f"{passes[0]['title']}: {passes[0]['detail']}." if passes
             else "It exists, and that's more than most ideas manage.")
     return {"roast": roast, "fixes": fixes, "best_thing": best}
@@ -288,8 +316,8 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
 
     # Code decides which fixes exist and their order (points gained); the LLM only words them.
     worded = {f.check_id: f.fix for f in verdict.fixes}
-    fixes = [_fix_row(c, worded.get(c["check_id"]) or TEMPLATE_FIXES.get(c["check_id"], c["title"]))
-             for c in candidates]
+    checks_by_id = {c["id"]: c for c in report.get("checks", [])}
+    fixes = [_fix_row(c, fix_text(c, worded.get(c["check_id"]), checks_by_id)) for c in candidates]
     return {"roast": verdict.roast, "fixes": fixes, "best_thing": verdict.best_thing}, "llm"
 
 

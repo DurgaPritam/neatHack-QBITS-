@@ -3,12 +3,14 @@
 Every external call is a recorded step. Failures never abort the audit; they are
 logged and, where possible, a fallback is tried so a partial report still comes back.
 """
+import asyncio
 from datetime import datetime, timezone
 
 from app.steps import StepLog
 from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
 from app.tools.links import check_links, extract_links
+from app.tools.video import get_duration
 from app.tracing import span
 
 README_FALLBACK_NAMES = ("README.md", "readme.md", "README.rst", "README")
@@ -47,6 +49,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
     dep_files: dict[str, str] = {}
     commits_truncated = False
     links: list[dict] = []
+    videos_meta: list[dict] = []
 
     async with GitHubClient(token=token, transport=transport) as gh:
         report["github_authenticated"] = gh.authenticated
@@ -124,6 +127,14 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
                     links = await check_links(urls)
                     dead = sum(1 for l in links if l["ok"] is False)
                     s.detail = f"{len(links)} links, {dead} dead"
+                video_links = [l["url"] for l in links if l["kind"] == "video" and l["ok"] is not False][:2]
+                if video_links:
+                    with log.step("video.duration") as s:
+                        videos_meta = list(await asyncio.gather(*(get_duration(u) for u in video_links)))
+                        s.detail = "; ".join(f"{m['duration'] or 'unknown'}"
+                                             + (f" ({m['reason']})" if m["reason"] else "") for m in videos_meta)
+                        if all(m["status"] == "unknown" for m in videos_meta):
+                            s.status, s.error_kind = "failed", "duration_unknown"
             else:
                 log.skip("links.check", "no README text")
 
@@ -144,7 +155,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             rubric.check_neatlogs_traces(links),
             rubric.check_entire(tree_paths, readme_text, links),
             rubric.check_cfo_ai(readme_text, links),
-            rubric.check_demo_video(links),
+            rubric.check_demo_video(links, videos_meta),
             rubric.check_public_posts(readme_text, links),
             rubric.check_before_after(readme_text),
             rubric.check_failure_run(readme_text),
@@ -158,6 +169,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
         "checks": checks,
         "summary": rubric.summarize(checks),
         "links": links,
+        "videos": videos_meta,
         "files_seen": len(tree_paths),
         "dependency_files": list(dep_files),
     })

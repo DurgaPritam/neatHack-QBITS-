@@ -42,9 +42,12 @@ _INJECTION_RX = re.compile("|".join(_INJECTION_PATTERNS), re.I)
 
 
 def _check(id_: str, category: str, title: str, status: str, detail: str,
-           evidence: list | None = None) -> dict:
-    return {"id": id_, "category": category, "title": title, "status": status,
-            "detail": detail, "evidence": evidence or []}
+           evidence: list | None = None, data: dict | None = None) -> dict:
+    out = {"id": id_, "category": category, "title": title, "status": status,
+           "detail": detail, "evidence": evidence or []}
+    if data:
+        out["data"] = data
+    return out
 
 
 def _parse_dt(s: str | None) -> datetime | None:
@@ -195,18 +198,40 @@ def check_cfo_ai(readme: str, links: list[dict]) -> dict:
 
 # ---------------------------------------------------------------- demo video
 
-def check_demo_video(links: list[dict]) -> dict:
+def check_demo_video(links: list[dict], videos_meta: list[dict] | None = None) -> dict:
+    """Pass if a live video is <= 3:00; fail if none, dead, or every known duration is too long;
+    unverified (with the reason) when the duration can't be read. Never guesses a length."""
+    from app.tools.video import MAX_DEMO_SECONDS, fmt_duration
+
     title = "Demo video (<= 3 min, covers all three tools)"
     videos = [l for l in links if l["kind"] == "video"]
     if not videos:
-        return _check("demo_video", "demo_video", title, "fail", "no YouTube/Loom/Vimeo link in README")
+        return _check("demo_video", "demo_video", title, "fail", "no YouTube/Loom/Vimeo link in README",
+                      data={"duration_status": "no_video"})
     live = [l for l in videos if l["ok"] is not False]
     if not live:
         return _check("demo_video", "demo_video", title, "fail", "video link(s) are dead",
-                      [l["url"] for l in videos])
+                      [l["url"] for l in videos], data={"duration_status": "dead_link"})
+    meta = [m for m in (videos_meta or []) if m["url"] in {l["url"] for l in live}]
+    known = [m for m in meta if m["status"] == "known"]
+    short = [m for m in known if m["duration_s"] <= MAX_DEMO_SECONDS]
+    limit = fmt_duration(MAX_DEMO_SECONDS)
+    if short:
+        m = min(short, key=lambda v: v["duration_s"])
+        return _check("demo_video", "demo_video", title, "pass",
+                      f"video is {m['duration']} (limit {limit}); whether it covers all three tools isn't checked",
+                      [m["url"]], data={"duration_status": "known", "duration_s": m["duration_s"],
+                                        "duration": m["duration"]})
+    if known and len(known) == len(meta) and meta:
+        m = min(known, key=lambda v: v["duration_s"])
+        return _check("demo_video", "demo_video", title, "fail",
+                      f"video is {m['duration']}, over the {limit} limit",
+                      [m["url"]], data={"duration_status": "too_long", "duration_s": m["duration_s"],
+                                        "duration": m["duration"]})
+    reason = next((m["reason"] for m in meta if m["status"] == "unknown"), None) or "duration not checked"
     return _check("demo_video", "demo_video", title, "unverified",
-                  "video link live; duration not checked yet (video tool lands later)",
-                  [l["url"] for l in live])
+                  f"video link live; duration unknown ({reason})",
+                  [l["url"] for l in live], data={"duration_status": "unknown", "reason": reason})
 
 
 # ---------------------------------------------------------------- building in public
