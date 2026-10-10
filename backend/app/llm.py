@@ -1,18 +1,29 @@
-"""Groq chat client (OpenAI-compatible) with retries, fallback model and usage tracking.
+"""Groq chat client (OpenAI-compatible): model rotation, header-based scheduling, retries.
 
-Reliability policy:
-- 429 / 5xx / timeouts / connection errors: exponential backoff, honouring retry-after.
-- After MAX_RETRIES on a model (or a non-retryable error like a retired model),
-  switch to GROQ_FALLBACK_MODEL.
-- A model that returned 429 is put on cooldown so later calls in the same audit
-  go straight to the fallback instead of waiting again.
-Every retry and fallback is a recorded step and a neatlogs event.
+Groq limits are per model (per organisation): ~8k tokens/min, 1k requests/day and
+200k tokens/day each on the free tier. So we rotate across GROQ_MODELS and schedule:
+
+- QuotaPool tracks each model's remaining tokens/requests from the x-ratelimit-* response
+  headers (captured by an httpx hook, so the neatlogs client wrapper stays intact) plus our
+  own daily token count (the headers don't expose tokens-per-day).
+- Before a call we estimate the tokens Groq will count (prompt + max_tokens) and pick a
+  model that has room. If none has, we wait for the earliest reset instead of firing into
+  a 429. 429s still happen (estimates are estimates); they put that model on cooldown and
+  the next pick rotates to another model.
+- Quick-phase calls are high priority: while one is in flight, deep-phase (low) calls
+  leave QUICK_RESERVE tokens untouched on every model.
+Every retry, rotation and wait is a recorded step and a neatlogs event.
 """
 import asyncio
+import json
 import random
+import re
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
+import httpx
 import openai
 
 from app import config
@@ -20,12 +31,15 @@ from app.steps import StepLog
 from app.tracing import event, span
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-MAX_RETRIES = 2
-RATE_LIMIT_RETRIES = 1   # fallback model has its own quota, so don't wait long on a 429
-MAX_RATE_LIMIT_WAIT = 15.0
-MAX_ROUNDS = 3           # rounds over [primary, fallback] when every model is rate-limited
+MAX_RETRIES = 2            # same-model retries for 5xx / timeouts / malformed tool calls
+MAX_ATTEMPTS = 8           # total calls per chat() across all models
+MAX_WAITS = 4              # scheduled waits for quota per chat()
 BASE_DELAY = 1.0
 MAX_DELAY = 20.0
+DEFAULT_TPM = 8000
+DEFAULT_TPD = int(config.env("GROQ_TPD", "200000"))
+QUICK_RESERVE = 3500       # tokens per model kept free for quick audits while one runs
+CHARS_PER_TOKEN = 3.0      # conservative: over-estimating avoids 429s
 
 
 class LLMError(Exception):
@@ -33,6 +47,161 @@ class LLMError(Exception):
         super().__init__(message)
         self.kind = kind
 
+
+def configured_models() -> list[str]:
+    models = [m.strip() for m in config.env("GROQ_MODELS").split(",") if m.strip()]
+    if not models:
+        models = [m for m in (config.GROQ_MODEL, config.GROQ_FALLBACK_MODEL) if m]
+    return list(dict.fromkeys(models))
+
+
+def _duration(s: str | None) -> float | None:
+    """Groq reset values look like '7.66s', '1m26.4s', '577ms', '2h3m1s'."""
+    if not s:
+        return None
+    total, found = 0.0, False
+    for num, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|h|m|s)", s):
+        found = True
+        total += float(num) * {"ms": 0.001, "s": 1, "m": 60, "h": 3600}[unit]
+    return total if found else None
+
+
+# ---------------------------------------------------------------- quota pool
+
+@dataclass
+class ModelQuota:
+    model: str
+    tpm_limit: int = DEFAULT_TPM
+    tpm_remaining: float = DEFAULT_TPM
+    tpm_reset_at: float = 0.0          # monotonic time when the minute window is full again
+    rpd_remaining: int | None = None
+    rpd_reset_at: float = 0.0
+    tpd_limit: int = DEFAULT_TPD
+    tpd_used: int = 0
+    tpd_day: str = ""
+    cooldown_until: float = 0.0        # after a 429 or repeated errors
+    disabled: str | None = None        # e.g. model retired (404)
+    calls: int = 0
+    tokens: int = 0
+    rate_limited: int = 0
+
+    def available(self, now: float) -> float:
+        return self.tpm_limit if now >= self.tpm_reset_at else self.tpm_remaining
+
+    def blocked_until(self, now: float) -> float | None:
+        """When this model can next be tried at all, or None if it can now."""
+        if self.disabled:
+            return float("inf")
+        t = max(self.cooldown_until, self.rpd_reset_at if self.rpd_remaining == 0 else 0)
+        return t if t > now else None
+
+
+class QuotaPool:
+    def __init__(self, models: list[str] | None = None, clock=time.monotonic):
+        self.clock = clock
+        self.quotas: dict[str, ModelQuota] = {}
+        self.order: list[str] = []
+        self.quick_active = 0
+        for m in models or []:
+            self._q(m)
+
+    def _q(self, model: str) -> ModelQuota:
+        if model not in self.quotas:
+            self.quotas[model] = ModelQuota(model)
+            self.order.append(model)
+        return self.quotas[model]
+
+    def _roll_day(self, q: ModelQuota) -> None:
+        today = datetime.now(timezone.utc).date().isoformat()
+        if q.tpd_day != today:
+            q.tpd_day, q.tpd_used = today, 0
+
+    @contextmanager
+    def quick_window(self):
+        """Mark a quick (high-priority) audit in flight, so deep calls leave it headroom."""
+        self.quick_active += 1
+        try:
+            yield
+        finally:
+            self.quick_active -= 1
+
+    def update_from_headers(self, model: str, headers) -> None:
+        q, now = self._q(model), self.clock()
+        try:
+            if "x-ratelimit-limit-tokens" in headers:
+                q.tpm_limit = int(float(headers["x-ratelimit-limit-tokens"]))
+            if "x-ratelimit-remaining-tokens" in headers:
+                q.tpm_remaining = float(headers["x-ratelimit-remaining-tokens"])
+                q.tpm_reset_at = now + (_duration(headers.get("x-ratelimit-reset-tokens")) or 60)
+            if "x-ratelimit-remaining-requests" in headers:
+                q.rpd_remaining = int(float(headers["x-ratelimit-remaining-requests"]))
+                q.rpd_reset_at = now + (_duration(headers.get("x-ratelimit-reset-requests")) or 3600)
+        except (TypeError, ValueError):
+            pass  # malformed header: keep the previous estimate
+
+    def pick(self, models: list[str], est_tokens: int, priority: str = "high",
+             exclude: set[str] = frozenset()) -> tuple[str | None, float, str]:
+        """-> (model, 0, why) if one has room now, else (None, seconds_to_wait, why)."""
+        now = self.clock()
+        reserve = QUICK_RESERVE if priority == "low" and self.quick_active > 0 else 0
+        wake: list[float] = []
+        reasons = []
+        for m in models:
+            q = self._q(m)
+            self._roll_day(q)
+            if m in exclude:
+                continue
+            blocked = q.blocked_until(now)
+            if blocked is not None:
+                wake.append(blocked)
+                reasons.append(f"{m}: {'disabled' if q.disabled else 'cooling down'}")
+                continue
+            if q.tpd_used + est_tokens > q.tpd_limit:
+                reasons.append(f"{m}: daily token cap reached")
+                continue
+            if q.available(now) >= est_tokens + reserve:
+                q.tpm_remaining = q.available(now) - est_tokens  # optimistic, until headers arrive
+                if now >= q.tpm_reset_at:
+                    q.tpm_reset_at = now + 60
+                return m, 0.0, f"{int(q.tpm_remaining)} tokens left this minute"
+            wake.append(q.tpm_reset_at)
+            reasons.append(f"{m}: {int(q.available(now))} tokens left, need {est_tokens + reserve}")
+        finite = [w for w in wake if w != float("inf")]
+        if not finite:
+            return None, float("inf"), "; ".join(reasons) or "no models"
+        return None, max(0.2, min(finite) - now), "; ".join(reasons)
+
+    def record(self, model: str, tokens: int) -> None:
+        q = self._q(model)
+        self._roll_day(q)
+        q.calls += 1
+        q.tokens += tokens
+        q.tpd_used += tokens
+
+    def cooldown(self, model: str, seconds: float, rate_limited: bool = True) -> None:
+        q = self._q(model)
+        q.cooldown_until = max(q.cooldown_until, self.clock() + seconds)
+        if rate_limited:
+            q.rate_limited += 1
+            q.tpm_remaining = 0
+            q.tpm_reset_at = max(q.tpm_reset_at, self.clock() + seconds)
+
+    def disable(self, model: str, reason: str) -> None:
+        self._q(model).disabled = reason
+
+    def snapshot(self) -> dict:
+        now = self.clock()
+        return {m: {"tpm_available": int(q.available(now)), "tpm_limit": q.tpm_limit,
+                    "rpd_remaining": q.rpd_remaining, "tpd_used": q.tpd_used, "tpd_limit": q.tpd_limit,
+                    "calls": q.calls, "tokens": q.tokens, "rate_limited": q.rate_limited,
+                    "disabled": q.disabled}
+                for m, q in self.quotas.items()}
+
+
+POOL = QuotaPool()  # shared by every audit in the process (quick and deep workers)
+
+
+# ---------------------------------------------------------------- client
 
 @dataclass
 class Usage:
@@ -64,12 +233,26 @@ class Usage:
         }
 
 
-def make_client(timeout: float = 30.0) -> openai.AsyncOpenAI:
+def _header_hook(pool: QuotaPool):
+    async def hook(response: httpx.Response) -> None:
+        try:
+            model = json.loads(response.request.content or b"{}").get("model")
+        except (ValueError, AttributeError):
+            return
+        if model:
+            pool.update_from_headers(model, response.headers)
+    return hook
+
+
+def make_client(timeout: float = 30.0, pool: QuotaPool | None = None) -> openai.AsyncOpenAI:
+    http = httpx.AsyncClient(timeout=timeout,
+                             event_hooks={"response": [_header_hook(pool or POOL)]})
     client = openai.AsyncOpenAI(
         api_key=config.GROQ_API_KEY or "missing",
         base_url=GROQ_BASE_URL,
         max_retries=0,  # retries are ours, so they are visible as steps
         timeout=timeout,
+        http_client=http,
     )
     try:
         import neatlogs
@@ -122,117 +305,127 @@ def _reasoning_params(model: str) -> dict:
     return {}
 
 
+def estimate_tokens(messages: list[dict], tools: list | None, max_tokens: int) -> int:
+    chars = len(json.dumps(messages, ensure_ascii=False)) + (len(json.dumps(tools)) if tools else 0)
+    return int(chars / CHARS_PER_TOKEN) + max_tokens
+
+
 class LLM:
     def __init__(
         self,
         steps: StepLog,
         client=None,
-        model: str | None = None,
-        fallback_model: str | None = None,
+        models: list[str] | None = None,
         deadline: float | None = None,
         sleep=asyncio.sleep,
         max_retries: int = MAX_RETRIES,
+        pool: QuotaPool | None = None,
+        priority: str = "high",
+        # backwards-compatible names
+        model: str | None = None,
+        fallback_model: str | None = None,
     ):
         self.steps = steps
-        self.client = client or make_client()
-        self.models = [m for m in (model or config.GROQ_MODEL, fallback_model or config.GROQ_FALLBACK_MODEL) if m]
+        self.pool = pool or POOL
+        self.client = client or make_client(pool=self.pool)
+        self.models = models or ([m for m in (model, fallback_model) if m] or configured_models())
         self.deadline = deadline
         self.sleep = sleep
         self.max_retries = max_retries
+        self.priority = priority
         self.usage = Usage()
-        self._cooldown: dict[str, float] = {}
 
     def _remaining(self) -> float:
         return float("inf") if self.deadline is None else self.deadline - time.monotonic()
 
-    def _model_order(self) -> list[str]:
-        now = time.monotonic()
-        ready = [m for m in self.models if self._cooldown.get(m, 0) <= now]
-        cooling = [m for m in self.models if m not in ready]
-        return ready + cooling
-
     @span("CHAIN", "llm.chat")
     async def chat(self, purpose: str, messages: list[dict], *, tools: list | None = None,
                    tool_choice: str | None = None, json_mode: bool = False,
-                   max_tokens: int = 1500):
-        """Return the assistant message. Raises LLMError only when every model failed.
+                   max_tokens: int = 1500, prefer: list[str] | None = None):
+        """Return the assistant message. Raises LLMError only when no model can answer in time.
 
-        If every model is rate-limited and the time budget allows, wait for the earliest
-        quota reset and go round again (Groq resets are usually a few seconds away).
+        `prefer` reorders the models for this call (e.g. one that makes parallel tool calls).
         """
         if not self.models:
-            raise LLMError("not_configured", "GROQ_MODEL is not set")
-        for rnd in range(MAX_ROUNDS):
-            try:
-                return await self._one_round(purpose, messages, tools, tool_choice, json_mode,
-                                             max_tokens, first_round=rnd == 0)
-            except LLMError as exc:
-                if exc.kind != "rate_limited" or rnd == MAX_ROUNDS - 1:
-                    raise
-                wait = max(0.5, min(self._cooldown.values(), default=0) - time.monotonic())
-                if wait >= self._remaining() - 5:
-                    raise
-                self.steps.note(f"llm.{purpose}.wait_for_quota",
-                                f"all models rate-limited; waiting {wait:.1f}s for quota reset",
-                                wait_s=round(wait, 1))
-                event("all models rate-limited; waiting {wait}s", level="warning", wait=round(wait, 1))
-                await self.sleep(wait)
-        raise LLMError("rate_limited", "unreachable")
+            raise LLMError("not_configured", "no GROQ_MODELS configured")
+        order = sorted(self.models, key=lambda m: prefer.index(m) if prefer and m in prefer else 99)
+        est = estimate_tokens(messages, tools, max_tokens)
+        last_kind, last_model, attempts, waits = "unknown", None, 0, 0
+        same_model_retries = {}
 
-    async def _one_round(self, purpose, messages, tools, tool_choice, json_mode, max_tokens,
-                         first_round: bool):
-        last_kind = "unknown"
-        for i, model in enumerate(self._model_order()):
-            if i > 0 or not first_round:
+        while attempts < MAX_ATTEMPTS:
+            if self._remaining() <= 1:
+                raise LLMError("timeout", "audit time budget exhausted before LLM call")
+            model, wait, why = self.pool.pick(order, est, self.priority)
+            if model is None:
+                if wait == float("inf"):
+                    raise LLMError("daily_quota" if "daily" in why else last_kind,
+                                   f"no model available: {why}")
+                if wait >= self._remaining() - 5:
+                    raise LLMError("rate_limited", f"quota resets in {wait:.0f}s, past the time budget")
+                waits += 1
+                if waits > MAX_WAITS:
+                    raise LLMError("rate_limited", f"still no quota after {MAX_WAITS} waits ({why})")
+                self.steps.note(f"llm.{purpose}.wait_for_quota",
+                                f"waiting {wait:.1f}s for quota ({why})", wait_s=round(wait, 1))
+                event("waiting {wait}s for model quota", level="info", wait=round(wait, 1), why=why)
+                await self.sleep(wait)
+                continue
+            if last_model is not None and model != last_model:
                 self.steps.note(f"llm.{purpose}.fallback", f"switching to model {model}",
                                 model=model, after=last_kind)
                 event("llm fallback to {model}", level="warning", model=model, purpose=purpose)
-            for attempt in range(self.max_retries + 1):
-                if self._remaining() <= 1:
-                    raise LLMError("timeout", "audit time budget exhausted before LLM call")
-                kwargs = dict(model=model, messages=messages, max_tokens=max_tokens, temperature=0.2)
-                if tools:
-                    kwargs["tools"] = tools
-                    kwargs["tool_choice"] = tool_choice or "auto"
-                if json_mode:
-                    kwargs["response_format"] = {"type": "json_object"}
-                extra = _reasoning_params(model)
-                if extra:
-                    kwargs["extra_body"] = extra
-                started = time.perf_counter()
-                with self.steps.step(f"llm.{purpose}") as s:
-                    s.data["model"] = model
-                    try:
-                        resp = await self.client.chat.completions.create(**kwargs)
-                    except Exception as exc:
-                        kind, retryable = _classify(exc)
-                        last_kind = kind
-                        self.usage.failed_calls += 1
-                        s.status, s.error_kind = "failed", kind
-                        s.detail = f"{model}: {str(exc)[:400]}"
-                        event("llm call failed: {kind}", level="warning", kind=kind, model=model,
-                              purpose=purpose, attempt=attempt)
-                        wait = _retry_after(exc)
-                        if kind == "rate_limited":
-                            self._cooldown[model] = time.monotonic() + (wait or 10)
-                        limit = min(self.max_retries, RATE_LIMIT_RETRIES) if kind == "rate_limited" else self.max_retries
-                        if not retryable or attempt >= limit:
-                            break  # out of the step; try next model
-                        if kind == "rate_limited" and wait is not None and wait > MAX_RATE_LIMIT_WAIT:
-                            break  # long reset: the fallback model is the faster path
-                        delay = min(wait if wait is not None else BASE_DELAY * 2 ** attempt + random.random() * 0.3,
-                                    MAX_DELAY)
-                        if delay >= self._remaining() - 2:
-                            break  # no time to wait; go to fallback
-                        s.data["retry_in_s"] = round(delay, 2)
-                        event("llm retry in {delay}s", level="info", delay=round(delay, 2), model=model)
-                        await self.sleep(delay)
-                        continue
+            last_model = model
+            attempts += 1
+
+            kwargs = dict(model=model, messages=messages, max_tokens=max_tokens, temperature=0.2)
+            if tools:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = tool_choice or "auto"
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+            extra = _reasoning_params(model)
+            if extra:
+                kwargs["extra_body"] = extra
+            started = time.perf_counter()
+            with self.steps.step(f"llm.{purpose}") as s:
+                s.data.update(model=model, est_tokens=est, scheduled=why)
+                try:
+                    resp = await self.client.chat.completions.create(**kwargs)
+                except Exception as exc:
+                    last_kind = await self._on_failure(s, model, exc, same_model_retries)
+                    resp = None
+                if resp is not None:
                     self.usage.add(model, resp.usage)
+                    tokens = getattr(resp.usage, "total_tokens", 0) or 0
+                    self.pool.record(model, tokens)
                     s.detail = f"{model} ok"
-                    s.data["tokens"] = getattr(resp.usage, "total_tokens", None)
+                    s.data["tokens"] = tokens
                     s.data["latency_ms"] = int((time.perf_counter() - started) * 1000)
                     return resp.choices[0].message
-                # reached only via `break` inside the step on a terminal failure for this model
-                break
-        raise LLMError(last_kind, f"all models failed ({last_kind})")
+        raise LLMError(last_kind, f"gave up after {attempts} attempts ({last_kind})")
+
+    async def _on_failure(self, s, model: str, exc: Exception, retries: dict[str, int]) -> str:
+        """Record a failed call and decide how the pool treats the model. Returns the error kind."""
+        kind, retryable = _classify(exc)
+        self.usage.failed_calls += 1
+        s.status, s.error_kind = "failed", kind
+        s.detail = f"{model}: {str(exc)[:400]}"
+        event("llm call failed: {kind}", level="warning", kind=kind, model=model)
+        if kind == "rate_limited":
+            self.pool.cooldown(model, _retry_after(exc) or 10)  # next pick rotates
+        elif kind == "model_not_found":
+            self.pool.disable(model, kind)                       # retired model: stop using it
+        elif not retryable:
+            self.pool.cooldown(model, 30, rate_limited=False)
+        else:
+            n = retries[model] = retries.get(model, 0) + 1
+            if n > self.max_retries:
+                self.pool.cooldown(model, 15, rate_limited=False)  # rotate away
+            else:
+                delay = min(BASE_DELAY * 2 ** (n - 1) + random.random() * 0.3, MAX_DELAY)  # noqa: S311 (jitter)
+                if delay < self._remaining() - 2:
+                    s.data["retry_in_s"] = round(delay, 2)
+                    event("llm retry in {delay}s", level="info", delay=round(delay, 2), model=model)
+                    await self.sleep(delay)
+        return kind

@@ -6,7 +6,7 @@ import httpx
 
 from app.agent import prompts
 from app.audit import run_full_audit
-from app.llm import LLM
+from app.llm import LLM, QuotaPool
 from app.steps import StepLog
 from tests.fakes import FakeGroq, msg, server_error
 
@@ -87,7 +87,8 @@ def router(verify_payload, *, verdict=VERDICT, claims=CLAIMS, tool_turns=1, call
 def audit(readme, script):
     log = StepLog()
     fake = FakeGroq(script)
-    llm = LLM(log, client=fake, model="primary", fallback_model="backup", sleep=lambda s: asyncio.sleep(0))
+    llm = LLM(log, client=fake, models=["primary", "backup"], sleep=lambda s: asyncio.sleep(0),
+              pool=QuotaPool(["primary", "backup"]))
     r = asyncio.run(run_full_audit("https://github.com/acme/demo", run_kind="test", log=log, llm=llm,
                                    transport=github(readme), token=""))
     return r, fake
