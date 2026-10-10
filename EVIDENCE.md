@@ -71,7 +71,30 @@ Limits are per model (Groq docs + headers): 8,000 tokens/min, 30 req/min, 1,000 
 - Checkpoint link + ID: <paste>
 
 ## cfo.ai
-- Business plan: <paste link>
+- Shared model (final, v3): https://cfo.ai/s/xBCsLLiMtconXUBf
+- Plan summary: [docs/business-plan.md](docs/business-plan.md) · Ari's raw summary:
+  [docs/cfo-ai-notes-raw.md](docs/cfo-ai-notes-raw.md)
+- Screenshots / model export: _to add_ (`evidence/cfo-*.png`, `docs/cfo-ai-model.*`)
+
+| Headline (Main scenario) | v1: first draft | v2: business model added | v3: final |
+|---|---|---|---|
+| AI cost per audit | $0.40 (estimate) | $0.40 (placeholder split) | **$0.0095 (measured)** |
+| Funding | $150k raise May 2027 | bootstrapped | bootstrapped |
+| Profitable every month from | Nov 2027 | Nov 2027 | **Feb 2027** |
+| Lowest cash | $322 | −$482 | **$1,748** |
+| Runway | OK only because of the raise | runs out Jan–Mar 2027 | **never runs out** |
+| Gross margin, Sep 2028 | 85% | 83% | **97%** |
+| Monthly revenue, Sep 2028 | $22,992 | $23,905 | **$24,651** |
+| Cash, Sep 2028 | $193,878 (incl. raise) | $43,824 | **$89,522** |
+
+- **v1 → v2:** added size-agnostic $49 events and a 500-audit free tier, removed the raise to
+  test bootstrapping. That exposed a cash gap at launch: the $0.40 AI guess and a $300 hosting
+  guess.
+- **v2 → v3:** replaced the guesses with this project's measurements. Our traces put AI at
+  $0.005 quick and $0.02 deep, $0.0095 blended, about 42× below the guess; hosting is $20/mo.
+  That moved break-even 9 months earlier. Size-based event pricing also raised revenue per event
+  by about 80%.
+- Starting cash in the model is a $2,000 placeholder (the plan needs at least about $250).
 
 ## Building in public (#neatHack)
 - <post links>

@@ -1,0 +1,562 @@
+<!-- Ari's (cfo.ai) summary of the final model (v3), pasted as-is on 2026-10-10.
+     Clean version: docs/business-plan.md. Shared model: https://cfo.ai/s/xBCsLLiMtconXUBf -->
+
+PreJudge: Business plan summary (Final model, v3)
+
+What it is: PreJudge is an AI agent that scores hackathon projects before the real judges do. It's sold to hackathon organizers, accelerators and companies. This plan covers 24 months, Oct 2026 – Sep 2028, in USD. Paid sales start in Jan 2027, after free pilots in Q4 2026.
+
+
+
+⚠️ Starting cash is still a $2,000 placeholder. Your real figure never came through. Everything below holds as long as you start with at least ~$250.
+
+1. Customers and pricing
+
+Monthly licenses
+
+
+
+
+
+
+
+Customer type
+
+
+
+Price/mo
+
+
+
+Audits/mo
+
+
+
+Monthly churn
+
+
+
+New customers in first paid month (growth/mo)
+
+
+
+
+
+Hackathon organizers
+
+
+
+$199
+
+
+
+150
+
+
+
+6%
+
+
+
+1 (8%)
+
+
+
+
+
+Accelerators & incubators
+
+
+
+$499
+
+
+
+40
+
+
+
+3%
+
+
+
+0.5 (6%)
+
+
+
+
+
+Companies (internal hackathons)
+
+
+
+$999
+
+
+
+80
+
+
+
+2.5%
+
+
+
+0.25 (6%)
+
+Pay-per-event: $49 for up to 50 teams, $149 for 51–300 teams, capped at 300 teams. I assumed 4 paid events in Jan 2027, growing 8% a month. 60% are small events (about 25 teams) and 40% are large (about 120 teams). That averages $89 and about 63 audits per event.
+
+Free tier: 5,000 free audits a month for individual teams. This is the main growth channel, and it's counted as a marketing cost.
+
+2. Costs
+
+
+
+
+
+
+
+Cost
+
+
+
+v3 assumption
+
+
+
+
+
+AI cost per audit
+
+
+
+Quick $0.005, deep $0.02, 70% quick-only, so $0.0095 blended (measured in neatlogs traces at Groq prices)
+
+
+
+
+
+Hosting
+
+
+
+$20/mo minimum, plus $2 per 1,000 audits (the $2 is an estimate). Reaches ~$25/mo by Sep 2028
+
+
+
+
+
+Card fees
+
+
+
+3% of revenue
+
+
+
+
+
+Marketing
+
+
+
+$1,000/mo from launch
+
+
+
+
+
+Free tier AI
+
+
+
+~$48/mo
+
+
+
+
+
+Team
+
+
+
+Founder unpaid. Hires on Jun 2027 ($3,000/mo), Oct 2027 ($2,500), Mar 2028 ($3,000), each plus 15% overhead
+
+Total monthly costs: $68 before launch, ~$1,100 after launch, ~$4,690 once the first hire starts (Jun 2027), and ~$11,660 by Sep 2028. Payroll is 84% of that last figure. Card fees cost 10× more than AI.
+
+3. Results
+
+
+
+
+
+
+
+
+
+
+
+Main
+
+
+
+Upside
+
+
+
+Downside
+
+
+
+
+
+Profitable every month from
+
+
+
+Feb 2027
+
+
+
+Jan 2027
+
+
+
+Never
+
+
+
+
+
+Lowest cash
+
+
+
+$1,748 (Jan 2027)
+
+
+
+$1,798 (Dec 2026)
+
+
+
+Below zero from Jun 2027
+
+
+
+
+
+Runway
+
+
+
+Never runs out, no raise needed
+
+
+
+Never runs out
+
+
+
+Runs out Jun 2027
+
+
+
+
+
+Gross margin, Sep 2028
+
+
+
+97%
+
+
+
+97%
+
+
+
+96%
+
+
+
+
+
+Monthly revenue, Sep 2028
+
+
+
+$24,651 (~$296k/yr)
+
+
+
+$61,683 (~$740k/yr)
+
+
+
+$5,918 (~$71k/yr)
+
+
+
+
+
+Cash, Sep 2028
+
+
+
+$89,522
+
+
+
+$370,775
+
+
+
+−$77,217
+
+Upside assumes higher prices, faster sales and lower churn. Downside assumes lower prices, slower sales, higher churn, and paid launch slipping to Apr 2027. A $150k pre-seed raise sits in its own scenario as an option, not a need.
+
+4. Version history
+
+
+
+
+
+
+
+
+
+
+
+v1: first draft
+
+
+
+v2: business model added
+
+
+
+v3: final
+
+
+
+
+
+AI cost per audit
+
+
+
+$0.40 (estimate)
+
+
+
+$0.40 (placeholder split)
+
+
+
+$0.0095 (measured)
+
+
+
+
+
+Revenue streams
+
+
+
+Licenses
+
+
+
++ $49 flat events, 500 free audits
+
+
+
++ size-based events, 5,000 free audits
+
+
+
+
+
+Funding
+
+
+
+$150k raise May 2027
+
+
+
+Bootstrapped
+
+
+
+Bootstrapped
+
+
+
+
+
+Profitable every month from
+
+
+
+Nov 2027
+
+
+
+Nov 2027
+
+
+
+Feb 2027
+
+
+
+
+
+Lowest cash
+
+
+
+$322
+
+
+
+−$482
+
+
+
+$1,748
+
+
+
+
+
+Runway
+
+
+
+OK only because of the raise
+
+
+
+Runs out Jan–Mar 2027
+
+
+
+Never runs out
+
+
+
+
+
+Gross margin, Sep 2028
+
+
+
+85%
+
+
+
+83%
+
+
+
+97%
+
+
+
+
+
+Monthly revenue, Sep 2028
+
+
+
+$22,992
+
+
+
+$23,905
+
+
+
+$24,651
+
+
+
+
+
+Cash, Sep 2028
+
+
+
+$193,878 (incl. raise)
+
+
+
+$43,824
+
+
+
+$89,522
+
+What changed and why
+
+
+
+
+
+v1 → v2: You added the event plan and the free tier, and removed the raise so we could test bootstrapping. Without the raise, the $0.40 guess plus a $300 flat hosting bill left a cash gap at launch. The $49 flat price also lost money on any event above ~122 teams.
+
+
+
+v2 → v3: Real traces showed AI is 42× cheaper than the guess. Hosting is $20, not $300. That moved break-even nine months earlier and closed the cash gap. Size-based pricing raised revenue per event by ~80%. The cheap AI is what makes a 10× bigger free tier affordable.
+
+5. Key risks
+
+
+
+
+
+Sales speed is a guess. You have no paying customers yet. The Downside shows that slow sales hurt more than anything else in the model. Getting real pilot conversions is the top priority.
+
+
+
+Organizer churn (6%/mo), because hackathons come and go with the season. Annual contracts would protect your largest customer group.
+
+
+
+AI cost depends on the provider. If you switch to a pricier model or Groq raises prices, margins fall. Even at $0.40, though, margin stays around 83%.
+
+
+
+Small events can undercut the license. For someone running 4 small events a month, events ($196) are cheaper than the $199 license. Raising the small event price to $59 fixes that.
+
+
+
+The free tier generates no revenue directly in the model. Its value depends on teams converting to paid plans, and that conversion rate isn't measured yet.
+
+
+
+The founder is unpaid. That's fine for a hackathon, not for a company. Paying yourself $1,500/mo still leaves Main profitable from about Mar 2027.
+
+
+
+Mix guesses: the 60/40 split of small and large events, the team counts per event, and the $2 per 1,000 audits for hosting.
+
+6. Hiring rule
+
+Make each hire only when both are true:
+
+
+
+
+
+Last month's gross profit covers current operating costs plus the new hire's full monthly cost (salary + 15%).
+
+
+
+Cash covers 3 months of that hire's cost.
+
+In Main, this roughly lines up with the June 2027 hire. In the Downside, the rule never triggers. That stops the Downside from turning into a $77k hole, because hires drive almost all of its losses. I haven't modeled the Downside with hires held back; I can add that as a scenario.
+
+Do you want me to put this on its own page in the workspace
