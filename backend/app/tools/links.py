@@ -32,8 +32,8 @@ _KINDS: list[tuple[str, re.Pattern]] = [
     ("github", re.compile(r"(^|\.)github\.com$")),
 ]
 
-# Hosts that block bots / need JS; a 4xx from them doesn't mean the link is dead.
-_BOT_HOSTILE = re.compile(r"(^|\.)(x\.com|twitter\.com|linkedin\.com|medium\.com)$")
+# Many sites (Cloudflare, X, LinkedIn) refuse bots; these codes don't mean the link is dead.
+_BOT_BLOCK_CODES = {401, 403, 429, 999}
 
 
 def extract_links(text: str) -> list[str]:
@@ -94,9 +94,8 @@ async def _check_one(http: httpx.AsyncClient, url: str) -> dict:
                 continue
             result["status"] = r.status_code
             result["final_url"] = current
-            host = (parsed.hostname or "").lower()
             result["ok"] = r.status_code < 400
-            if not result["ok"] and _BOT_HOSTILE.search(host) and r.status_code in (400, 401, 403, 429, 999):
+            if r.status_code in _BOT_BLOCK_CODES:
                 result["ok"] = None  # unknown: site blocks bots
                 result["error"] = "bot_blocked"
             return result
