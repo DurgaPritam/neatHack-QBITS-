@@ -379,7 +379,7 @@ def _remember_roast(repo_key: str, style: str, roast: str) -> None:
 
 @span("AGENT", "agent.write_verdict")
 async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list[dict],
-                        purpose: str = "verdict") -> tuple[dict, str]:
+                        purpose: str = "verdict", allow_rewrite: bool = True) -> tuple[dict, str]:
     """`report["verdict"]` (the quick roast, if any) is excluded from "recent roasts": the
     deep phase may refine its own audit's roast; other audits' jokes stay off limits."""
     candidates = score["fix_candidates"][:MAX_FIXES]
@@ -418,9 +418,12 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
         if problems:
             llm.steps.note(f"{purpose}.roast_rejected", "; ".join(problems), status="failed")
             event("roast rejected: {problems}", level="warning", problems="; ".join(problems))
-            fixed = await _rewrite_roast(llm, purpose, style, fact_lines, recent_lines, verdict.roast,
-                                         problems)
-            again = roast_rules.roast_problems(fixed, facts, recent, report) if fixed else ["no answer"]
+            if allow_rewrite:
+                fixed = await _rewrite_roast(llm, purpose, style, fact_lines, recent_lines, verdict.roast,
+                                             problems)
+                again = roast_rules.roast_problems(fixed, facts, recent, report) if fixed else ["no answer"]
+            else:  # quick phase: one call max; the deep phase writes the polished roast
+                fixed, again = None, ["rewrite skipped in quick phase (token budget)"]
             if fixed and not again:
                 verdict = verdict.model_copy(update={"roast": fixed})
             else:

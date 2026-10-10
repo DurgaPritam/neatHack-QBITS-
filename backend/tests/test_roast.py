@@ -171,3 +171,12 @@ def test_zero_restates_a_zero_fact():
     old = "Zero commits during the hackathon, and the coach is asleep."
     new = "37 early birds and zero commits during the hackathon itself."
     assert not any("reuses" in p for p in R.roast_problems(new, facts, [old], {"checks": []}))
+
+
+def test_quick_phase_makes_one_call_and_uses_template_on_bad_roast():
+    calls = []
+    llm = _llm(lambda kw: (calls.append(1), msg(_verdict("A real museum exhibit of a repo.")))[1])
+    out, _ = asyncio.run(write_verdict(llm, compute_score(REPORT["checks"]), REPORT, [],
+                                       purpose="quick_verdict", allow_rewrite=False))
+    assert len(calls) == 1
+    assert not R.roast_problems(out["roast"], R.build_facts(REPORT), [], REPORT)

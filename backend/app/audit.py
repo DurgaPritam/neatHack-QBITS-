@@ -6,6 +6,7 @@ logged and, where possible, a fallback is tried so a partial report still comes 
 import asyncio
 from datetime import datetime, timezone
 
+from app import config
 from app.steps import StepLog
 from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
@@ -206,7 +207,10 @@ async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kin
         if ctx.get("repo_available"):
             llm = llm or LLM(log, deadline=time.monotonic() + 45, priority="high")
             try:
-                verdict, source = await write_verdict(llm, score, report, [], purpose="quick_verdict")
+                verdict, source = await write_verdict(
+                    llm, score, report, [], purpose="quick_verdict",
+                    # one LLM call keeps the quick phase under ~3k tokens; deep phase may rewrite
+                    allow_rewrite=config.env("QUICK_ROAST_REWRITE") == "1")
             except LLMError:
                 verdict, source = template_verdict(score, report), "template"
         else:
