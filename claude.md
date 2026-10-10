@@ -1,6 +1,6 @@
 # PreJudge — "get roasted before the judges do"
 
-Built for neatHack (Oct 10–12, 2026) by team QBITS (2 people).
+Built for neatHack (Oct 10–12, 2026) by team QBITS (solo).
 
 ## What we're building
 A web app where a hackathon team pastes their **public GitHub repo URL** and, in ~60 seconds,
