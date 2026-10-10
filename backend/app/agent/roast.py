@@ -151,6 +151,8 @@ def _joke_shingles(text: str, facts: list[dict]) -> set[tuple]:
     """
     fact_words = {w for f in facts for w in _words(f["fact"]) if w not in STOPWORDS}
     fact_words |= {w for f in facts for a in f["anchors"] for w in _words(a)}
+    if "0" in {w for f in facts for w in _words(f["fact"])}:
+        fact_words |= {"zero", "none", "0"}  # "zero commits" restates the fact "0 commits"
     out = set()
     for sh in _shingles(text):
         content = [w for w in sh if w not in STOPWORDS]

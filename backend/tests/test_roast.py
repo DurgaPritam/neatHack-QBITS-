@@ -164,3 +164,10 @@ def test_joke_reuse_targets_distinctive_phrases(new, old, reused):
     facts = R.build_facts(REPORT)
     problems = R.roast_problems(new, facts, [old], REPORT)
     assert any("reuses a joke" in p for p in problems) == reused
+
+
+def test_zero_restates_a_zero_fact():
+    facts = [{"fact": "0 commits inside the hackathon window, 37 before it started", "anchors": ["37"]}]
+    old = "Zero commits during the hackathon, and the coach is asleep."
+    new = "37 early birds and zero commits during the hackathon itself."
+    assert not any("reuses" in p for p in R.roast_problems(new, facts, [old], {"checks": []}))
