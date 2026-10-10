@@ -17,11 +17,12 @@ from app.agent.tools import TOOL_SCHEMAS, RepoToolbox
 from app.llm import LLM, LLMError
 from app.scoring import compute_score
 from app.steps import StepLog
-from app.tools.github import GitHubClient
+from app.tools.github import GitHubClient, GitHubError
+from app.tools.search import RepoSnapshot
 from app.tracing import event, span
 
 MAX_TOOL_STEPS = 15
-MAX_TOOL_TURNS = 3         # each turn re-sends the conversation; 8k TPM makes turns the real budget
+MAX_TOOL_TURNS = 4         # each turn re-sends the conversation; 8k TPM makes turns the real budget
 TIME_BUDGET_S = 120
 VERDICT_RESERVE_S = 25     # stop verifying early enough to still write a verdict
 README_CHARS = 8000
@@ -177,7 +178,7 @@ def _observed(ref: str, toolbox: RepoToolbox, readme_path: str, link_urls: set[s
     path = re.sub(r":\d+(-\d+)?$", "", r)
     if path.lower() in (readme_path.lower(), "readme", "readme.md"):
         return False  # the README can't prove its own claims
-    if path in toolbox.files_read:
+    if path in toolbox.files_read or path in toolbox.searched_paths:
         return True
     if r.startswith(("http://", "https://")):
         return r in link_urls or r in toolbox.checked_urls
@@ -294,6 +295,24 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
 
 # ---------------------------------------------------------------- entry point
 
+async def load_snapshot(gh: GitHubClient | None, ctx: dict, steps: StepLog) -> RepoSnapshot | None:
+    """Download the repo once as a tarball into memory. None (recorded) if that fails."""
+    if gh is None or ctx.get("ref") is None:
+        return None
+    snap = None
+    with steps.step("github.download_tarball") as s:
+        try:
+            data = await gh.download_tarball(ctx["ref"], ctx.get("branch") or "HEAD")
+        except GitHubError as exc:
+            s.status, s.error_kind, s.detail = "failed", exc.kind, f"{exc}; falling back to per-file reads"
+            return None
+        s.data["mb"] = round(len(data) / 2**20, 2)
+        snap = RepoSnapshot.from_tarball(data)  # ValueError on garbage -> step failed
+        s.data.update(snap.summary())
+        s.detail = f"{len(snap.files)} text files in memory ({s.data['mb']} MB tarball)"
+    return snap
+
+
 @span("AGENT", "agent.run")
 async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None = None,
                     gh: GitHubClient | None = None, time_budget_s: float = TIME_BUDGET_S,
@@ -309,7 +328,11 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
 
     own_gh = gh is None and ctx.get("ref") is not None
     gh = GitHubClient() if own_gh else gh
-    toolbox = RepoToolbox(gh, ctx.get("ref"), ctx.get("branch") or "HEAD", tree_paths, commits, steps)
+    snapshot = ctx.get("snapshot")
+    if snapshot is None and readme.strip():
+        snapshot = await load_snapshot(gh, ctx, steps)
+    toolbox = RepoToolbox(gh, ctx.get("ref"), ctx.get("branch") or "HEAD", tree_paths, commits, steps,
+                          snapshot=snapshot)
     claims, verify = ClaimList(), None
     try:
         try:

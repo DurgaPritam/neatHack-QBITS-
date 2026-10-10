@@ -167,11 +167,12 @@ def test_llm_down_still_returns_partial_report():
 
 def test_turn_budget_is_enforced():
     r, _ = audit(CLEAN_README, router(HONEST, tool_turns=100))
-    assert len([s for s in r["steps"] if s["name"] == "llm.verify"]) == 3
+    from app.agent.loop import MAX_TOOL_TURNS
+    assert len([s for s in r["steps"] if s["name"] == "llm.verify"]) == MAX_TOOL_TURNS
     assert "verify.budget_exhausted" in [s["name"] for s in r["steps"]]
 
 
 def test_tool_step_budget_is_enforced():
     r, _ = audit(CLEAN_README, router(HONEST, tool_turns=100, calls_per_turn=8))
     executed = [s for s in r["steps"] if s["name"].startswith("tool.")]
-    assert len(executed) == 15  # 3 turns x 8 requested = 24, only 15 run
+    assert len(executed) == 15  # 4 turns x 8 requested = 32, only 15 run

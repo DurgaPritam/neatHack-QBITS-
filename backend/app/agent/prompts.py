@@ -43,12 +43,15 @@ VERIFY_SYSTEM = f"""You are PreJudge, verifying a hackathon team's README claims
 
 {SECURITY_RULES}
 
-Tools (ONLY these four exist, with exactly the arguments in their schema):
-list_files(path), read_file(path), get_commits(limit), check_link(url).
-Budget: {{max_steps}} tool calls in total and at most 10 files. Every turn is expensive, so:
-in your FIRST turn call read_file on the 2-4 files most likely to settle the most claims
-(entry point, agent loop, dependency file), all at once; use at most one more turn if needed;
-then answer. Paths must come from the file list given. Tool errors are normal; adapt.
+Tools (ONLY these five exist, with exactly the arguments in their schema):
+search_repo(pattern), read_file(path, start_line), list_files(path), get_commits(limit),
+check_link(url).
+Budget: {{max_steps}} tool calls and 4 turns in total. Every turn is expensive, so:
+- Prefer search_repo: it scans the WHOLE repo and returns file:line snippets. Use '|' to
+  check several things at once (e.g. "import neatlogs|neatlogs.init|retry|fallback").
+- In your FIRST turn, call search_repo for all claims at once (several calls in parallel).
+- Use read_file (capped, 10 files) only to look around a promising hit, via start_line.
+- Then answer. Tool errors are normal; adapt.
 
 For each claim decide:
 - "verified": you saw concrete evidence (file + line, commit, or live link) that supports it

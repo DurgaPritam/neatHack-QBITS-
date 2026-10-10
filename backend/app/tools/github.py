@@ -18,6 +18,7 @@ API = "https://api.github.com"
 RAW = "https://raw.githubusercontent.com"
 MAX_FILE_BYTES = 200_000
 MAX_COMMIT_PAGES = 3  # 300 commits is plenty to judge the hackathon window
+MAX_TARBALL_BYTES = 30 * 1024 * 1024
 
 _URL_RE = re.compile(
     r"^(?:https?://)?(?:www\.)?github\.com/([A-Za-z0-9-]+)/([A-Za-z0-9._-]+?)(?:\.git)?/?(?:[#?].*)?$"
@@ -181,6 +182,31 @@ class GitHubClient:
         if r.status_code >= 400:
             raise GitHubError("http_error", f"HTTP {r.status_code} for {path}", r.status_code)
         return r.content[:MAX_FILE_BYTES].decode("utf-8", errors="replace")
+
+    @span("TOOL", "github.download_tarball")
+    async def download_tarball(self, ref: RepoRef, branch: str,
+                               max_bytes: int = MAX_TARBALL_BYTES) -> bytes:
+        """The repo as a .tar.gz, streamed with a hard size cap. Nothing is extracted to disk."""
+        url = f"{API}/repos/{ref.full_name}/tarball/{branch}"
+        try:
+            async with self._http.stream("GET", url, timeout=60) as r:
+                if r.status_code == 404:
+                    raise GitHubError("not_found", f"no tarball for {ref.full_name}@{branch}", 404)
+                if r.status_code in (403, 429):
+                    raise GitHubError("rate_limited", "GitHub refused the tarball download", r.status_code)
+                if r.status_code >= 400:
+                    raise GitHubError("http_error", f"HTTP {r.status_code} for tarball", r.status_code)
+                declared = int(r.headers.get("content-length") or 0)
+                if declared > max_bytes:
+                    raise GitHubError("too_large", f"tarball is {declared // 2**20} MB (cap {max_bytes // 2**20} MB)")
+                buf = bytearray()
+                async for chunk in r.aiter_bytes():
+                    buf += chunk
+                    if len(buf) > max_bytes:
+                        raise GitHubError("too_large", f"tarball exceeds {max_bytes // 2**20} MB cap")
+                return bytes(buf)
+        except httpx.HTTPError as exc:
+            raise GitHubError("network", f"{type(exc).__name__} downloading tarball") from exc
 
     @span("TOOL", "github.get_commits")
     async def get_commits(self, ref: RepoRef, branch: str) -> dict:
