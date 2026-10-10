@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS audits (
     repo_url    TEXT NOT NULL,
     repo_key    TEXT,              -- owner/name, lower-case
     head_sha    TEXT,              -- latest commit SHA when the audit was requested
-    status      TEXT NOT NULL,     -- queued | running | done | failed
+    status      TEXT NOT NULL,     -- queued | quick_ready | complete | failed
+    phase_quick TEXT DEFAULT 'queued',   -- queued | running | done | failed
+    phase_deep  TEXT DEFAULT 'waiting',  -- waiting | queued | running | done | failed | skipped
     run_kind    TEXT NOT NULL DEFAULT 'real',
     cached_from TEXT,              -- id of the audit whose result was reused
     steps       TEXT NOT NULL DEFAULT '[]',
@@ -51,7 +53,17 @@ def connect(path: str | Path | None = None) -> None:
                                 check_same_thread=False)
         _conn.row_factory = sqlite3.Row
         _conn.executescript(SCHEMA)
+        _migrate(_conn)
         _conn.commit()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add columns introduced after a db file was created (no data loss)."""
+    have = {r[1] for r in conn.execute("PRAGMA table_info(audits)")}
+    for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'")):
+        if col not in have:
+            conn.execute(f"ALTER TABLE audits ADD COLUMN {col} {ddl}")
+    conn.execute("UPDATE audits SET status = 'complete' WHERE status = 'done'")  # M2 naming
 
 
 def _db() -> sqlite3.Connection:
@@ -97,18 +109,40 @@ def get(audit_id: str) -> dict | None:
 
 
 def find_cached(repo_key: str, head_sha: str) -> dict | None:
-    """Most recent finished, non-reused audit of this exact commit."""
+    """Most recent complete, non-reused audit of this exact commit."""
     with _lock:
         r = _db().execute(
-            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status = 'done' "
+            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status = 'complete' "
             "AND cached_from IS NULL ORDER BY created_at DESC LIMIT 1", (repo_key, head_sha)).fetchone()
     return _row(r)
+
+
+def find_in_progress(repo_key: str, head_sha: str) -> dict | None:
+    """An audit of this exact commit that is still running: reuse it instead of starting another."""
+    with _lock:
+        r = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status IN ('queued', 'quick_ready') "
+            "AND cached_from IS NULL ORDER BY created_at DESC LIMIT 1", (repo_key, head_sha)).fetchone()
+    return _row(r)
+
+
+def mark_interrupted() -> int:
+    """On startup: jobs that were in memory when the server stopped can't resume."""
+    with _lock:
+        c = _db().execute(
+            "UPDATE audits SET status = 'failed', phase_quick = 'failed', error = 'server restarted' "
+            "WHERE status = 'queued'")
+        d = _db().execute(
+            "UPDATE audits SET phase_deep = 'failed', error = 'server restarted before deep phase' "
+            "WHERE status = 'quick_ready' AND phase_deep IN ('queued', 'running')")
+        _db().commit()
+        return c.rowcount + d.rowcount
 
 
 def stats() -> dict:
     with _lock:
         total, real, done = _db().execute(
-            "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'done' AND run_kind = 'real') "
+            "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'complete' AND run_kind = 'real') "
             "FROM audits").fetchone()
     return {"total_audits": real or 0, "completed_audits": done or 0, "including_test_runs": total or 0}
 

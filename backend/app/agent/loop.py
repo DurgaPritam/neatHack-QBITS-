@@ -304,11 +304,14 @@ def _remember_roast(repo_key: str, style: str, roast: str) -> None:
 @span("AGENT", "agent.write_verdict")
 async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list[dict],
                         purpose: str = "verdict") -> tuple[dict, str]:
+    """`report["verdict"]` (the quick roast, if any) is excluded from "recent roasts": the
+    deep phase may refine its own audit's roast; other audits' jokes stay off limits."""
     candidates = score["fix_candidates"][:MAX_FIXES]
     repo_name = (report.get("repo") or {}).get("full_name") or report.get("repo_url") or ""
     style = roast_rules.style_for(repo_name)
     facts = roast_rules.build_facts(report, claim_results)
-    recent = _recent_roasts()
+    own = (report.get("verdict") or {}).get("roast")
+    recent = [r for r in _recent_roasts() if r != own]
     status_word = {"pass": "pass", "fail": "fail", "warn": "partial", "unverified": "UNKNOWN"}
     results = {
         "repo": repo_name,
@@ -395,7 +398,7 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
     """Run the LLM phases on top of a deterministic report. Never raises."""
     started = time.monotonic()
     deadline = started + time_budget_s
-    llm = llm or LLM(steps, deadline=deadline)
+    llm = llm or LLM(steps, deadline=deadline, priority="low")
     llm.deadline = deadline
     readme = ctx.get("readme") or ""
     commits = ctx.get("commits") or []
@@ -447,6 +450,8 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
         "verdict": {**verdict, "source": source},
         "tool_calls": toolbox.calls,
         "files_read": sorted(toolbox.files_read),
+        "files_searched": len(toolbox.searched_paths),
+        "snapshot": snapshot.summary() if snapshot else None,
         "usage": llm.usage.to_dict(),
         "agent_ms": int((time.monotonic() - started) * 1000),
     }

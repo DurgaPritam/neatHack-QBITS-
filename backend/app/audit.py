@@ -176,47 +176,102 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
     return report
 
 
-async def run_full_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",
-                         log: StepLog | None = None, llm=None, transport=None,
-                         token: str | None = None) -> dict:
-    """Deterministic pass + LLM agent + scoring + verdict. Always returns a report."""
+def _usage_dict(llm) -> dict:
+    return llm.usage.to_dict() if llm is not None else {"total_tokens": 0, "calls": 0}
+
+
+async def run_quick_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",
+                          log: StepLog | None = None, llm=None, transport=None,
+                          token: str | None = None, ctx: dict | None = None) -> dict:
+    """Quick phase (~15s, <3k tokens): deterministic checks + score + short verdict/roast.
+
+    `ctx` is filled with what the deep phase needs (README, tree, commits) so it doesn't refetch.
+    """
     import time
     import uuid
 
-    from app.agent.loop import run_agent, template_verdict
+    from app.agent.loop import template_verdict, write_verdict
+    from app.llm import LLM, LLMError, POOL
     from app.scoring import compute_score
     from app.tracing import audit_context
 
     audit_id = audit_id or uuid.uuid4().hex[:12]
     log = log or StepLog()
+    ctx = {} if ctx is None else ctx
     t0 = time.monotonic()
-    with audit_context(audit_id, run_kind, repo_url):
-        ctx: dict = {}
+    pool = getattr(llm, "pool", POOL)
+    with audit_context(audit_id, run_kind, repo_url, phase="quick"), pool.quick_window():
         report = await run_deterministic_audit(repo_url, token=token, transport=transport, log=log, ctx=ctx)
-        t_det = int((time.monotonic() - t0) * 1000)
+        score = compute_score(report["checks"])
         if ctx.get("repo_available"):
-            async with GitHubClient(token=token, transport=transport) as gh:
-                agent = await run_agent(report, ctx, log, llm=llm, gh=gh)
+            llm = llm or LLM(log, deadline=time.monotonic() + 45, priority="high")
+            try:
+                verdict, source = await write_verdict(llm, score, report, [], purpose="quick_verdict")
+            except LLMError:
+                verdict, source = template_verdict(score, report), "template"
         else:
-            # Nothing for an LLM to read: score + template verdict straight from the checks.
-            log.skip("agent", "repo unavailable; skipping LLM phases")
-            score = compute_score(report["checks"])
-            agent = {"claims": [], "estimates": {}, "injection": {"detected": False},
-                     "score": score, "verdict": {**template_verdict(score, report), "source": "template"},
-                     "tool_calls": 0, "files_read": [], "usage": None, "agent_ms": 0}
+            log.skip("quick_verdict", "repo unavailable; template verdict")
+            verdict, source = template_verdict(score, report), "template"
 
-    usage = agent.pop("usage")
+    quick = {"ms": int((time.monotonic() - t0) * 1000), "usage": _usage_dict(llm)}
     report.update(
-        audit_id=audit_id,
-        run_kind=run_kind,
-        mode="full",
-        score=agent.pop("score"),
-        verdict=agent.pop("verdict"),
-        agent=agent,
-        usage=usage or {"total_tokens": 0, "calls": 0},
-        timing_ms={"deterministic": t_det, "agent": agent.pop("agent_ms"),
-                   "total": int((time.monotonic() - t0) * 1000)},
-        steps=log.to_list(),
-        partial=any(s.status == "failed" for s in log.steps),
+        audit_id=audit_id, run_kind=run_kind, mode="quick", phase="quick",
+        score=score, verdict={**verdict, "source": source},
+        phases={"quick": quick, "deep": None},
+        usage=quick["usage"], timing_ms={"quick": quick["ms"], "total": quick["ms"]},
+        steps=log.to_list(), partial=any(s.status == "failed" for s in log.steps),
     )
     return report
+
+
+async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None, llm=None,
+                         transport=None, token: str | None = None) -> dict:
+    """Deep phase (queued): tarball + claims + tool verification + rescore + new verdict."""
+    import time
+
+    from app.agent.loop import run_agent
+    from app.llm import LLM
+    from app.tracing import audit_context
+
+    log = log or StepLog()
+    t0 = time.monotonic()
+    with audit_context(report["audit_id"], report.get("run_kind", "real"), report["repo_url"], phase="deep"):
+        if not ctx.get("repo_available"):
+            log.skip("deep", "repo unavailable; nothing to verify")
+            deep = {"ms": 0, "usage": {"total_tokens": 0, "calls": 0}, "skipped": True}
+            report.update(phase="complete", mode="full", steps=log.to_list())
+            report["phases"] = {**report.get("phases", {}), "deep": deep}
+            return report
+        llm = llm or LLM(log, priority="low")
+        async with GitHubClient(token=token, transport=transport) as gh:
+            agent = await run_agent(report, ctx, log, llm=llm, gh=gh)
+
+    usage = agent.pop("usage") or {"total_tokens": 0, "calls": 0}
+    deep = {"ms": int((time.monotonic() - t0) * 1000), "usage": usage}
+    agent.pop("agent_ms", None)
+    phases = {**report.get("phases", {}), "deep": deep}
+    quick = phases.get("quick") or {"ms": 0, "usage": {"total_tokens": 0, "calls": 0}}
+    report.update(
+        mode="full", phase="complete",
+        score=agent.pop("score"), verdict=agent.pop("verdict"), agent=agent, phases=phases,
+        usage={"total_tokens": quick["usage"].get("total_tokens", 0) + usage.get("total_tokens", 0),
+               "calls": quick["usage"].get("calls", 0) + usage.get("calls", 0),
+               "quick": quick["usage"], "deep": usage},
+        timing_ms={"quick": quick["ms"], "deep": deep["ms"], "total": quick["ms"] + deep["ms"]},
+        steps=log.to_list(), partial=any(s.status == "failed" for s in log.steps),
+    )
+    return report
+
+
+async def run_full_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",
+                         log: StepLog | None = None, llm=None, transport=None,
+                         token: str | None = None) -> dict:
+    """Quick then deep, back to back (CLI). The API runs them on separate queues."""
+    log = log or StepLog()
+    ctx: dict = {}
+    report = await run_quick_audit(repo_url, audit_id=audit_id, run_kind=run_kind, log=log, llm=llm,
+                                   transport=transport, token=token, ctx=ctx)
+    if llm is not None:
+        llm.priority = "low"
+        llm.usage = type(llm.usage)()  # count deep tokens separately
+    return await run_deep_audit(report, ctx, log=log, llm=llm, transport=transport, token=token)

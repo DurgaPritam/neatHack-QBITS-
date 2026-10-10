@@ -81,7 +81,7 @@ def span(kind: str, name: str | None = None, **kwargs):
 
 
 @contextmanager
-def audit_context(audit_id: str, run_kind: str, repo_url: str):
+def audit_context(audit_id: str, run_kind: str, repo_url: str, phase: str = "audit"):
     """Group every span of one audit under its id, tagged test/real for filtering."""
     with ExitStack() as stack:
         if _enabled:
@@ -90,12 +90,13 @@ def audit_context(audit_id: str, run_kind: str, repo_url: str):
 
                 stack.enter_context(neatlogs.identify(session_id=audit_id))
                 stack.enter_context(neatlogs.trace(
-                    "prejudge.audit",
+                    f"prejudge.{phase}",
                     session_id=audit_id,
                     **{
                         "tag.tags": ["prejudge", run_kind],
                         "metadata": json.dumps(
-                            {"audit_id": audit_id, "run_kind": run_kind, "repo_url": repo_url}
+                            {"audit_id": audit_id, "run_kind": run_kind, "repo_url": repo_url,
+                             "phase": phase}
                         ),
                     },
                 ))

@@ -84,11 +84,23 @@ def router(verify_payload, *, verdict=VERDICT, claims=CLAIMS, tool_turns=1, call
     return answer
 
 
+class Clock:
+    t = 1000.0
+
+    def __call__(self):
+        return self.t
+
+
 def audit(readme, script):
     log = StepLog()
     fake = FakeGroq(script)
-    llm = LLM(log, client=fake, models=["primary", "backup"], sleep=lambda s: asyncio.sleep(0),
-              pool=QuotaPool(["primary", "backup"]))
+    clock = Clock()
+
+    async def sleep(s):  # fake time: quota "resets" without the test waiting
+        clock.t += s
+
+    llm = LLM(log, client=fake, models=["primary", "backup"], sleep=sleep,
+              pool=QuotaPool(["primary", "backup"], clock=clock))
     r = asyncio.run(run_full_audit("https://github.com/acme/demo", run_kind="test", log=log, llm=llm,
                                    transport=github(readme), token=""))
     return r, fake
@@ -176,3 +188,15 @@ def test_tool_step_budget_is_enforced():
     r, _ = audit(CLEAN_README, router(HONEST, tool_turns=100, calls_per_turn=8))
     executed = [s for s in r["steps"] if s["name"].startswith("tool.")]
     assert len(executed) == 15  # 4 turns x 8 requested = 32, only 15 run
+
+
+def test_full_audit_reports_both_phases():
+    r, fake = audit(CLEAN_README, router(HONEST))
+    assert r["phase"] == "complete"
+    q, d = r["phases"]["quick"], r["phases"]["deep"]
+    assert q["usage"]["calls"] == 1  # quick = one short verdict call
+    assert d["usage"]["calls"] >= 3  # claims + verify + verdict
+    assert r["usage"]["total_tokens"] == q["usage"]["total_tokens"] + d["usage"]["total_tokens"]
+    assert set(r["timing_ms"]) == {"quick", "deep", "total"}
+    names = [s["name"] for s in r["steps"]]
+    assert names.index("llm.quick_verdict") < names.index("llm.claims")
