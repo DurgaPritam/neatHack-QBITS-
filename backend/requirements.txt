@@ -8,3 +8,4 @@ pytest>=8.0
 openai>=1.50
 pytest-timeout>=2.3
 yt-dlp>=2026.8.19
+Pillow>=10.1

@@ -6,21 +6,27 @@ GET  /api/audits/{id}                -> status, phases, queue position + ETA, st
 POST /api/audits/{id}/feedback       -> "this verdict is wrong" for a check or claim
 GET  /api/stats                      -> public counter + budget state (normal | busy | cooling)
 GET  /api/examples                   -> saved example audits for the home page
+GET  /api/audits/{id}/card.png       -> 1200x630 roast card (link previews)
+GET  /r/{id}                         -> share page: Open Graph/Twitter meta, redirects to /a/{id}
 
 Status: queued -> quick_ready -> complete | failed. Deep phase: available -> queued ->
 (waiting_budget) -> running -> done | failed | skipped.
 Requests with a valid X-Admin-Token header may use the reserved share of the LLM budget.
 """
 import hmac
+import json
+import html
 import uuid
 from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app import budget, config, db, replay
+from app.card import render_card
 from app.jobs import AuditQueues
 from app.llm import POOL, configured_models
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
@@ -177,3 +183,59 @@ def examples() -> list[dict]:
                     "score": (r.get("score") or {}).get("score"), "roast": (r.get("verdict") or {}).get("roast"),
                     "style": (r.get("verdict") or {}).get("style"), "status": row["status"]})
     return out
+
+
+def _site_urls() -> tuple[str, str]:
+    """(api base used in og:image, frontend base for /a/{id}); absolute URLs for crawlers."""
+    api = config.env("PUBLIC_API_URL", "http://localhost:8000").rstrip("/")
+    front = config.env("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    return api, front
+
+
+def _card_bits(row: dict) -> dict:
+    r = row["result"] or {}
+    verdict = r.get("verdict") or {}
+    repo = (r.get("repo") or {}).get("full_name") or row["repo_url"]
+    roast = verdict.get("roast") or "Still in the oven: check back in a few seconds."
+    return {"repo": repo, "score": (r.get("score") or {}).get("score"), "roast": roast,
+            "source": verdict.get("source", "llm")}
+
+
+@app.get("/api/audits/{audit_id}/card.png", responses={404: {"description": "Audit not found"}})
+def card_png(audit_id: str) -> Response:
+    row = _get(audit_id)
+    site = _site_urls()[1].split("://")[-1]
+    png = render_card(site=site, **_card_bits(row))
+    cache = "public, max-age=300" if row["status"] == "complete" else "no-store"
+    return Response(png, media_type="image/png", headers={"Cache-Control": cache})
+
+
+@app.get("/r/{audit_id}", response_class=HTMLResponse, responses={404: {"description": "Audit not found"}})
+def share_page(audit_id: str) -> HTMLResponse:
+    row = _get(audit_id)
+    bits = _card_bits(row)
+    api, front = _site_urls()
+    target = f"{front}/a/{audit_id}"
+    score = "?" if bits["score"] is None else bits["score"]
+    title = html.escape(f"{bits['repo']} scored {score}/100 on PreJudge")
+    desc = html.escape(bits["roast"][:280])          # roast quotes repo text: always escaped
+    image = html.escape(f"{api}/api/audits/{audit_id}/card.png")
+    t = html.escape(target)
+    page = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>{title}</title>
+<meta name="description" content="{desc}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{desc}">
+<meta property="og:image" content="{image}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:url" content="{t}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title}">
+<meta name="twitter:description" content="{desc}">
+<meta name="twitter:image" content="{image}">
+<meta http-equiv="refresh" content="0; url={t}">
+</head><body><p>Redirecting to <a href="{t}">the full roast</a>…</p>
+<script>location.replace({json.dumps(target)});</script></body></html>"""
+    return HTMLResponse(page)
