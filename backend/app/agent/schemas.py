@@ -42,6 +42,8 @@ class Claim(BaseModel):
     text: Short = Field(min_length=3)
     quote: Short = ""
     category: Annotated[Category, BeforeValidator(_category)] = "agent"
+    # literal strings likely to appear in code/config if the claim is true (for pre-search)
+    search: Annotated[list[Short], BeforeValidator(lambda v: [v] if isinstance(v, str) else (v or [])[:4])] = []
 
 
 class ClaimList(BaseModel):

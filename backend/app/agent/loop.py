@@ -19,15 +19,17 @@ from app.llm import LLM, LLMError
 from app.scoring import compute_score
 from app.steps import StepLog
 from app.tools.github import GitHubClient, GitHubError
-from app.tools.search import RepoSnapshot
+from app.tools.search import RepoSnapshot, format_matches
 from app.tracing import event, span
 
 MAX_TOOL_STEPS = 15
-MAX_TOOL_TURNS = 4         # each turn re-sends the conversation; 8k TPM makes turns the real budget
+MAX_TOOL_TURNS = 2         # follow-ups only: code pre-searches every claim first
 TIME_BUDGET_S = 120
 VERDICT_RESERVE_S = 25     # stop verifying early enough to still write a verdict
 README_CHARS = 8000
 TREE_PATHS_SHOWN = 40       # search_repo covers the rest
+PRESEARCH_MATCHES = 3
+PRESEARCH_CHARS = 900       # per claim
 COMPACT_TO = 600           # older tool outputs are shrunk to save tokens (8k TPM)
 FINAL_TOOL_CHARS = 1200    # per tool output in the condensed final-answer prompt
 MAX_FIXES = 6
@@ -116,8 +118,11 @@ async def verify_claims(llm: LLM, toolbox: RepoToolbox, claims: ClaimList, repor
             + f"\n\nRepo files ({len(tree_paths)} total, first {TREE_PATHS_SHOWN}):\n"
             + untrusted("file_tree", paths)},
     ]
-    steps_left = max_steps
-    tool_log: list[str] = []
+    evidence, used = presearch(toolbox, claims, llm.steps)
+    if evidence:
+        messages[1]["content"] += "\n\nEVIDENCE (code searched the repo for each claim):\n" + evidence
+    steps_left = max_steps - used
+    tool_log: list[str] = [evidence] if evidence else []
     turns = 0
     while True:
         out_of_time = deadline - time.monotonic() < VERDICT_RESERVE_S
@@ -158,6 +163,33 @@ async def verify_claims(llm: LLM, toolbox: RepoToolbox, claims: ClaimList, repor
             tool_log.append(f"{tc.function.name}({(tc.function.arguments or '')[:200]}) ->\n"
                             f"{result[:FINAL_TOOL_CHARS]}")
         _compact(messages, turn_start)
+
+
+def presearch(toolbox: RepoToolbox, claims: ClaimList, steps: StepLog) -> tuple[str, int]:
+    """Search the local copy for every claim's terms, no LLM turns needed.
+
+    Returns (evidence text, tool steps used). Hits count as observed for grounding.
+    """
+    snap = toolbox.snapshot
+    if snap is None:
+        return "", 0
+    blocks, used = [], 0
+    with steps.step("verify.presearch") as s:
+        for c in claims.claims:
+            terms = [t for t in c.search if len(t.strip()) >= 3][:4]
+            if not terms:
+                continue
+            used += 1
+            pattern = "|".join(terms)
+            try:
+                matches, total, files = snap.search(pattern, max_matches=PRESEARCH_MATCHES, context=1)
+            except ValueError:
+                continue
+            toolbox.searched_paths.update(m["path"] for m in matches)
+            body = format_matches(pattern, matches, total, files)[:PRESEARCH_CHARS]
+            blocks.append(f"[{c.id}] search {pattern!r}:\n" + untrusted(f"presearch:{c.id}", body))
+        s.detail = f"{used} claims searched, {len(toolbox.searched_paths)} files with hits"
+    return "\n".join(blocks), used
 
 
 async def _final_answer(llm: LLM, messages: list[dict], tool_log: list[str], reason: str):

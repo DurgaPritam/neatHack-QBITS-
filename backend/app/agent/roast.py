@@ -160,7 +160,9 @@ def roast_problems(roast: str, facts: list[dict], recent: list[str], report: dic
         problems.append("doesn't mention any specific fact from the list (a number, date, file name, "
                         "duration or claim quote)")
     fact_shingles = set().union(*(_shingles(f["fact"]) for f in facts)) if facts else set()
-    mine = _shingles(roast) - fact_shingles  # quoting a fact isn't reusing a joke
+    numbers = {w for f in facts for a in f["anchors"] for w in _words(a) if any(ch.isdigit() for ch in w)}
+    # quoting a fact (or this repo's numbers) isn't reusing a joke
+    mine = {sh for sh in _shingles(roast) - fact_shingles if not numbers.intersection(sh)}
     for old in recent:
         overlap = mine & _shingles(old)
         if overlap:

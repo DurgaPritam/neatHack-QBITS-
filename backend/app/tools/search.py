@@ -134,7 +134,7 @@ class RepoSnapshot:
         Code files are searched before docs, and the README last (it can't prove itself).
         Returns (matches, total_hits, files_with_hits).
         """
-        terms = [t.strip().lower() for t in pattern.split("|") if len(t.strip()) >= 2][:6]
+        terms = [t.strip().lower() for t in pattern.split("|") if len(t.strip()) >= 2][:10]
         if not terms:
             raise ValueError("pattern needs at least one term of 2+ characters")
         matches, total, hit_files = [], 0, set()

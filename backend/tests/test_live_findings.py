@@ -13,7 +13,8 @@ def test_quoting_a_fact_is_not_reusing_a_joke():
     facts = [{"fact": "0 commits inside the hackathon window, 29 before it started", "anchors": ["29"]}]
     old = "Folks, 0 commits inside the hackathon window, what a quiet stadium tonight."
     new = "Somebody check the tape: 0 commits inside the hackathon window and 29 before kickoff."
-    assert R.roast_problems(new, facts, [old], {"checks": []}) == []
+    report = {"checks": [{"id": "demo_video", "status": "fail", "data": {"duration_status": "too_long"}}]}
+    assert R.roast_problems(new, facts, [old], report) == []
     joke = "Folks, what a quiet stadium tonight, 29 times over."
     assert R.roast_problems(joke, facts, [old], {"checks": []})
 
@@ -62,3 +63,36 @@ def test_empty_claims_from_long_readme_are_retried():
     r, _ = audit(long_readme, script)
     assert calls["n"] == 2 and len(r["agent"]["claims"]) == 2
     assert "claims.empty_retry" in [s["name"] for s in r["steps"]]
+
+
+def test_presearch_covers_every_claim_and_grounds_evidence():
+    from app.agent.loop import ground_results, presearch
+    from app.agent.tools import RepoToolbox
+    from app.steps import StepLog
+    from app.tools.search import RepoSnapshot
+    from tests.test_search import GOOD, make_tarball
+
+    snap = RepoSnapshot.from_tarball(make_tarball(GOOD))
+    log = StepLog()
+    box = RepoToolbox(None, None, "main", [], [], log, snapshot=snap)
+    claims = ClaimList.model_validate({"claims": [
+        {"id": "c1", "text": "uses neatlogs tracing", "search": ["neatlogs.init", "import neatlogs"]},
+        {"id": "c2", "text": "retries failed steps", "search": "retry"},
+        {"id": "c3", "text": "has a GUI", "search": ["tkinter"]}]})
+    evidence, used = presearch(box, claims, log)
+    assert used == 3 and "[c1]" in evidence and "src/agent.py:1" in evidence and "no matches" in evidence
+    assert evidence.count("<<<UNTRUSTED_DATA") == 3
+    v = VerifyResult.model_validate({"results": [
+        {"claim_id": "c1", "status": "verified", "evidence": [{"ref": "src/agent.py:4"}]},
+        {"claim_id": "c2", "status": "verified", "evidence": [{"ref": "src/agent.py:6"}]},
+        {"claim_id": "c3", "status": "verified", "evidence": [{"ref": "gui/app.py:1"}]}]})
+    out = {r["claim_id"]: r["status"] for r in ground_results(claims, v, box, "README.md", {"links": []}, [])}
+    assert out == {"c1": "verified", "c2": "verified", "c3": "unverified"}  # c3's file was never seen
+
+
+def test_this_repos_numbers_are_not_a_reused_joke():
+    facts = [{"fact": "demo video runs 12:46 (limit 3:00)", "anchors": ["12:46"]}]
+    old = "Professor's note: a 12:46 video for a three minute slot, see me after class."
+    new = "Breaking news: a 12:46 video for a 3:00 slot, the trailer is longer than the film."
+    report = {"checks": [{"id": "demo_video", "status": "fail", "data": {"duration_status": "too_long"}}]}
+    assert R.roast_problems(new, facts, [old], report) == []
