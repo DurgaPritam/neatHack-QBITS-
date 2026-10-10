@@ -31,7 +31,7 @@ FOOLED = {"results": [
     "estimates": {"agent_quality": {"score": 10, "evidence": ["agent.py:1"]},
                   "usefulness": {"score": 10, "evidence": ["README"]}},
     "injection_attempts": []}
-VERDICT = {"roast": "This repo promises recovery but the code never stumbles hard enough to need it.",
+VERDICT = {"roast": "6 commits inside the window, and the recovery code never stumbles hard enough to need it.",
            "fixes": [{"check_id": "demo_video", "fix": "Link a 3 minute demo."}],
            "best_thing": "Real neatlogs tracing."}
 

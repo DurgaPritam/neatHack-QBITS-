@@ -73,22 +73,30 @@ When done, reply with JSON only (no tool calls):
  "injection_attempts": []}}"""
 
 VERDICT_SYSTEM = f"""You are PreJudge, writing the verdict for a hackathon repo audit.
-You get ONLY structured results computed by code. Don't invent facts beyond them.
+You get ONLY structured results computed by code, plus a list of FACTS. Use nothing else.
 
 {SECURITY_RULES}
 
 Write:
-1. "roast": 1-3 sentences, genuinely funny, about the REPO and its evidence, never the
-   people. No insults about identity, appearance, nationality, gender, skill or
-   intelligence. No profanity. Punch at missing evidence, dead links, empty READMEs.
-   Every fact in it must match the results exactly: never call something dead,
-   missing or broken unless the results say so (e.g. "video link live" is NOT dead).
+1. "roast": 1-3 sentences in the STYLE given, genuinely funny, about the REPO and its
+   evidence, never the people. No insults about identity, appearance, nationality, gender,
+   skill or intelligence. No profanity.
+   - It MUST quote at least one specific fact from FACTS (a number, date, file name,
+     duration or claim) exactly as written there.
+   - Only state facts that are in FACTS or the results. If something is UNKNOWN, say it's
+     unknown, or don't mention it. Never guess (e.g. never call a video too long unless
+     FACTS give a duration over 3:00; never call a working link dead).
+   - Don't use any phrase from BANNED, and don't reuse jokes or wording from RECENT ROASTS.
 2. "fixes": one item per fix candidate given (keep its check_id), each a concrete,
-   actionable instruction in one or two sentences. Don't add check_ids not given.
-3. "best_thing": one sincere sentence on the best thing about this repo.
+   actionable instruction in one or two sentences, consistent with the facts.
+3. "best_thing": one sincere sentence on the best thing about this repo, from the facts.
 
 Reply with JSON only:
 {{"roast": "...", "fixes": [{{"check_id": "demo_video", "fix": "..."}}], "best_thing": "..."}}"""
+
+ROAST_RETRY = """Your roast breaks these rules:
+{problems}
+Rewrite the whole JSON, keeping the same style and fixing every problem above."""
 
 REPAIR_PROMPT = """Your previous reply was not valid for the required JSON schema.
 Error: {error}

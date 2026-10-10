@@ -25,9 +25,16 @@ CREATE TABLE IF NOT EXISTS audits (
     updated_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audits_cache ON audits (repo_key, head_sha, status);
+CREATE TABLE IF NOT EXISTS roasts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    repo_key   TEXT,
+    style      TEXT,
+    roast      TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
 """
 
-_lock = threading.Lock()
+_lock = threading.RLock()  # re-entrant: _db() may connect() while the lock is held
 _conn: sqlite3.Connection | None = None
 
 
@@ -104,3 +111,16 @@ def stats() -> dict:
             "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'done' AND run_kind = 'real') "
             "FROM audits").fetchone()
     return {"total_audits": real or 0, "completed_audits": done or 0, "including_test_runs": total or 0}
+
+
+def add_roast(repo_key: str | None, style: str, roast: str) -> None:
+    with _lock:
+        _db().execute("INSERT INTO roasts (repo_key, style, roast, created_at) VALUES (?, ?, ?, ?)",
+                      (repo_key, style, roast, _now()))
+        _db().commit()
+
+
+def recent_roasts(limit: int = 20) -> list[str]:
+    with _lock:
+        rows = _db().execute("SELECT roast FROM roasts ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return [r[0] for r in rows]
