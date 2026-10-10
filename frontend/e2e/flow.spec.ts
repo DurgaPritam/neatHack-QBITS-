@@ -36,6 +36,7 @@ test('saved example: score, categories, roast, fixes, claims with evidence, feed
   await expect(page.getByTestId('score')).toContainText('18')
   await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete')
   await expect(page.locator('.tag-estimated')).toHaveCount(2) // agent + usefulness
+  await expect(page.getByTestId('estimate-badge')).toContainText('estimated by the AI')
   await expect(page.getByTestId('roast')).toContainText('12:46')
   await expect(page.getByText('Best thing about this repo')).toBeVisible()
 
@@ -94,6 +95,7 @@ test('repo without a fixture in replay mode: honest quick-facts label', async ({
   await page.getByLabel('GitHub repo URL').fill('https://github.com/pallets/click')
   await page.getByRole('button', { name: 'Roast my repo' }).click()
   await expect(page.getByTestId('template-notice')).toContainText('Quick facts mode: the roast oven is cooling')
+  await expect(page.getByTestId('estimate-badge')).toContainText('neutral placeholders until the deep check')
   await expect(page.getByTestId('roast-card')).toContainText('quick facts mode')
   await shot(page, 'template-mode')
 })

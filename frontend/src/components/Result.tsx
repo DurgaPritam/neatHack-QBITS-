@@ -29,6 +29,10 @@ function EvidenceRefs({ refs, report }: { refs: string[]; report: Report }) {
 
 function ScoreBlock({ report, deep }: { report: Report; deep: boolean }) {
   const s = report.score
+  // Estimates only come from the deep check; before that (or if the LLM was out) the scoring
+  // code fills in neutral defaults, and we say so instead of crediting "the AI".
+  const placeholders = s.categories.some((c) =>
+    c.items.some((i) => i.estimated && /unavailable|neutral/i.test(i.detail)))
   return (
     <section className="panel score-panel">
       <div className={`score-big tone-${scoreTone(s.score)}`} data-testid="score">
@@ -44,7 +48,11 @@ function ScoreBlock({ report, deep }: { report: Report; deep: boolean }) {
             <span className="badge">Quick check</span>
           )}
           {s.estimated_points > 0 && (
-            <span className="badge badge-muted">{s.estimated_points} pts estimated by the AI</span>
+            <span className="badge badge-muted" data-testid="estimate-badge">
+              {placeholders
+                ? `${s.estimated_points} pts are neutral placeholders until the deep check`
+                : `${s.estimated_points} pts estimated by the AI (capped)`}
+            </span>
           )}
         </div>
         <ul className="categories">
@@ -56,7 +64,7 @@ function ScoreBlock({ report, deep }: { report: Report; deep: boolean }) {
                 <div className="cat-row">
                   <span className="cat-name">
                     {CATEGORY_LABELS[c.id] ?? c.id}
-                    {estimated && <span className="tag-estimated">estimated</span>}
+                    {estimated && <span className="tag-estimated">{placeholders ? 'placeholder' : 'estimated'}</span>}
                   </span>
                   <span className="cat-pts">
                     {c.points} / {c.max_points}
