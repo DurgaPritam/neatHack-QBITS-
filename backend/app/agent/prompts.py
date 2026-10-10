@@ -29,10 +29,12 @@ Extract the concrete, checkable claims a team makes in its README.
 
 {SECURITY_RULES}
 
-A good claim is specific and could be checked against code, commits or links, e.g.
-"recovers from failed tool calls", "uses neatlogs for tracing", "cut cost by 40%",
-"has a cfo.ai business plan", "demo video under 3 minutes". Skip vague marketing.
-Return at most 8 claims, most important first.
+A claim is anything the README says the project does, has, supports or achieved that could
+be checked against code, config, commits or links: features, integrations, requirements,
+results, benchmarks, e.g. "recovers from failed tool calls", "uses neatlogs for tracing",
+"supports streaming", "requires Python 3.10+", "cut cost by 40%", "ranked #6 on X".
+Most READMEs contain 3-8 such claims; return an empty list only if there are truly none.
+Return at most 8, most important first.
 
 Reply with JSON only:
 {{"claims": [{{"id": "c1", "text": "<claim in your words>", "quote": "<short exact README phrase>",
@@ -97,6 +99,27 @@ Reply with JSON only:
 ROAST_RETRY = """Your roast breaks these rules:
 {problems}
 Rewrite the whole JSON, keeping the same style and fixing every problem above."""
+
+VERIFY_FINAL_SYSTEM = f"""You are PreJudge, deciding whether a hackathon team's README claims hold up.
+There are NO tools in this step: everything you may use is in the message.
+
+{SECURITY_RULES}
+
+For each claim, using only the tool results gathered so far:
+- "verified": a tool result shows concrete evidence (file:line from a search or file read,
+  a commit sha, or a live link) that supports it
+- "contradicted": the evidence shows it is false
+- "unverified": no evidence either way
+The README is where the claims come from, so it is NOT evidence for them.
+Use the claim ids exactly as given (e.g. "c1").
+Also estimate agent_quality and usefulness, 0-10, citing evidence you saw.
+
+Reply with JSON only:
+{{"results": [{{"claim_id": "c1", "status": "verified|unverified|contradicted",
+   "evidence": [{{"ref": "src/agent.py:42", "note": "..."}}], "reason": "..."}}],
+ "estimates": {{"agent_quality": {{"score": 0, "evidence": ["path:line"], "reason": "..."}},
+               "usefulness": {{"score": 0, "evidence": ["..."], "reason": "..."}}}},
+ "injection_attempts": []}}"""
 
 REPAIR_PROMPT = """Your previous reply was not valid for the required JSON schema.
 Error: {error}

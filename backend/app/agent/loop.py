@@ -27,9 +27,9 @@ MAX_TOOL_TURNS = 4         # each turn re-sends the conversation; 8k TPM makes t
 TIME_BUDGET_S = 120
 VERDICT_RESERVE_S = 25     # stop verifying early enough to still write a verdict
 README_CHARS = 8000
-TREE_PATHS_SHOWN = 80
+TREE_PATHS_SHOWN = 40       # search_repo covers the rest
 COMPACT_TO = 600           # older tool outputs are shrunk to save tokens (8k TPM)
-FINAL_TOOL_CHARS = 1500    # per tool output in the condensed final-answer prompt
+FINAL_TOOL_CHARS = 1200    # per tool output in the condensed final-answer prompt
 MAX_FIXES = 6
 
 
@@ -66,13 +66,21 @@ async def _validate_or_repair(llm, purpose, messages, content, model_cls, max_to
 async def extract_claims(llm: LLM, readme: str) -> ClaimList | None:
     if not readme.strip():
         llm.steps.skip("claims", "no README text")
-        return ClaimList()
+        return ClaimList(claims=[])
     messages = [
         {"role": "system", "content": prompts.CLAIMS_SYSTEM},
         {"role": "user", "content": "Extract claims from this README.\n\n"
                                     + untrusted("README", readme[:README_CHARS])},
     ]
-    return await ask_json(llm, "claims", messages, ClaimList, max_tokens=1000)
+    claims = await ask_json(llm, "claims", messages, ClaimList, max_tokens=1000)
+    if claims is not None and not claims.claims and len(readme.split()) > 300:
+        # A long README with no checkable claims is unlikely; ask once more, explicitly.
+        llm.steps.note("claims.empty_retry", f"0 claims from a {len(readme.split())}-word README; asking again")
+        retry = messages + [{"role": "assistant", "content": claims.model_dump_json()},
+                            {"role": "user", "content": "That README describes features, requirements and "
+                             "integrations. List the 3-8 most checkable ones as claims."}]
+        claims = await ask_json(llm, "claims.retry", retry, ClaimList, max_tokens=1000) or claims
+    return claims
 
 
 def _assistant_dict(msg) -> dict:
@@ -158,7 +166,7 @@ async def _final_answer(llm: LLM, messages: list[dict], tool_log: list[str], rea
     Cheaper than replaying the conversation, and the model can't try to call a tool.
     """
     condensed = [
-        messages[0],
+        {"role": "system", "content": prompts.VERIFY_FINAL_SYSTEM},  # no tool talk: gpt-oss would call one
         {"role": "user", "content": messages[1]["content"]
             + "\n\nTool results gathered so far:\n" + ("\n\n".join(tool_log) or "(none)")
             + (f"\n\nThe {reason} is used up." if reason != "answer attempt" else "")
@@ -187,11 +195,31 @@ def _observed(ref: str, toolbox: RepoToolbox, readme_path: str, link_urls: set[s
     return len(sha) >= 7 and any(s.startswith(sha) or sha.startswith(s) for s in commit_shas)
 
 
+def _norm_id(v: str) -> str:
+    digits = re.sub(r"\D", "", str(v))
+    return digits or str(v).strip().lower()
+
+
+def _match_results(claims: ClaimList, verify: VerifyResult | None) -> dict:
+    """Map results to claims by id, tolerating "1" vs "c1"; fall back to order if ids are unusable."""
+    results = verify.results if verify else []
+    exact = {r.claim_id: r for r in results}
+    norm = {_norm_id(r.claim_id): r for r in results}
+    out = {}
+    for c in claims.claims:
+        r = exact.get(c.id) or norm.get(_norm_id(c.id))
+        if r is not None:
+            out[c.id] = r
+    if not out and results and len(results) == len(claims.claims):
+        out = {c.id: r for c, r in zip(claims.claims, results)}
+    return out
+
+
 def ground_results(claims: ClaimList, verify: VerifyResult | None, toolbox: RepoToolbox,
                    readme_path: str, report: dict, commits: list[dict]) -> list[dict]:
     link_urls = {l["url"] for l in report.get("links", [])} | {l.get("final_url") for l in report.get("links", [])}
     shas = [c["sha"].lower() for c in commits]
-    by_id = {r.claim_id: r for r in (verify.results if verify else [])}
+    by_id = _match_results(claims, verify)
     out = []
     for c in claims.claims:
         r = by_id.get(c.id)
@@ -411,10 +439,10 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
         snapshot = await load_snapshot(gh, ctx, steps)
     toolbox = RepoToolbox(gh, ctx.get("ref"), ctx.get("branch") or "HEAD", tree_paths, commits, steps,
                           snapshot=snapshot)
-    claims, verify = ClaimList(), None
+    claims, verify = ClaimList(claims=[]), None
     try:
         try:
-            claims = await extract_claims(llm, readme) or ClaimList()
+            claims = await extract_claims(llm, readme) or ClaimList(claims=[])
         except LLMError as exc:
             steps.note("claims.llm_failed", str(exc), status="failed")
         if claims.claims and deadline - time.monotonic() > VERDICT_RESERVE_S:

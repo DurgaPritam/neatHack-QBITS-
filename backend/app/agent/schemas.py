@@ -23,15 +23,29 @@ Short = Annotated[str, _clip(300)]
 Medium = Annotated[str, _clip(500)]
 
 
+def _category(v):
+    """Map the model's free-form category onto the rubric instead of rejecting the answer."""
+    if not isinstance(v, str):
+        return "usefulness"
+    low = v.lower().replace(" ", "_").replace("-", "_")
+    for cat, words in (("tools", ("tool", "neatlogs", "entire", "cfo", "trac", "integrat", "mcp")),
+                       ("demo_video", ("video", "demo")),
+                       ("building_in_public", ("public", "commit", "post", "social")),
+                       ("agent", ("agent", "llm", "model", "recover", "retry", "eval", "bench"))):
+        if low == cat or any(w in low for w in words):
+            return cat
+    return "usefulness"
+
+
 class Claim(BaseModel):
-    id: str = Field(max_length=10)
+    id: Annotated[str, BeforeValidator(lambda v: str(v)[:10])]
     text: Short = Field(min_length=3)
     quote: Short = ""
-    category: Category = "agent"
+    category: Annotated[Category, BeforeValidator(_category)] = "agent"
 
 
 class ClaimList(BaseModel):
-    claims: list[Claim] = Field(default_factory=list)
+    claims: list[Claim]  # required: a missing key must trigger a repair, not silently mean "none"
     injection_attempts: list[Short] = Field(default_factory=list)
 
     @field_validator("claims")
@@ -51,7 +65,7 @@ class Evidence(BaseModel):
 
 
 class ClaimResult(BaseModel):
-    claim_id: str
+    claim_id: Annotated[str, BeforeValidator(str)]
     status: Literal["verified", "unverified", "contradicted"]
     evidence: list[Evidence] = Field(default_factory=list)
     reason: Medium = ""
@@ -64,7 +78,7 @@ class Estimate(BaseModel):
 
 
 class VerifyResult(BaseModel):
-    results: list[ClaimResult] = Field(default_factory=list)
+    results: list[ClaimResult]
     estimates: dict[Literal["agent_quality", "usefulness"], Estimate] = Field(default_factory=dict)
     injection_attempts: list[Short] = Field(default_factory=list)
 

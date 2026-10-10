@@ -39,7 +39,7 @@ MAX_DELAY = 20.0
 DEFAULT_TPM = 8000
 DEFAULT_TPD = int(config.env("GROQ_TPD", "200000"))
 QUICK_RESERVE = 3500       # tokens per model kept free for quick audits while one runs
-CHARS_PER_TOKEN = 3.0      # conservative: over-estimating avoids 429s
+CHARS_PER_TOKEN = 3.5      # measured ~4 on these models; a little conservative avoids 429s
 
 
 class LLMError(Exception):
