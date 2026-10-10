@@ -1,5 +1,6 @@
 """Thin wrapper around the neatlogs SDK so tracing never breaks an audit."""
 import logging
+import sys
 
 from app import config
 
@@ -24,6 +25,10 @@ def init_tracing(workflow_name: str = "prejudge") -> bool:
             tags=["neatHack", "prejudge"],
         )
         _enabled = True
+        # The SDK logs to stdout; move it to stderr so CLI stdout stays pure JSON.
+        for h in logging.getLogger("neatlogs").handlers:
+            if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) is sys.stdout:
+                h.setStream(sys.stderr)
     except Exception as exc:  # tracing must never take the app down
         log.warning("neatlogs init failed: %s", type(exc).__name__)
     return _enabled

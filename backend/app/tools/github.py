@@ -53,7 +53,8 @@ def parse_repo_url(url: str) -> RepoRef:
 
 
 class GitHubClient:
-    def __init__(self, token: str | None = None, timeout: float | None = None):
+    def __init__(self, token: str | None = None, timeout: float | None = None,
+                 transport: httpx.AsyncBaseTransport | None = None):
         token = config.GITHUB_TOKEN if token is None else token
         headers = {
             "Accept": "application/vnd.github+json",
@@ -64,7 +65,8 @@ class GitHubClient:
             headers["Authorization"] = f"Bearer {token}"
         self.authenticated = bool(token)
         self._http = httpx.AsyncClient(
-            headers=headers, timeout=timeout or config.HTTP_TIMEOUT, follow_redirects=True
+            headers=headers, timeout=timeout or config.HTTP_TIMEOUT, follow_redirects=True,
+            transport=transport,  # injectable for tests
         )
         self.rate_limit_remaining: int | None = None
 
