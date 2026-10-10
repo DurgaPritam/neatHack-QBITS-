@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from app.agent import prompts
 from app.agent import roast as roast_rules
 from app.agent.prompts import untrusted
-from app.agent.schemas import ClaimList, Verdict, VerifyResult, parse_json
+from app.agent.schemas import ClaimList, RoastOnly, Verdict, VerifyResult, parse_json
 from app.agent.tools import TOOL_SCHEMAS, RepoToolbox
 from app.llm import LLM, LLMError
 from app.scoring import compute_score
@@ -345,6 +345,22 @@ def _fix_row(candidate: dict, text: str) -> dict:
             "points": candidate["points"], "fix": text}
 
 
+async def _rewrite_roast(llm: LLM, purpose: str, style: str, fact_lines: str, recent_lines: str,
+                         previous: str, problems: list[str]) -> str | None:
+    """Roast-only rewrite: about half the tokens of re-asking for the whole verdict."""
+    messages = [
+        {"role": "system", "content": prompts.ROAST_ONLY_SYSTEM},
+        {"role": "user", "content":
+            f"STYLE: {style} ({roast_rules.STYLES[style]})\n\nFACTS:\n" + untrusted("facts", fact_lines)
+            + "\n\nBANNED: " + "; ".join(roast_rules.BANNED_PHRASES)
+            + "\n\nRECENT ROASTS:\n" + recent_lines
+            + "\n\n" + prompts.ROAST_RETRY.format(previous=previous,
+                                                    problems="\n".join(f"- {p}" for p in problems))},
+    ]
+    out = await ask_json(llm, f"{purpose}.roast_retry", messages, RoastOnly, max_tokens=300)
+    return out.roast if out else None
+
+
 def _recent_roasts() -> list[str]:
     try:
         from app import db
@@ -395,24 +411,23 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
             + "\n\nBANNED: " + "; ".join(roast_rules.BANNED_PHRASES)
             + "\n\nRECENT ROASTS (don't reuse their jokes):\n" + recent_lines},
     ]
-    verdict = None
+    verdict, templated = None, False
     try:
         verdict = await ask_json(llm, purpose, messages, Verdict, max_tokens=700)
         problems = roast_rules.roast_problems(verdict.roast, facts, recent, report) if verdict else []
         if problems:
             llm.steps.note(f"{purpose}.roast_rejected", "; ".join(problems), status="failed")
             event("roast rejected: {problems}", level="warning", problems="; ".join(problems))
-            retry = messages + [
-                {"role": "assistant", "content": verdict.model_dump_json()},
-                {"role": "user", "content": prompts.ROAST_RETRY.format(
-                    problems="\n".join(f"- {p}" for p in problems))},
-            ]
-            second = await ask_json(llm, f"{purpose}.roast_retry", retry, Verdict, max_tokens=700)
-            if second and not roast_rules.roast_problems(second.roast, facts, recent, report):
-                verdict = second
+            fixed = await _rewrite_roast(llm, purpose, style, fact_lines, recent_lines, verdict.roast,
+                                         problems)
+            again = roast_rules.roast_problems(fixed, facts, recent, report) if fixed else ["no answer"]
+            if fixed and not again:
+                verdict = verdict.model_copy(update={"roast": fixed})
             else:
-                llm.steps.note(f"{purpose}.roast_template", "roast still broke the rules; using template roast")
-                verdict = verdict.model_copy(update={"roast": roast_rules.template_roast(style, facts, score["score"])})
+                llm.steps.note(f"{purpose}.roast_template", "rewrite still broke the rules: " + "; ".join(again))
+                verdict = verdict.model_copy(update={"roast": roast_rules.template_roast(
+                    style, facts, score["score"], variant=len(recent))})
+                templated = True
     except LLMError as exc:
         llm.steps.note(f"{purpose}.llm_failed", str(exc), status="failed")
         verdict = None
@@ -420,10 +435,12 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
         llm.steps.note(f"{purpose}.template_fallback", "using template verdict from deterministic report")
         event("verdict fell back to template", level="warning")
         out = template_verdict(score, report)
-        out["roast"] = roast_rules.template_roast(style, facts, score["score"]) if not score.get("gated") else out["roast"]
+        if not score.get("gated"):
+            out["roast"] = roast_rules.template_roast(style, facts, score["score"], variant=len(recent))
         return {**out, "style": style}, "template"
 
-    _remember_roast(repo_name.lower(), style, verdict.roast)
+    if not templated:  # only real jokes go into the memory the model must not repeat
+        _remember_roast(repo_name.lower(), style, verdict.roast)
     # Code decides which fixes exist and their order (points gained); the LLM only words them.
     worded = {f.check_id: f.fix for f in verdict.fixes}
     checks_by_id = {c["id"]: c for c in report.get("checks", [])}

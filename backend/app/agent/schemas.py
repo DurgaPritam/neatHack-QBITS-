@@ -111,6 +111,13 @@ class Verdict(BaseModel):
         return v
 
 
+class RoastOnly(BaseModel):
+    roast: str = Field(min_length=10, max_length=450)
+
+    _short = field_validator("roast")(Verdict.short_and_clean.__func__)
+    _clean = field_validator("roast")(Verdict.no_profanity.__func__)
+
+
 def parse_json(text: str | None, model: type[BaseModel]) -> BaseModel:
     """Parse model output (tolerating ```json fences) and validate. Raises ValueError."""
     if not text:

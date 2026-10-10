@@ -123,3 +123,28 @@ def test_write_verdict_falls_back_to_template_roast(tmp_path):
 
 def test_prompt_mentions_rules():
     assert "BANNED" in prompts.VERDICT_SYSTEM and "UNKNOWN" in prompts.VERDICT_SYSTEM
+
+
+def test_rewrite_asks_for_roast_only():
+    systems = []
+
+    def script(kw):
+        systems.append(kw["messages"][0]["content"])
+        if len(systems) == 1:
+            return msg(_verdict("Ladies and gentlemen, 37 commits before kickoff!"))
+        return msg({"roast": "37 commits before kickoff: the warm-up lasted longer than the match."})
+
+    llm = _llm(script)
+    out, _ = asyncio.run(write_verdict(llm, compute_score(REPORT["checks"]), REPORT, []))
+    assert systems[1] == prompts.ROAST_ONLY_SYSTEM
+    assert out["roast"].startswith("37 commits before kickoff: the warm-up")
+
+
+def test_template_roasts_are_not_remembered_and_vary():
+    llm = _llm(lambda kw: msg(_verdict("Big dreams, small evidence, as always.")))
+    asyncio.run(write_verdict(llm, compute_score(REPORT["checks"]), REPORT, []))
+    assert db.recent_roasts() == []
+    facts = R.build_facts(REPORT)
+    variants = {R.template_roast("strict professor", facts, 20, variant=i) for i in range(6)}
+    assert len(variants) == 6
+    assert all(not R.roast_problems(v, facts, [], REPORT) for v in variants)

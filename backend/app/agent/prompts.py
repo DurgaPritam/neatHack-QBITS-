@@ -95,9 +95,21 @@ Write:
 Reply with JSON only:
 {{"roast": "...", "fixes": [{{"check_id": "demo_video", "fix": "..."}}], "best_thing": "..."}}"""
 
-ROAST_RETRY = """Your roast breaks these rules:
+ROAST_ONLY_SYSTEM = f"""You rewrite one hackathon-repo roast. 1-3 sentences, funny, about the repo not
+the people, no identity insults, no profanity, in the STYLE given.
+It MUST quote at least one fact from FACTS exactly (a number, date, file name, duration or
+claim). Only state facts from FACTS; unknown things are unknown, never guessed.
+Avoid every BANNED phrase and every joke or turn of phrase from RECENT ROASTS: find a new
+angle, not a reworded old one.
+
+{SECURITY_RULES}
+
+Reply with JSON only: {{"roast": "..."}}"""
+
+ROAST_RETRY = """Previous attempt: {previous}
+It breaks these rules:
 {problems}
-Rewrite the whole JSON, keeping the same style and fixing every problem above."""
+Write a new roast that fixes every problem."""
 
 VERIFY_FINAL_SYSTEM = f"""You are PreJudge, deciding whether a hackathon team's README claims hold up.
 There are NO tools in this step: everything you may use is in the message.

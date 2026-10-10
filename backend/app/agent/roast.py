@@ -28,6 +28,10 @@ BANNED_PHRASES = [
     "a lot to unpack", "let's be honest", "it's giving", "chef's kiss", "needle in a haystack",
     "swiss cheese", "house of cards", "smoke and mirrors", "all bark and no bite",
     "promises more than it delivers", "bold strategy",
+    # style cliches the models reach for every time
+    "the crowd is on its feet", "the crowd goes wild", "in a world where", "marked in red ink",
+    "see me after class", "michelin", "the replay shows", "ladies and gentlemen",
+    "receipts for everything",
 ]
 
 RECENT_ROASTS = 20
@@ -178,15 +182,19 @@ def roast_problems(roast: str, facts: list[dict], recent: list[str], report: dic
     return problems
 
 
-def template_roast(style: str, facts: list[dict], score: int) -> str:
-    """Fallback that still follows the rules: styled, factual, no stock phrases."""
+def template_roast(style: str, facts: list[dict], score: int, variant: int = 0) -> str:
+    """Fallback that still follows the rules: styled, factual, no stock phrases, and it varies."""
     anchored = [f for f in facts if f["anchors"]] or [{"fact": f"a score of {score}/100"}]
-    fact = anchored[0]["fact"]
+    fact = anchored[variant % len(anchored)]["fact"]
     openers = {
-        "sports commentator": "And the replay shows it clearly, folks:",
-        "movie trailer": "In a world where judges read the evidence...",
-        "food critic": "The kitchen sent out one course worth noting:",
-        "strict professor": "Marked in red ink:",
-        "Bollywood drama": "And then, the twist nobody saw coming:",
+        "sports commentator": ["Live from the judging arena:", "Play-by-play update:", "Official stat sheet:"],
+        "movie trailer": ["Coming soon to a judging table near you:", "This October, one repo dares to ship:",
+                          "Rated E for Evidence-free:"],
+        "food critic": ["Tonight's tasting menu features", "The amuse-bouche arrives:", "From the chef's table:"],
+        "strict professor": ["Grading note:", "Feedback on your submission:", "Office hours reminder:"],
+        "Bollywood drama": ["Interval twist:", "Picture abhi baaki hai, because", "Cue the slow-motion rain scene:"],
     }
-    return f"{openers.get(style, 'Exhibit A:')} {fact}. The judges will want receipts for everything else."
+    closers = ["Judges grade evidence, not intentions.", "The rubric has questions.",
+               "Ship the proof before the deadline does.", "That's a lot of trust to ask for."]
+    opts = openers.get(style, ["Audit note:"])
+    return f"{opts[variant % len(opts)]} {fact}. {closers[(variant // len(opts)) % len(closers)]}"
