@@ -1,0 +1,116 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { api, ApiError, type Audit, type Stats } from '../api'
+import DeepCheck from '../components/DeepCheck'
+import Result from '../components/Result'
+import RoastCard from '../components/RoastCard'
+import StepLog from '../components/StepLog'
+
+const POLL_MS = 1500
+const ACTIVE_DEEP = ['queued', 'running', 'waiting_budget']
+
+function isActive(a: Audit | null): boolean {
+  if (!a) return true
+  return a.status === 'queued' || ACTIVE_DEEP.includes(a.phases.deep)
+}
+
+export default function AuditPage() {
+  const { id = '' } = useParams()
+  const [audit, setAudit] = useState<Audit | null>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [notFound, setNotFound] = useState(false)
+  const [offline, setOffline] = useState(false)
+  const [tick, setTick] = useState(0)
+  const timer = useRef<number | undefined>(undefined)
+
+  const poll = useCallback(async () => {
+    try {
+      const a = await api.getAudit(id)
+      setAudit(a)
+      setOffline(false)
+      return a
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) setNotFound(true)
+      else setOffline(true)
+      return null
+    }
+  }, [id])
+
+  // Poll every 1.5s while anything is still running (quick phase or a requested deep check).
+  useEffect(() => {
+    let alive = true
+    const loop = async () => {
+      const a = await poll()
+      if (!alive) return
+      if (isActive(a) && !notFound) timer.current = window.setTimeout(loop, POLL_MS)
+    }
+    loop()
+    return () => {
+      alive = false
+      window.clearTimeout(timer.current)
+    }
+  }, [poll, tick, notFound])
+
+  useEffect(() => {
+    api.stats().then(setStats).catch(() => {})
+  }, [tick])
+
+  if (notFound)
+    return (
+      <main className="page narrow">
+        <h1 className="headline">No such audit.</h1>
+        <p className="lede">
+          That link doesn't match any roast. <Link to="/">Audit a repo</Link>.
+        </p>
+      </main>
+    )
+
+  const report = audit?.result
+  const live = !audit || audit.status === 'queued'
+  return (
+    <main className="page">
+      <nav className="topbar">
+        <Link to="/" className="brand">🔥 PreJudge</Link>
+        {audit && <span className="muted small topbar-repo">{audit.repo_url.replace(/^https?:\/\/(www\.)?github\.com\//, '')}</span>}
+      </nav>
+
+      {offline && (
+        <p className="notice notice-bad" role="alert" data-testid="offline">
+          Lost connection to PreJudge. Retrying…{' '}
+          <button className="link-button" onClick={() => setTick((t) => t + 1)}>Retry now</button>
+        </p>
+      )}
+
+      {audit?.status === 'failed' && (
+        <section className="panel error-panel" data-testid="audit-failed">
+          <h1 className="headline">The judge tripped.</h1>
+          <p className="lede">Something went wrong on our side ({audit.error ?? 'unknown error'}). Your repo is fine.</p>
+          <Link className="big-button" to="/">Try again</Link>
+        </section>
+      )}
+
+      {audit?.queue?.lane === 'quick' && audit.status === 'queued' && audit.queue.position > 1 && (
+        <p className="notice notice-warn">In line: {audit.queue.position - 1} audit(s) ahead of you.</p>
+      )}
+
+      {report && audit && audit.status !== 'failed' && (
+        <>
+          <Result audit={audit} />
+          {!report.score.gated && <DeepCheck audit={audit} stats={stats} onQueued={() => setTick((t) => t + 1)} />}
+          {!report.score.gated && (
+            <RoastCard
+              auditId={audit.id}
+              repo={report.repo?.full_name ?? audit.repo_url}
+              score={report.score.score}
+              roast={report.verdict.roast}
+              template={report.verdict.source === 'template'}
+            />
+          )}
+        </>
+      )}
+
+      {audit && <StepLog steps={audit.steps} live={live || ACTIVE_DEEP.includes(audit.phases.deep)} />}
+      {!audit && !offline && <StepLog steps={[]} live />}
+    </main>
+  )
+}
