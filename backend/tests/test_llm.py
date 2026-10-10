@@ -45,11 +45,14 @@ def test_non_retryable_goes_straight_to_fallback():
     assert [c["model"] for c in fake.calls] == ["primary", "backup"]
 
 
-def test_rate_limited_model_cools_down_for_next_call():
-    llm, fake, _ = make([rate_limit("30"), rate_limit("30"), rate_limit("30"), msg("a"), msg("b")])
+def test_long_rate_limit_switches_immediately_and_cools_down():
+    sleeps = []
+    llm, fake, _ = make([rate_limit("30"), msg("a"), msg("b")], sleeps)
     asyncio.run(llm.chat("t", [{"role": "user", "content": "x"}]))
     asyncio.run(llm.chat("t", [{"role": "user", "content": "x"}]))
-    assert fake.calls[-1]["model"] == "backup"  # primary skipped while cooling down
+    assert sleeps == []  # a 30s reset isn't worth waiting for when a fallback exists
+    # second call skips the primary while it cools down
+    assert [c["model"] for c in fake.calls] == ["primary", "backup", "backup"]
 
 
 def test_all_models_fail_raises():
@@ -57,3 +60,20 @@ def test_all_models_fail_raises():
     with pytest.raises(LLMError):
         asyncio.run(llm.chat("t", [{"role": "user", "content": "x"}]))
     assert all(s.status == "failed" for s in log.steps if s.name == "llm.t")
+
+
+def test_waits_for_quota_reset_when_all_models_rate_limited():
+    sleeps = []
+    llm, fake, log = make([rate_limit("30"), rate_limit("30"), msg("after wait")], sleeps)
+    out = asyncio.run(llm.chat("t", [{"role": "user", "content": "x"}]))
+    assert out.content == "after wait"
+    assert len(sleeps) == 1 and 25 < sleeps[0] <= 30
+    assert "llm.t.wait_for_quota" in [s.name for s in log.steps]
+
+
+def test_gives_up_when_quota_reset_exceeds_time_budget():
+    import time as _t
+    llm, fake, log = make([rate_limit("30"), rate_limit("30")])
+    llm.deadline = _t.monotonic() + 10
+    with pytest.raises(LLMError):
+        asyncio.run(llm.chat("t", [{"role": "user", "content": "x"}]))

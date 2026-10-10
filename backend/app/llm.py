@@ -21,6 +21,9 @@ from app.tracing import event, span
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MAX_RETRIES = 2
+RATE_LIMIT_RETRIES = 1   # fallback model has its own quota, so don't wait long on a 429
+MAX_RATE_LIMIT_WAIT = 15.0
+MAX_ROUNDS = 3           # rounds over [primary, fallback] when every model is rate-limited
 BASE_DELAY = 1.0
 MAX_DELAY = 20.0
 
@@ -110,6 +113,15 @@ def _classify(exc: Exception) -> tuple[str, bool]:
     return type(exc).__name__, False
 
 
+def _reasoning_params(model: str) -> dict:
+    """Keep hidden reasoning short: it counts against the 8k tokens-per-minute quota."""
+    if model.startswith("openai/gpt-oss"):
+        return {"reasoning_effort": "low"}
+    if model.startswith("qwen/qwen3"):
+        return {"reasoning_effort": "none"}
+    return {}
+
+
 class LLM:
     def __init__(
         self,
@@ -143,14 +155,36 @@ class LLM:
     async def chat(self, purpose: str, messages: list[dict], *, tools: list | None = None,
                    tool_choice: str | None = None, json_mode: bool = False,
                    max_tokens: int = 1500):
-        """Return the assistant message. Raises LLMError only when every model failed."""
+        """Return the assistant message. Raises LLMError only when every model failed.
+
+        If every model is rate-limited and the time budget allows, wait for the earliest
+        quota reset and go round again (Groq resets are usually a few seconds away).
+        """
         if not self.models:
             raise LLMError("not_configured", "GROQ_MODEL is not set")
+        for rnd in range(MAX_ROUNDS):
+            try:
+                return await self._one_round(purpose, messages, tools, tool_choice, json_mode,
+                                             max_tokens, first_round=rnd == 0)
+            except LLMError as exc:
+                if exc.kind != "rate_limited" or rnd == MAX_ROUNDS - 1:
+                    raise
+                wait = max(0.5, min(self._cooldown.values(), default=0) - time.monotonic())
+                if wait >= self._remaining() - 5:
+                    raise
+                self.steps.note(f"llm.{purpose}.wait_for_quota",
+                                f"all models rate-limited; waiting {wait:.1f}s for quota reset",
+                                wait_s=round(wait, 1))
+                event("all models rate-limited; waiting {wait}s", level="warning", wait=round(wait, 1))
+                await self.sleep(wait)
+        raise LLMError("rate_limited", "unreachable")
+
+    async def _one_round(self, purpose, messages, tools, tool_choice, json_mode, max_tokens,
+                         first_round: bool):
         last_kind = "unknown"
-        order = self._model_order()
-        for i, model in enumerate(order):
-            if i > 0:
-                self.steps.note(f"llm.{purpose}.fallback", f"switching to fallback model {model}",
+        for i, model in enumerate(self._model_order()):
+            if i > 0 or not first_round:
+                self.steps.note(f"llm.{purpose}.fallback", f"switching to model {model}",
                                 model=model, after=last_kind)
                 event("llm fallback to {model}", level="warning", model=model, purpose=purpose)
             for attempt in range(self.max_retries + 1):
@@ -162,8 +196,9 @@ class LLM:
                     kwargs["tool_choice"] = tool_choice or "auto"
                 if json_mode:
                     kwargs["response_format"] = {"type": "json_object"}
-                if model.startswith("openai/gpt-oss"):
-                    kwargs["extra_body"] = {"reasoning_effort": "low"}  # saves tokens on 8k TPM
+                extra = _reasoning_params(model)
+                if extra:
+                    kwargs["extra_body"] = extra
                 started = time.perf_counter()
                 with self.steps.step(f"llm.{purpose}") as s:
                     s.data["model"] = model
@@ -174,14 +209,17 @@ class LLM:
                         last_kind = kind
                         self.usage.failed_calls += 1
                         s.status, s.error_kind = "failed", kind
-                        s.detail = f"{model}: {str(exc)[:200]}"
+                        s.detail = f"{model}: {str(exc)[:400]}"
                         event("llm call failed: {kind}", level="warning", kind=kind, model=model,
                               purpose=purpose, attempt=attempt)
                         wait = _retry_after(exc)
                         if kind == "rate_limited":
                             self._cooldown[model] = time.monotonic() + (wait or 10)
-                        if not retryable or attempt == self.max_retries:
+                        limit = min(self.max_retries, RATE_LIMIT_RETRIES) if kind == "rate_limited" else self.max_retries
+                        if not retryable or attempt >= limit:
                             break  # out of the step; try next model
+                        if kind == "rate_limited" and wait is not None and wait > MAX_RATE_LIMIT_WAIT:
+                            break  # long reset: the fallback model is the faster path
                         delay = min(wait if wait is not None else BASE_DELAY * 2 ** attempt + random.random() * 0.3,
                                     MAX_DELAY)
                         if delay >= self._remaining() - 2:

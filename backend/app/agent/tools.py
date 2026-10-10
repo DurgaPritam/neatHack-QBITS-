@@ -91,6 +91,7 @@ class RepoToolbox:
         self.commits = commits or []
         self.steps = steps
         self.files_read: dict[str, str] = {}
+        self.checked_urls: set[str] = set()
         self.calls = 0
 
     async def dispatch(self, name: str, raw_args: str | None) -> str:
@@ -159,4 +160,5 @@ class RepoToolbox:
     async def check_link(self, url: str) -> str:
         u = safe_url(url)
         [r] = await check_links([u])  # SSRF guard lives in the link checker
+        self.checked_urls.update({u, r["final_url"]})
         return json.dumps({k: r[k] for k in ("url", "status", "ok", "error", "final_url")})

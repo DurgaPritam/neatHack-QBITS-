@@ -20,8 +20,11 @@ def _failed(log: StepLog) -> bool:
 
 @span("WORKFLOW", "prejudge.deterministic_audit")
 async def run_deterministic_audit(repo_url: str, token: str | None = None,
-                                  transport=None) -> dict:
-    log = StepLog()
+                                  transport=None, log: StepLog | None = None,
+                                  ctx: dict | None = None) -> dict:
+    """ctx, if given, is filled with the raw material the agent needs (README, tree, commits)."""
+    log = log or StepLog()
+    ctx = {} if ctx is None else ctx
     report: dict = {
         "repo_url": repo_url,
         "audited_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -66,6 +69,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
                 with log.step("github.get_readme") as s:
                     r = await gh.get_readme(ref)
                     readme = r["text"]
+                    ctx["readme_path"] = r["path"]
                     s.detail = f"{r['path']} ({len(readme)} chars)"
             if readme is None:
                 # Fallback: raw.githubusercontent.com doesn't count against the API rate limit.
@@ -73,6 +77,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
                     for name in README_FALLBACK_NAMES:
                         try:
                             readme = await gh.get_file(ref, name, branch)
+                            ctx["readme_path"] = name
                             s.detail = f"got {name} via raw"
                             break
                         except GitHubError as exc:
@@ -125,6 +130,8 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
         report["github_rate_limit_remaining"] = gh.rate_limit_remaining
 
     readme_text = readme or ""
+    ctx.update(ref=ref, branch=branch, readme=readme_text, tree_paths=tree_paths,
+               commits=commits or [], repo_available=repo_error not in ("not_found", "private"))
     checks = [
         rubric.check_repo_public(repo, repo_error),
         rubric.check_prompt_injection({"README": readme_text, **dep_files}),
@@ -154,4 +161,50 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
         "files_seen": len(tree_paths),
         "dependency_files": list(dep_files),
     })
+    return report
+
+
+async def run_full_audit(repo_url: str, *, audit_id: str | None = None, run_kind: str = "real",
+                         log: StepLog | None = None, llm=None, transport=None,
+                         token: str | None = None) -> dict:
+    """Deterministic pass + LLM agent + scoring + verdict. Always returns a report."""
+    import time
+    import uuid
+
+    from app.agent.loop import run_agent, template_verdict
+    from app.scoring import compute_score
+    from app.tracing import audit_context
+
+    audit_id = audit_id or uuid.uuid4().hex[:12]
+    log = log or StepLog()
+    t0 = time.monotonic()
+    with audit_context(audit_id, run_kind, repo_url):
+        ctx: dict = {}
+        report = await run_deterministic_audit(repo_url, token=token, transport=transport, log=log, ctx=ctx)
+        t_det = int((time.monotonic() - t0) * 1000)
+        if ctx.get("repo_available"):
+            async with GitHubClient(token=token, transport=transport) as gh:
+                agent = await run_agent(report, ctx, log, llm=llm, gh=gh)
+        else:
+            # Nothing for an LLM to read: score + template verdict straight from the checks.
+            log.skip("agent", "repo unavailable; skipping LLM phases")
+            score = compute_score(report["checks"])
+            agent = {"claims": [], "estimates": {}, "injection": {"detected": False},
+                     "score": score, "verdict": {**template_verdict(score, report), "source": "template"},
+                     "tool_calls": 0, "files_read": [], "usage": None, "agent_ms": 0}
+
+    usage = agent.pop("usage")
+    report.update(
+        audit_id=audit_id,
+        run_kind=run_kind,
+        mode="full",
+        score=agent.pop("score"),
+        verdict=agent.pop("verdict"),
+        agent=agent,
+        usage=usage or {"total_tokens": 0, "calls": 0},
+        timing_ms={"deterministic": t_det, "agent": agent.pop("agent_ms"),
+                   "total": int((time.monotonic() - t0) * 1000)},
+        steps=log.to_list(),
+        partial=any(s.status == "failed" for s in log.steps),
+    )
     return report
