@@ -40,6 +40,7 @@ MAX_DELAY = 20.0
 DEFAULT_TPM = 8000
 DEFAULT_TPD = int(config.env("GROQ_TPD", "200000"))
 QUICK_RESERVE = 3500       # tokens per model kept free for quick audits while one runs
+RESERVE_PCT = float(config.env("BUDGET_RESERVE_PCT", "25"))  # of each model's daily tokens, admin-only
 CHARS_PER_TOKEN = 3.5      # measured ~4 on these models; a little conservative avoids 429s
 
 
@@ -47,6 +48,21 @@ class LLMError(Exception):
     def __init__(self, kind: str, message: str):
         super().__init__(message)
         self.kind = kind
+
+
+class BudgetExhausted(Exception):
+    """No allowed model has daily budget left. Deep audits wait for budget instead of
+    degrading to a weaker model (deliberately not an LLMError, which means 'degrade')."""
+
+    def __init__(self, retry_in_s: float | None, why: str):
+        super().__init__(why)
+        self.retry_in_s = retry_in_s
+
+
+def judge_models() -> list[str]:
+    """Models trusted to extract and judge claims (JUDGE_MODELS); defaults to all models."""
+    models = [m.strip() for m in config.env("JUDGE_MODELS").split(",") if m.strip()]
+    return models or configured_models()
 
 
 def configured_models() -> list[str]:
@@ -100,11 +116,14 @@ class ModelQuota:
 
 
 class QuotaPool:
-    def __init__(self, models: list[str] | None = None, clock=time.monotonic):
+    def __init__(self, models: list[str] | None = None, clock=time.monotonic,
+                 reserve_pct: float | None = None):
         self.clock = clock
         self.quotas: dict[str, ModelQuota] = {}
         self.order: list[str] = []
         self.quick_active = 0
+        self.reserve_pct = RESERVE_PCT if reserve_pct is None else reserve_pct
+        self.persist = None  # callable(model, ModelQuota) -> None; set by app.budget
         for m in models or []:
             self._q(m)
 
@@ -118,6 +137,40 @@ class QuotaPool:
         today = datetime.now(timezone.utc).date().isoformat()
         if q.tpd_day != today:
             q.tpd_day, q.tpd_used = today, 0
+
+    def _save(self, q: ModelQuota) -> None:
+        if self.persist:
+            try:
+                self.persist(q.model, q)
+            except Exception:
+                pass  # budget bookkeeping must never break an audit
+
+    def public_limit(self, q: ModelQuota) -> float:
+        return q.tpd_limit * (1 - self.reserve_pct / 100)
+
+    def daily_ok(self, model: str, est: int, use_reserve: bool = False) -> bool:
+        """Does this model have daily budget for `est` tokens (public share unless use_reserve)?"""
+        q, now = self._q(model), self.clock()
+        self._roll_day(q)
+        if q.disabled or q.daily_blocked_until > now:
+            return False
+        limit = q.tpd_limit if use_reserve else self.public_limit(q)
+        if q.tpd_used + est > limit:
+            # after Groq's rolling-window block passes, admin traffic may trust Groq again
+            return use_reserve and q.daily_blocked_until != 0.0
+        return True
+
+    def daily_retry_in(self, models: list[str]) -> float | None:
+        now = self.clock()
+        waits = [self._q(m).daily_blocked_until - now for m in models if self._q(m).daily_blocked_until > now]
+        return min(waits) if waits else None  # None: not until the daily counter resets
+
+    def budget(self, models: list[str] | None = None, use_reserve: bool = False, est: int = 3000) -> dict:
+        ms = models or self.order
+        return {"public_available": any(self.daily_ok(m, est, use_reserve) for m in ms),
+                "models": {m: {"used": self._q(m).tpd_used, "limit": self._q(m).tpd_limit,
+                               "public_limit": int(self.public_limit(self._q(m))),
+                               "ok": self.daily_ok(m, est, use_reserve)} for m in ms}}
 
     @contextmanager
     def quick_window(self):
@@ -143,7 +196,7 @@ class QuotaPool:
             pass  # malformed header: keep the previous estimate
 
     def pick(self, models: list[str], est_tokens: int, priority: str = "high",
-             exclude: set[str] = frozenset()) -> tuple[str | None, float, str]:
+             exclude: set[str] = frozenset(), use_reserve: bool = False) -> tuple[str | None, float, str]:
         """-> (model, 0, why) if one has room now, else (None, seconds_to_wait, why)."""
         now = self.clock()
         reserve = QUICK_RESERVE if priority == "low" and self.quick_active > 0 else 0
@@ -160,8 +213,9 @@ class QuotaPool:
                 why = "disabled" if q.disabled else ("daily cap" if q.daily_blocked_until > now else "cooling down")
                 reasons.append(f"{m}: {why}")
                 continue
-            if q.tpd_used + est_tokens > q.tpd_limit and q.daily_blocked_until == 0.0:
-                reasons.append(f"{m}: daily token cap reached")
+            if not self.daily_ok(m, est_tokens, use_reserve):
+                reasons.append(f"{m}: daily token cap reached" if use_reserve
+                               else f"{m}: daily public budget used ({self.reserve_pct:g}% kept in reserve)")
                 continue
             if q.available(now) >= est_tokens + reserve:
                 q.tpm_remaining = q.available(now) - est_tokens  # optimistic, until headers arrive
@@ -181,6 +235,7 @@ class QuotaPool:
         q.calls += 1
         q.tokens += tokens
         q.tpd_used += tokens
+        self._save(q)
 
     def cooldown(self, model: str, seconds: float, rate_limited: bool = True) -> None:
         q = self._q(model)
@@ -198,6 +253,7 @@ class QuotaPool:
             q.tpd_limit, q.tpd_used = daily["limit"], max(q.tpd_used, daily["used"])
         q.daily_blocked_until = self.clock() + retry_after
         q.rate_limited += 1
+        self._save(q)
 
     def disable(self, model: str, reason: str) -> None:
         self._q(model).disabled = reason
@@ -346,6 +402,7 @@ class LLM:
         max_retries: int = MAX_RETRIES,
         pool: QuotaPool | None = None,
         priority: str = "high",
+        use_reserve: bool = False,
         # backwards-compatible names
         model: str | None = None,
         fallback_model: str | None = None,
@@ -358,7 +415,19 @@ class LLM:
         self.sleep = sleep
         self.max_retries = max_retries
         self.priority = priority
+        self.use_reserve = use_reserve       # admin requests may spend the reserved budget
         self.usage = Usage()
+        self._judging: list[str] | None = None
+
+    @contextmanager
+    def judging(self, models: list[str] | None = None):
+        """Claim extraction/judging: only JUDGE_MODELS, and wait for budget rather than degrade."""
+        prev = self._judging
+        self._judging = models or judge_models()
+        try:
+            yield
+        finally:
+            self._judging = prev
 
     def _remaining(self) -> float:
         return float("inf") if self.deadline is None else self.deadline - time.monotonic()
@@ -375,7 +444,8 @@ class LLM:
             return self._replay(purpose, messages, tools)
         if not self.models:
             raise LLMError("not_configured", "no GROQ_MODELS configured")
-        order = sorted(self.models, key=lambda m: prefer.index(m) if prefer and m in prefer else 99)
+        allowed = self._judging or self.models
+        order = sorted(allowed, key=lambda m: prefer.index(m) if prefer and m in prefer else 99)
         est = estimate_tokens(messages, tools, max_tokens)
         last_kind, last_model, attempts, waits = "unknown", None, 0, 0
         same_model_retries = {}
@@ -383,7 +453,10 @@ class LLM:
         while attempts < MAX_ATTEMPTS:
             if self._remaining() <= 1:
                 raise LLMError("timeout", "audit time budget exhausted before LLM call")
-            model, wait, why = self.pool.pick(order, est, self.priority)
+            if self._judging and not any(self.pool.daily_ok(m, est, self.use_reserve) for m in order):
+                raise BudgetExhausted(self.pool.daily_retry_in(order),
+                                      f"no judge model has daily budget ({', '.join(order)})")
+            model, wait, why = self.pool.pick(order, est, self.priority, use_reserve=self.use_reserve)
             if model is None:
                 if wait == float("inf"):
                     raise LLMError("daily_quota" if "daily" in why else last_kind,

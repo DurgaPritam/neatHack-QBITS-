@@ -14,7 +14,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import db
+from app import budget, db
+from app.llm import POOL
 from app.jobs import AuditQueues
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
 from app.tracing import flush, init_tracing
@@ -27,6 +28,7 @@ async def lifespan(_: FastAPI):
     init_tracing()
     db.connect()
     db.mark_interrupted()
+    budget.attach(POOL)
     queues.start()
     yield
     await queues.stop()

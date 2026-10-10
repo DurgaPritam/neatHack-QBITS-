@@ -499,17 +499,20 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
                           snapshot=snapshot)
     claims, verify = ClaimList(claims=[]), None
     try:
-        try:
-            claims = await extract_claims(llm, readme) or ClaimList(claims=[])
-        except LLMError as exc:
-            steps.note("claims.llm_failed", str(exc), status="failed")
-        if claims.claims and deadline - time.monotonic() > VERDICT_RESERVE_S:
+        # Claim extraction + judging: JUDGE_MODELS only. BudgetExhausted propagates so the
+        # deep audit waits in the queue instead of being judged by a weaker model.
+        with llm.judging():
             try:
-                verify = await verify_claims(llm, toolbox, claims, report, tree_paths, deadline, max_steps)
+                claims = await extract_claims(llm, readme) or ClaimList(claims=[])
             except LLMError as exc:
-                steps.note("verify.llm_failed", str(exc), status="failed")
-        elif claims.claims:
-            steps.skip("verify", "no time left for verification")
+                steps.note("claims.llm_failed", str(exc), status="failed")
+            if claims.claims and deadline - time.monotonic() > VERDICT_RESERVE_S:
+                try:
+                    verify = await verify_claims(llm, toolbox, claims, report, tree_paths, deadline, max_steps)
+                except LLMError as exc:
+                    steps.note("verify.llm_failed", str(exc), status="failed")
+            elif claims.claims:
+                steps.skip("verify", "no time left for verification")
     finally:
         if own_gh:
             await gh.__aexit__(None, None, None)

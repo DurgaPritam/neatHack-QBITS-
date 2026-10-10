@@ -168,6 +168,45 @@ def test_daily_cap_429_blocks_model_for_retry_after_and_rotates():
     assert [s.error_kind for s in log.steps if s.name == "llm.t"][0] == "rate_limited_tpd"
     run(llm)
     assert [c["model"] for c in fake.calls] == ["primary", "backup", "backup"]
-    clock.t += 211  # rolling window frees up: primary is usable again
-    model, wait, _ = pool.pick(["primary", "backup"], 100)
-    assert model == "primary"
+    clock.t += 211  # Groq's rolling window frees up...
+    assert pool.pick(["primary", "backup"], 100)[0] == "backup"  # ...but public traffic is past its 75% share
+    assert pool.pick(["primary", "backup"], 100, use_reserve=True)[0] == "primary"  # admin may use the reserve
+
+
+def test_public_traffic_cannot_use_the_reserve():
+    pool = QuotaPool(["m"], reserve_pct=25)
+    pool.record("m", 149_000)
+    assert pool.daily_ok("m", 500) is True
+    assert pool.daily_ok("m", 2_000) is False             # would cross 150k (75% of 200k)
+    assert pool.daily_ok("m", 2_000, use_reserve=True) is True
+    assert pool.pick(["m"], 2_000)[0] is None
+    assert pool.pick(["m"], 2_000, use_reserve=True)[0] == "m"
+    assert pool.budget(["m"], est=500)["public_available"] is True
+    assert pool.budget(["m"])["public_available"] is False  # default estimate of 3,000 doesn't fit
+    pool.record("m", 1_000)
+    assert pool.budget(["m"], est=500)["public_available"] is False
+
+
+def test_judging_uses_only_judge_models_and_raises_when_out_of_budget():
+    from app.llm import BudgetExhausted
+    llm, fake, log, pool, sleeps, _ = make([msg("j"), msg("q")], models=("judge", "cheap"))
+    with llm.judging(["judge"]):
+        run(llm)
+    assert fake.calls[0]["model"] == "judge"
+    pool.record("judge", 160_000)  # judge's public budget gone; "cheap" still has plenty
+    with llm.judging(["judge"]), pytest.raises(BudgetExhausted):
+        run(llm)
+    assert len(fake.calls) == 1  # never fell back to "cheap"
+    run(llm)  # outside judging, normal rotation may use "cheap"
+    assert fake.calls[-1]["model"] == "cheap"
+
+
+def test_budget_persists_across_restarts(tmp_path):
+    from app import budget, db
+    db.connect(tmp_path / "b.db")
+    p1 = QuotaPool(["m"])
+    budget.attach(p1)
+    p1.record("m", 1234)
+    p2 = QuotaPool(["m"])
+    budget.attach(p2)
+    assert p2.quotas["m"].tpd_used == 1234

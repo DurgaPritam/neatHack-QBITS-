@@ -10,6 +10,8 @@ import logging
 import sys
 
 from app.audit import run_deterministic_audit, run_full_audit, run_quick_audit
+from app import budget, db
+from app.llm import POOL
 from app.tracing import flush, init_tracing
 
 
@@ -26,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
     if not args.no_trace:
         init_tracing()
+    db.connect()
+    budget.attach(POOL)  # CLI runs count against the same persisted daily budget
     try:
         run_kind = "test" if args.test else "real"
         if args.full:
