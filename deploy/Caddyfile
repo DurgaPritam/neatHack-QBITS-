@@ -20,6 +20,7 @@
 	handle {
 		root * /srv
 		header /a/* X-Robots-Tag "noindex, nofollow"
+		header /admin* X-Robots-Tag "noindex, nofollow"
 		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		@pages not path /assets/*
