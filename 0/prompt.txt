@@ -1,0 +1,2 @@
+durgapritamsuggisetti@Durgas-MacBook-Air ~ % gh auth switch -u DurgaPritam
+✓ Switched active account for github.com to DurgaPritam
