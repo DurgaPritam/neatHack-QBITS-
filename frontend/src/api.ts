@@ -97,6 +97,33 @@ export interface Report {
     injection: { detected: boolean; deterministic?: string[]; reported_by_llm?: string[] }
   }
   timing_ms?: Record<string, number>
+  reuse?: Reuse
+  progress?: Progress
+}
+
+export interface Reuse {
+  from: string
+  checked_at: string
+  tokens_saved: number
+  deep: boolean
+}
+
+export interface Progress {
+  previous_audit_id: string
+  previous_at: string
+  previous_score: number
+  score: number
+  delta: number
+  text: string
+  fixed: string[]
+  regressed: string[]
+}
+
+export interface Percentiles {
+  cohort_size: number
+  beats_pct: number
+  text: string
+  checks: { check_id: string; pct: number; passed: boolean; text: string }[]
 }
 
 export interface QueueInfo {
@@ -115,6 +142,7 @@ export interface Audit {
   cached: boolean
   steps: Step[]
   result: Report | null
+  percentiles?: Percentiles | null
   error: string | null
 }
 
@@ -133,6 +161,37 @@ export interface Example {
   score: number | null
   roast: string | null
   style: string | null
+}
+
+export interface AdminOverview {
+  budget: {
+    public_available: boolean
+    public_tokens: { used: number; cap: number }
+    reserve_pct: number
+    state: string
+    models: Record<string, { used: number; limit: number; public_limit: number; ok: boolean }>
+  }
+  deep: { used_today: number; daily_cap: number; per_repo_cap: number; by_repo: { repo: string; count: number }[] }
+  queue: { quick: number; deep: number; deep_max: number; waiting_budget: boolean }
+  reuse: { tokens_saved_today: number; tokens_saved_total: number; reused_today: number }
+  limits: {
+    recent: { at: number; kind: string; ip: string | null; repo: string | null }[]
+    by_ip: { key: string; hits: number }[]
+    by_repo: { key: string; hits: number }[]
+    today: Record<string, number>
+  }
+  projects: {
+    repo_key: string; repo_url: string; first_seen: string; last_audit_at: string | null; last_audit_id: string | null
+    audit_count: number; deep_count: number; latest_score: number | null; best_score: number | null
+    is_hackathon_repo: number
+  }[]
+  recent_audits: {
+    id: string; repo_key: string; status: string; phase_deep: string; run_kind: string
+    cached_from: string | null; hidden: number; created_at: string; score: number | null; tokens: number | null
+  }[]
+  feedback: { id: number; audit_id: string; repo_url: string; check_id: string; note: string; created_at: string }[]
+  metrics: { days: Record<string, number | string>[]; totals: Record<string, number> }
+  llm_mode: string
 }
 
 export class ApiError extends Error {
@@ -190,6 +249,9 @@ export const api = {
       body: JSON.stringify({ reason }),
     }),
   stats: () => request<Stats>('/api/stats'),
+  // Admin: the token lives only in memory (React state) and is sent per request.
+  adminOverview: (token: string) =>
+    request<AdminOverview>('/api/admin/overview', { headers: { 'X-Admin-Token': token } }),
   examples: () => request<Example[]>('/api/examples'),
 }
 

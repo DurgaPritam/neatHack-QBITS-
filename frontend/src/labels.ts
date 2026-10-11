@@ -15,7 +15,7 @@ const STEP_LABELS: [RegExp, string][] = [
   [/^verify\.presearch$/, 'Searching the code for every claim'],
   [/^llm\.claims/, 'Pulling claims out of the README'],
   [/^llm\.verify\.final/, 'Deciding each claim'],
-  [/^llm\.verify/, 'Judging claims against the code'],
+  [/^llm\.verify/, 'Judging claims'],
   [/^tool\.search_repo$/, 'Agent searched the code'],
   [/^tool\.read_file$/, 'Agent read a file'],
   [/^tool\.list_files$/, 'Agent listed a folder'],
@@ -28,6 +28,8 @@ const STEP_LABELS: [RegExp, string][] = [
   [/roast_template$/, 'Using a fact-only roast'],
   [/template_fallback$/, 'Quick facts mode'],
   [/budget_exhausted$/, 'Tool budget used up, deciding now'],
+  [/^github\.get_entire_refs$/, 'Looking for Entire checkpoints'],
+  [/^verify\.failure_recovery$/, 'Checking for a failure-and-recovery run'],
   [/^deep\.rebuild_context$/, 'Re-reading the repo'],
   [/^deep\.waiting_budget$/, 'Waiting for judge-model budget'],
   [/crashed$/, 'Something broke'],
@@ -36,6 +38,26 @@ const STEP_LABELS: [RegExp, string][] = [
 export function stepLabel(name: string): string {
   for (const [rx, label] of STEP_LABELS) if (rx.test(name)) return label
   return name.replace(/[._]/g, ' ')
+}
+
+// The same step can run several times (each agent tool call, each judging round). Number
+// repeats instead of showing identical lines: "Agent searched the code (2 of 5)".
+const ROUND_LABELS: Record<string, (n: number, total: number) => string> = {
+  'Judging claims': (n, total) => `Judging claims, round ${n} of ${total}`,
+}
+
+export function numberedLabels(names: string[]): string[] {
+  const labels = names.map(stepLabel)
+  const totals = new Map<string, number>()
+  for (const l of labels) totals.set(l, (totals.get(l) ?? 0) + 1)
+  const seen = new Map<string, number>()
+  return labels.map((l) => {
+    const total = totals.get(l) ?? 1
+    if (total < 2) return l
+    const n = (seen.get(l) ?? 0) + 1
+    seen.set(l, n)
+    return ROUND_LABELS[l] ? ROUND_LABELS[l](n, total) : `${l} (${n} of ${total})`
+  })
 }
 
 export const CATEGORY_LABELS: Record<string, string> = {

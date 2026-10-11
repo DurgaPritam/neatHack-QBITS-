@@ -9,12 +9,13 @@ interface Props {
   score: number | null
   roast: string
   template: boolean
+  delta?: number | null // progress since the last check; drawn only when positive
 }
 
 const SITE = (import.meta.env.VITE_SITE_NAME as string | undefined) ?? window.location.host
 
 // 1200x630 card rendered at full size and shown scaled; html-to-image exports the full-size node.
-export default function RoastCard({ auditId, repo, score, roast, template }: Props) {
+export default function RoastCard({ auditId, repo, score, roast, template, delta }: Props) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +39,8 @@ export default function RoastCard({ auditId, repo, score, roast, template }: Pro
   }
 
   const short = roast.length > 150 ? roast.slice(0, 147).trimEnd() + '…' : roast
-  const tweet = `PreJudge roasted ${repo}: ${score ?? '?'}/100 🔥 "${short}" #neatHack`
+  const up = delta != null && delta > 0 ? ` (+${delta} since my last check)` : ''
+  const tweet = `PreJudge roasted ${repo}: ${score ?? '?'}/100${up} 🔥 "${short}" #neatHack`
   const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}&url=${encodeURIComponent(shareUrl(auditId))}`
 
   return (
@@ -60,6 +62,7 @@ export default function RoastCard({ auditId, repo, score, roast, template }: Pro
               </div>
               <p className={`rc-roast ${roast.length > 260 ? 'rc-roast-long' : ''}`}>“{roast}”</p>
             </div>
+            {delta != null && delta > 0 && <div className="rc-delta" data-testid="card-delta">+{delta} since last check</div>}
             {template && <div className="rc-note">quick facts mode: full roast coming later</div>}
             <div className="rc-foot">
               <span className="rc-repo">{repo}</span>

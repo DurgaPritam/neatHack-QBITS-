@@ -20,7 +20,7 @@ for port in "$PORT_API" "$PORT_WEB"; do
   fi
 done
 
-(cd "$BACK" && LLM_MODE=replay NEATLOGS_API_KEY= PREJUDGE_DB="$TMP/e2e.db" \
+(cd "$BACK" && LLM_MODE=replay NEATLOGS_API_KEY= ADMIN_TOKEN=e2e-admin PREJUDGE_DB="$TMP/e2e.db" \
   PUBLIC_API_URL="http://localhost:$PORT_API" FRONTEND_URL="http://localhost:$PORT_WEB" \
   exec .venv/bin/uvicorn app.main:app --port "$PORT_API" >"$TMP/api.log" 2>&1) &  # exec: the PID is uvicorn
 API_PID=$!

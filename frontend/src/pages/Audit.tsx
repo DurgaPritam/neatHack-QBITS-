@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
+import History from '../components/History'
 import RemovalLink from '../components/RemovalLink'
 import Result from '../components/Result'
 import RoastCard from '../components/RoastCard'
@@ -117,6 +118,7 @@ export default function AuditPage() {
 
       {report && audit && audit.status !== 'failed' && (
         <>
+          <History audit={audit} />
           <Result audit={audit} />
           {!report.score.gated && <DeepCheck audit={audit} stats={stats} onQueued={() => setTick((t) => t + 1)} />}
           {!report.score.gated && (
@@ -126,6 +128,7 @@ export default function AuditPage() {
               score={report.score.score}
               roast={report.verdict.roast}
               template={report.verdict.source === 'template'}
+              delta={report.progress?.delta}
             />
           )}
         </>

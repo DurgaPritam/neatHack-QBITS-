@@ -201,3 +201,58 @@ test('request removal hides the audit, its card and share page', async ({ page, 
   expect((await request.get(`/api/audits/${id}/card.png`)).status()).toBe(410)
   expect((await request.get(`/r/${id}`, { maxRedirects: 0 })).status()).toBe(410)
 })
+
+test('re-check of the same commit: reuse notice, progress delta, percentiles, card delta', async ({ page }) => {
+  // A saved example, with the M6 fields the API adds on a re-check (no new commits, +22, a cohort).
+  await page.route('**/api/audits/6dbfbb5d1c76', async (route) => {
+    const res = await route.fetch()
+    const body = await res.json()
+    body.result.reuse = { from: 'aaaaaaaaaaaa', checked_at: new Date(Date.now() - 3 * 3600e3).toISOString(),
+                          tokens_saved: 18159, deep: false }
+    body.result.progress = { previous_audit_id: 'aaaaaaaaaaaa', previous_at: '2026-10-11T08:00:00+00:00',
+                             previous_score: 46, score: 68, delta: 22, text: '+22 since your last check (46 → 68)',
+                             fixed: ['Demo video (<= 3 min)', 'cfo.ai business plan'], regressed: [] }
+    body.percentiles = { cohort_size: 18, beats_pct: 62, text: "Your score beats 62% of neatHack repos we've checked",
+                         checks: [{ check_id: 'demo_video', pct: 34, passed: true,
+                                    text: "Only 34% of teams have a demo video under 3:00. You're one of them ✅" },
+                                  { check_id: 'cfo_ai_plan', pct: 55, passed: false,
+                                    text: '55% of teams already have a cfo.ai business plan.' }] }
+    await route.fulfill({ response: res, json: body })
+  })
+  await page.goto('/a/6dbfbb5d1c76')
+  await expect(page.getByTestId('reuse-notice')).toHaveText(
+    "No new commits since your last check 3 hours ago, so here's that result. Push your fixes and check again.")
+  await expect(page.getByTestId('progress')).toContainText('+22 since your last check (46 → 68)')
+  await expect(page.getByTestId('progress')).toContainText('Fixed: Demo video (<= 3 min), cfo.ai business plan')
+  await expect(page.getByTestId('percentiles')).toContainText("Your score beats 62% of neatHack repos we've checked")
+  await expect(page.getByTestId('percentiles')).toContainText("Only 34% of teams have a demo video under 3:00. You're one of them ✅")
+  await expect(page.getByTestId('card-delta')).toHaveText('+22 since last check')
+  await shot(page, 'm6-history')
+})
+
+test('step log numbers repeated steps instead of repeating identical lines', async ({ page }) => {
+  await page.goto('/a/6dbfbb5d1c76')
+  const labels = await page.locator('.steplog .step-label').allInnerTexts()
+  expect(labels.some((l) => /^Judging claims, round 1 of \d+$/.test(l)) || labels.every((l) => !l.startsWith('Judging claims'))).toBe(true)
+  const dupes = labels.filter((l, i) => labels.indexOf(l) !== i)
+  expect(dupes).toEqual([])
+})
+
+test('admin page: token kept in memory, overview tables', async ({ page }) => {
+  await page.goto('/admin')
+  await expect(page.getByTestId('admin-login')).toBeVisible()
+  await page.getByLabel('Admin token').fill('wrong')
+  await page.getByRole('button', { name: 'Open' }).click()
+  await expect(page.getByText('That token was rejected.')).toBeVisible()
+  await page.getByLabel('Admin token').fill('e2e-admin')
+  await page.getByRole('button', { name: 'Open' }).click()
+  await expect(page.getByTestId('admin')).toBeVisible()
+  await expect(page.getByText('Deep checks today')).toBeVisible()
+  await expect(page.getByText('Tokens saved by reuse')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Projects/ })).toBeVisible()
+  expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage) + document.cookie))
+    .not.toContain('e2e-admin')
+  await shot(page, 'm6-admin')
+  await page.reload()
+  await expect(page.getByTestId('admin-login')).toBeVisible() // forgotten on reload
+})
