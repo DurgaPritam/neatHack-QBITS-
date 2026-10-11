@@ -60,13 +60,17 @@ moves to the rest of the category. That way PreJudge never takes points away for
 couldn't see.
 
 **Safety:** repo content is untrusted data in delimited blocks. Instructions hidden in a README
-are detected, flagged on the result page and cannot move the score. Every link is checked
-through an SSRF guard that blocks private and cloud-metadata addresses on every redirect
-(`backend/app/tools/links.py`).
+are detected, flagged on the result page and cannot move the score. Links are fetched behind an
+SSRF guard: `_host_problem()` in `backend/app/tools/links.py` refuses any host that resolves to a
+private, loopback, link-local (this includes the cloud metadata address 169.254.169.254),
+reserved, multicast or unspecified address. Redirects are followed by hand, so every hop is
+checked again.
 
-**Running on the Groq free tier** (`backend/app/llm.py`): it rotates across models, schedules
-calls from the rate-limit headers, backs off on 429 (respecting `retry-after`), then falls back to
-another model. Deep checks wait for budget rather than drop to a weaker model. Failures are
+**Running on the Groq free tier** (`backend/app/llm.py`): it rotates across models and schedules
+calls from the rate-limit headers. On a failure, `_classify()` sorts the error (for example
+`rate_limited` for a 429), and `_on_failure()` backs off for as long as `_retry_after()` reads from
+the `retry-after` header. The call then moves to the next model, recorded as an
+`llm.<purpose>.fallback` step. Deep checks wait for budget rather than drop to a weaker model. Failures are
 recorded as steps, and the user always gets at least a partial report. Per-IP limits, a deep-queue
 cap and a per-repo cooldown protect the shared budget (`backend/app/limits.py`).
 
