@@ -297,6 +297,9 @@ def test_removal_hides_and_admin_restores(client):
     assert client.post(f"/api/audits/{aid}/removal", json={"reason": "mine, please remove"}).json()["hidden"]
     for path in (f"/api/audits/{aid}", f"/api/audits/{aid}/card.png", f"/r/{aid}"):
         assert client.get(path).status_code == 410, path
+    gone = client.get(f"/r/{aid}")
+    assert f"/a/{aid}" in gone.text and "og:image" not in gone.text  # humans land on the app's page
+    assert client.get("/r/nope").status_code == 404 and "/a/nope" in client.get("/r/nope").text
     assert client.get(f"/api/audits/{aid}", headers=ADMIN).json()["hidden"] is True
     assert client.get("/api/admin/removals").status_code == 401
     removed = client.get("/api/admin/removals", headers=ADMIN).json()

@@ -200,6 +200,7 @@ button { font: inherit; }
   .deep-panel { flex-direction: column; align-items: stretch; }
 }
 .check-advice { margin: 4px 0 0; }
+.check p { overflow-wrap: anywhere; }
 .removal { margin: 24px 0 8px; text-align: center; }
 .removal-panel .text-input { width: 100%; box-sizing: border-box; margin: 8px 0 12px; padding: 8px 10px; border-radius: 10px;
   border: 2px solid var(--line); background: var(--panel-2); color: var(--ink); }

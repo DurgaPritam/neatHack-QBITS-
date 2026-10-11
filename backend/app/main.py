@@ -344,10 +344,18 @@ def card_png(audit_id: str) -> Response:
 
 @app.get("/r/{audit_id}", response_class=HTMLResponse, responses={404: {"description": "Audit not found"}})
 def share_page(audit_id: str) -> HTMLResponse:
-    row = _get(audit_id)
-    bits = _card_bits(row)
     api, front = _site_urls()
     target = f"{front}/a/{audit_id}"
+    row = db.get(audit_id)
+    if row is None or row.get("hidden"):
+        # People follow share links: send them to the app's friendly "no such / removed" page.
+        code = 404 if row is None else 410
+        t = html.escape(target)
+        return HTMLResponse(f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow"><title>PreJudge</title>
+<meta http-equiv="refresh" content="0; url={t}"></head>
+<body><p><a href="{t}">Continue to PreJudge</a></p></body></html>""", status_code=code)
+    bits = _card_bits(row)
     score = "?" if bits["score"] is None else bits["score"]
     title = html.escape(f"{bits['repo']} scored {score}/100 on PreJudge")
     desc = html.escape(bits["roast"][:280])          # roast quotes repo text: always escaped
