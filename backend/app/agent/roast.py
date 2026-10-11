@@ -322,12 +322,15 @@ def roast_slots(report: dict, score: dict) -> dict:
     if commits.get("status") not in (None, "unverified"):
         inside = _int(commits["detail"], r"(\d+) inside")
         before = _int(commits["detail"], r"(\d+) before start")
+        plus = "+" if "only latest" in commits["detail"] else ""
         if before and before >= 5:
-            stats.append((90 + before, f"{before} commits pushed before the hackathon even started"))
-        if inside and inside >= 10:
-            stats.append((40 + inside, f"{inside} commits inside the hackathon window"))
+            stats.append((90 + before, f"{before}{plus} commits pushed before the hackathon even started"))
+        elif before and not inside:
+            stats.append((70, f"{before} commit{'s' * (before > 1)}, all pushed before the hackathon even started"))
+        if inside and inside >= 2:
+            stats.append((20 + inside, f"{inside} commits inside the hackathon window"))
     m = re.search(r"(\d+)/(\d+) links dead", (checks.get("dead_links") or {}).get("detail", ""))
-    if m and int(m.group(1)) >= 2:
+    if m and int(m.group(1)) >= 1:
         stats.append((80 + int(m.group(1)), f"{m.group(1)} of {m.group(2)} README links leading nowhere"))
     stars = repo.get("stars") or 0
     if stars >= 100:
@@ -338,7 +341,7 @@ def roast_slots(report: dict, score: dict) -> dict:
     files = report.get("files_seen") or 0
     if files >= 150:
         stats.append((30, f"{files} files"))
-    if not stats and files:
+    if not stats and files:  # dull, so only when there is nothing better
         stats.append((0, f"{files} files"))
     if stats:
         slots["stat"] = max(stats)[1]
@@ -363,8 +366,15 @@ def roast_slots(report: dict, score: dict) -> dict:
     return slots
 
 
+COMPLIMENT_FROM = 80
+
+
 def _fields(template: str) -> set[str]:
     return set(re.findall(r"{(\w+)}", template))
+
+
+def _is_compliment(template: str) -> bool:
+    return _fields(template) <= {"stat", "score"}
 
 
 def template_roast(style: str, report: dict, score: dict, repo_name: str = "",
@@ -377,8 +387,9 @@ def template_roast(style: str, report: dict, score: dict, repo_name: str = "",
     slots = roast_slots(report, score)
     pool = TEMPLATES.get(style) or TEMPLATES["strict professor"]
     eligible = [t for t in pool if _fields(t) <= set(slots) and _fields(t) & {"stat", "date", "video"}]
-    if "miss" not in slots:  # nothing big is missing: the compliment templates fit best
-        eligible = [t for t in eligible if "miss" not in _fields(t)] or eligible
+    # Compliments ({stat} and {score} only) are for strong repos; everyone else gets roasted.
+    strong = "miss" not in slots or slots["score"] >= COMPLIMENT_FROM
+    eligible = [t for t in eligible if _is_compliment(t) == strong] or eligible
     if not eligible:
         facts = [f for f in build_facts(report) if f["anchors"] and not f["fact"].startswith("README claim")]
         return f"{facts[0]['fact'][:1].upper()}{facts[0]['fact'][1:]}, and {slots['score']}/100." if facts \

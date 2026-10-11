@@ -95,3 +95,21 @@ def test_nothing_missing_uses_compliments():
     score = {"score": 97, "fix_candidates": []}
     text = R.template_roast("Bollywood drama", report, score, "team/fresh")
     assert "97/100" in text and "23 commits" in text and "missing" not in text
+
+
+def test_weak_repos_never_get_compliments():
+    score = compute_score(STALE["checks"])
+    assert score["score"] < R.COMPLIMENT_FROM and R.roast_slots(STALE, score)["miss"]
+    for style in R.STYLES:
+        for i in range(12):
+            text = R.template_roast(style, STALE, score, f"team/r{i}")
+            assert not any(t.format(**R.roast_slots(STALE, score)) == text
+                           for t in R.TEMPLATES[style] if R._is_compliment(t)), text
+
+
+def test_small_early_history_is_still_a_fact():
+    report = {**FRESH, "checks": [c if c["id"] != "commits_in_window" else
+                                  check("commits_in_window", "fail", "0 inside, 2 before start, 0 after close")
+                                  for c in FRESH["checks"]]}
+    slots = R.roast_slots(report, compute_score(report["checks"]))
+    assert slots["stat"] == "2 commits, all pushed before the hackathon even started"
