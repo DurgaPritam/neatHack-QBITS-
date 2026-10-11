@@ -15,7 +15,10 @@ a downloaded tarball (read-only) and HTTP.
 ## Status
 - M1 done: GitHub tool, link checker (SSRF-safe), 13 rubric checks, CLI, neatlogs tracing
 - M2 done: Groq agent loop, claim verification, deterministic scoring, roast, API + queue + SQLite
-- Next: M2.5 (two-speed audits, search_repo, throughput, better roasts), then M3 (frontend)
+- M2.5 + M3 done: two-speed audits, search_repo, React UI, roast card, E2E tests
+- Pre-launch done: check_entire() (Entire-Checkpoint trailers + refs/entire/checkpoints, not scored
+  when nothing is found), login-walled neatlogs links, per-IP limits, removal, admin endpoints, noindex
+- M4 done: live at https://3-82-224-157.sslip.io (see DEPLOY.md). Next: M5 eval set
 
 ## Stack
 - Backend: Python 3.11+, FastAPI, httpx, SQLite, asyncio job queue

@@ -4,9 +4,12 @@ Paste a public GitHub repo. An AI judge checks it against the neatHack rubric, v
 claims against the code (with file:line evidence), and returns a score, a fix list ordered by
 points and a roast. It never runs the audited code. Built for neatHack (Oct 10–12, 2026).
 
+**Try it: https://3-82-224-157.sslip.io**
+
 - `backend/`: FastAPI, Groq agent, deterministic scoring, neatlogs tracing (`python -m app.cli <repo_url> --full`)
 - `frontend/`: React + Vite + TypeScript UI (see [frontend/README.md](frontend/README.md))
 - [EVIDENCE.md](EVIDENCE.md): traces, before/after numbers, throughput, hackathon evidence
+- [DEPLOY.md](DEPLOY.md): how it runs on EC2 (Docker Compose + Caddy), logs, restarts, backups
 
 ## Business plan
 

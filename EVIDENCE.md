@@ -67,6 +67,28 @@ Limits are per model (Groq docs + headers): 8,000 tokens/min, 30 req/min, 1,000 
   (`rate_limited_tpd`).
 - Reproduce: `python -m scripts.throughput --n 10 --deep-report <--full outputs>`.
 
+## Production (M4, deployed 2026-10-11)
+Live at https://3-82-224-157.sslip.io (EC2 t3.small, Docker Compose, Caddy HTTPS). neatlogs
+traces from the server carry the `prod` tag.
+
+First production audit of this repo, audit id `29def6e19f64` (LLM_MODE=live):
+
+| phase | time | tokens | result |
+|-------|------|--------|--------|
+| quick | 5.3 s | 2,173 (1 call, qwen3.8-27b) | 40/100, LLM roast passed the fact check |
+| deep  | 40.5 s | 17,232 (5 calls) | 46/100, 6/6 README claims verified |
+
+**Failure + recovery in production:** during the deep check, `llm.verify` on
+`qwen/qwen3.8-27b` got a Groq **429 (rate limit)**. The pool backed off and finished the claim
+judging on `openai/gpt-oss-120b`: 3 calls, 9,018 prompt tokens. The audit still completed and the
+failed call is a recorded step in the audit and in its neatlogs trace (session id `29def6e19f64`).
+
+Smoke test, all passed: quick audit, deep check, card.png (1200×630), `/r/{id}` Open Graph
+preview + redirect, Download PNG and Share on X in a real browser, removal → 410 → admin restore,
+feedback CSV export, metrics counters, per-IP limit (6th audit in 10 min → 429 with Retry-After),
+repo cooldown, nonexistent repo, unknown audit id, CORS rejects other origins, noindex headers,
+daily backup written.
+
 ## Entire
 - Checkpoint link + ID: <paste>
 
