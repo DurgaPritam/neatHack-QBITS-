@@ -200,3 +200,12 @@ def test_full_audit_reports_both_phases():
     assert set(r["timing_ms"]) == {"quick", "deep", "total"}
     names = [s["name"] for s in r["steps"]]
     assert names.index("llm.quick_verdict") < names.index("llm.claims")
+
+
+def test_deep_phase_rechecks_failure_recovery():
+    r, _ = audit(CLEAN_README, router(HONEST))
+    check = next(c for c in r["checks"] if c["id"] == "failure_recovery")
+    assert check["data"]["verified_in"] == "deep"  # replaced, not the quick placeholder
+    assert any(s["name"] == "verify.failure_recovery" for s in r["steps"])
+    assert r["summary"] == {s: sum(1 for c in r["checks"] if c["status"] == s)
+                            for s in ("pass", "warn", "fail", "unverified")}

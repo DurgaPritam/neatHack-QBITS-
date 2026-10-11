@@ -18,6 +18,7 @@ from app.agent.tools import TOOL_SCHEMAS, RepoToolbox
 from app.llm import LLM, LLMError
 from app.scoring import compute_score
 from app.steps import StepLog
+from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError
 from app.tools.search import RepoSnapshot, format_matches
 from app.tracing import event, span
@@ -484,6 +485,21 @@ async def load_snapshot(gh: GitHubClient | None, ctx: dict, steps: StepLog) -> R
     return snap
 
 
+def deep_checks(report: dict, ctx: dict, snapshot: RepoSnapshot | None, claim_results: list[dict],
+                steps: StepLog) -> list[dict]:
+    """Re-run the checks the quick phase couldn't judge, now that the whole repo is in memory."""
+    checks = []
+    for c in report.get("checks", []):
+        if c["id"] == "failure_recovery":
+            with steps.step("verify.failure_recovery") as s:
+                c = rubric.verify_failure_recovery(ctx.get("readme") or "", ctx.get("readme_path") or "README.md",
+                                                   snapshot.files if snapshot else None,
+                                                   ctx.get("tree_paths") or [], claim_results)
+                s.detail = f"{c['status']}: {c['detail']}"
+        checks.append(c)
+    return checks
+
+
 @span("AGENT", "agent.run")
 async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None = None,
                     gh: GitHubClient | None = None, time_budget_s: float = TIME_BUDGET_S,
@@ -533,12 +549,15 @@ async def run_agent(report: dict, ctx: dict, steps: StepLog, *, llm: LLM | None 
         "deterministic": det_injection["evidence"] if det_injection else [],
         "reported_by_llm": [s[:200] for s in llm_injection][:6],
     }
+    checks = deep_checks(report, ctx, snapshot, claim_results, steps)
+    report = {**report, "checks": checks}  # the verdict below must see the deep results
     estimates = {k: v.model_dump() for k, v in (verify.estimates if verify else {}).items()}
-    score = compute_score(report.get("checks", []), [c.model_dump() for c in claims.claims],
+    score = compute_score(checks, [c.model_dump() for c in claims.claims],
                           claim_results, estimates, injection["detected"])
     verdict, source = await write_verdict(llm, score, report, claim_results)
 
     return {
+        "checks": checks,
         "claims": claim_results,
         "estimates": estimates,
         "injection": injection,

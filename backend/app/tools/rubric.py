@@ -6,6 +6,7 @@ status is one of: pass | warn | fail | unverified
 "unverified" means we can't decide deterministically (the LLM pass or a confirmed
 convention from the organisers is needed). Scoring is NOT done here (M2).
 """
+import posixpath
 import re
 from datetime import datetime, timezone
 from pathlib import PurePosixPath
@@ -16,7 +17,7 @@ WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
 WINDOW_END = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)   # 23:55 IST
 
 # Bump when check logic changes: cached audits from an older version are not reused.
-CHECKS_VERSION = "2026-10-11.3"
+CHECKS_VERSION = "2026-10-11.4"
 
 WEIGHTS = {
     "agent": 0.30,
@@ -447,13 +448,172 @@ def check_before_after(readme: str) -> dict:
     return _check("before_after", "agent", title, "fail", "no before/after comparison in README")
 
 
-def check_failure_run(readme: str) -> dict:
-    title = "A run where an action failed and what the agent did next"
+FAILURE_TITLE = "A run where an action failed and what the agent did next"
+FAILURE_ADVICE = ("Describe one real run where a tool or LLM call failed and what the agent did next "
+                  "(retry, fallback, partial result), and back it with a trace link or screenshot.")
+_EVIDENCE_FILE = re.compile(r"(^|/)(evidence|logs?|traces?|runs?)(/|\.|$)|\.(log|jsonl)$", re.I)
+
+
+def check_failure_run(readme: str, tree_paths: list[str] | None = None) -> dict:
+    """Quick phase: only the README is read, so this can't be judged yet.
+
+    The deep phase (verify_failure_recovery) reads every doc, log and source file. Until
+    then, a README that talks about failures, or a repo with evidence docs or logs, isn't
+    scored: nobody loses points for what the quick phase can't see.
+    """
     hits = _snippets(readme, _FAILURE, 3, 50)
-    if hits:
-        return _check("failure_recovery", "agent", title, "unverified",
-                      "README talks about failures/recovery; needs LLM + trace verification", hits)
-    return _check("failure_recovery", "agent", title, "fail", "no mention of a failure and recovery")
+    candidates = [p for p in tree_paths or [] if _EVIDENCE_FILE.search(p)
+                  or (PurePosixPath(p).suffix.lower() == ".md" and PurePosixPath(p).name.lower() != "readme.md")]
+    if hits or candidates:
+        what = "README mentions failures/recovery" if hits else f"{len(candidates)} docs/log files to read"
+        return _check("failure_recovery", "agent", FAILURE_TITLE, "unverified",
+                      f"{what}; the deep check verifies it (not scored yet)", hits or candidates[:3],
+                      data={"not_scored": True, "pending": "deep"})
+    return _check("failure_recovery", "agent", FAILURE_TITLE, "fail",
+                  "no mention of a failure and recovery, and no docs or logs to check",
+                  data={"advice": FAILURE_ADVICE})
+
+
+# ---------------------------------------------------------------- failure + recovery (deep phase)
+
+_FAIL_WORDS = re.compile(
+    r"\b(fail(ed|ure|ures|s|ing)?|errors?|errored|429|5\d\d|rate[- ]limit(ed|s)?|time[sd]?[- ]?out|"
+    r"timeouts?|exceptions?|crash(ed|es)?|outage|unavailable|refused|denied)\b", re.I)
+_RECOVER_WORDS = re.compile(
+    r"\b(retr(y|ied|ies|ying)|fall(s|ing)?[- ]?back|fell back|fallback|back(ed|s|ing)?[- ]?off|"
+    r"recover(s|ed|ing)?\b(?!-)|switch(ed|es)? to|rotat(ed|es|ing) to|re-?r[au]n|resum(ed|es)|"
+    r"self-heal\w*|partial (report|result)s?|moved (on )?to|waited|cool[- ]?down)\b", re.I)
+_RUBRIC_PHRASE = re.compile(r"failures?[- ]?(and|&|\+)[- ]?recover\w*", re.I)  # names the item, describes nothing
+_PAST_RUN = re.compile(r"\b(during|failed|errored|crashed|timed out|hit|got|returned|was rate[- ]limited|"
+                       r"backed off|fell back|retried|recovered|finished|completed)\b", re.I)
+_CONCRETE = re.compile(r"`[^`\n]+`|https?://|\b\d")
+_TRACE_URL = re.compile(
+    r"https?://[^\s)\]>\"']*(neatlogs\.com/trace|smith\.langchain\.com|langfuse|wandb\.ai|agentops|"
+    r"helicone|braintrust|logfire|phoenix|arize)[^\s)\]>\"']*", re.I)
+_DOC_IMAGE = re.compile(r"!\[[^\]]*\]\(\s*<?([^)\s>]+)|<img[^>]+src=[\"']([^\"']+)", re.I)
+_CODE_EXT = {".py", ".ts", ".tsx", ".js", ".mjs", ".go", ".rs", ".java", ".kt", ".rb", ".cs", ".php", ".swift"}
+_RECOVERY_CODE = re.compile(
+    r"(def|function|func|fn|const|let|async def)\s+_?\w*(retry|retries|fallback|fall_back|backoff|recover)\w*|"
+    r"@(\w+\.)?retry\b|\btenacity\b|backoff\.on_exception|retry[-_]after|max_retries\s*[=:]\s*[1-9]|"
+    r"except\s+[\w.]*(RateLimit|Timeout|APIError|HTTPError)", re.I)
+MAX_FAILURE_EVIDENCE = 4
+
+
+def _is_doc(path: str) -> bool:
+    p = PurePosixPath(path)
+    return p.suffix.lower() in (".md", ".rst", ".txt", ".adoc") or "docs" in p.parts
+
+
+def _is_test(path: str) -> bool:
+    p = PurePosixPath(path)
+    return any(part in ("tests", "test", "__tests__") for part in p.parts) or p.name.startswith("test_")
+
+
+def _paragraphs(text: str):
+    """(first line number, paragraph text, the section that follows) for each blank-line block."""
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        if not lines[i].strip():
+            i += 1
+            continue
+        start = i
+        while i < len(lines) and lines[i].strip():
+            i += 1
+        para = "\n".join(lines[start:i])
+        end = start
+        while end < len(lines) and end < start + 25 and not (end > start and lines[end].startswith("#")):
+            end += 1
+        yield start + 1, para, "\n".join(lines[start:end])
+
+
+def _resolve(doc_path: str, ref: str) -> str:
+    """Repo path of an image a doc links to (relative to the doc, or to the root with '/')."""
+    ref = ref.split("#")[0].split("?")[0]
+    if ref.startswith("/"):
+        return posixpath.normpath(ref.lstrip("/"))
+    return posixpath.normpath(posixpath.join(posixpath.dirname(doc_path), ref))
+
+
+def verify_failure_recovery(readme: str, readme_path: str, files: dict[str, str] | None,
+                            tree_paths: list[str], claim_results: list[dict] | None = None) -> dict:
+    """Deep phase: a failure run counts when it is described (what failed + what the agent
+    did next, with a concrete detail) AND backed by independent evidence: a trace link, a
+    screenshot that exists in the repo, a log, retry/fallback code, or a verified claim.
+
+    The README can describe the run but never proves it on its own. Deterministic, no LLM.
+    """
+    if files is None:
+        return _check("failure_recovery", "agent", FAILURE_TITLE, "unverified",
+                      "couldn't download the repo to check failure handling (not scored)",
+                      data={"not_scored": True, "verified_in": "deep"})
+    tree = set(tree_paths) | set(files)
+    docs = {readme_path or "README.md": readme or ""}
+    docs.update({p: t for p, t in files.items() if _is_doc(p) and p != readme_path and not _is_test(p)})
+
+    described, near = [], []
+    for path, text in sorted(docs.items(), key=lambda kv: (kv[0] != readme_path, kv[0])):
+        for line, para, section in _paragraphs(text):
+            plain = _RUBRIC_PHRASE.sub(" ", para)
+            if not (_FAIL_WORDS.search(plain) and _RECOVER_WORDS.search(plain) and _CONCRETE.search(plain)):
+                continue
+            found = [{"kind": "trace link", "ref": m.group(0)} for m in _TRACE_URL.finditer(section)]
+            for m in _DOC_IMAGE.finditer(section):
+                src = m.group(1) or m.group(2)
+                if src.startswith(("http://", "https://")) or _resolve(path, src) in tree:
+                    found.append({"kind": "screenshot", "ref": src if src.startswith("http") else _resolve(path, src)})
+            described.append({"ref": f"{path}:{line}", "text": " ".join(para.split())[:240],
+                              "rank": 2 * bool(found) + len({m.group(0).lower() for m in _PAST_RUN.finditer(plain)})})
+            near += found
+    # A real run (its own evidence, told in the past tense) beats a description of the mechanism.
+    described.sort(key=lambda d: -d.pop("rank"))
+
+    logs, code = [], []
+    for path, text in sorted(files.items()):
+        if _is_test(path):
+            continue
+        if _EVIDENCE_FILE.search(path) and not _is_doc(path):
+            if _FAIL_WORDS.search(text) and _RECOVER_WORDS.search(text):
+                logs.append({"kind": "log", "ref": path})
+        elif PurePosixPath(path).suffix.lower() in _CODE_EXT and len(code) < MAX_FAILURE_EVIDENCE:
+            for n, l in enumerate(text.splitlines(), 1):
+                if _RECOVERY_CODE.search(l):
+                    code.append({"kind": "retry/fallback code", "ref": f"{path}:{n}"})
+                    break
+    claims = [{"kind": "verified claim", "ref": f"claim {r['claim_id']}: {r['claim'][:80]}"}
+              for r in claim_results or [] if r.get("status") == "verified"
+              and _FAIL_WORDS.search(r.get("claim", "")) and _RECOVER_WORDS.search(r.get("claim", ""))]
+
+    seen, backing = set(), []
+    for e in near + logs + claims + code:
+        if e["ref"] not in seen:
+            seen.add(e["ref"])
+            backing.append(e)
+    backing = backing[:MAX_FAILURE_EVIDENCE]
+    kinds = sorted({e["kind"] for e in backing})
+    data = {"verified_in": "deep", "described": described[:3], "backing": backing}
+    refs = [d["ref"] for d in described[:2]] + [e["ref"] for e in backing]
+
+    if described and backing:
+        return _check("failure_recovery", "agent", FAILURE_TITLE, "pass",
+                      f"failure run described in {described[0]['ref']}, backed by {', '.join(kinds)}",
+                      refs, data=data)
+    if described:
+        return _check("failure_recovery", "agent", FAILURE_TITLE, "warn",
+                      f"failure run described in {described[0]['ref']}, but no trace link, screenshot, "
+                      "log or retry/fallback code backs it", refs,
+                      data={**data, "advice": "Back the failure run you describe with evidence a judge can "
+                                              "open: a trace link or screenshot of the failed call and the "
+                                              "retry/fallback that followed."})
+    if backing:
+        return _check("failure_recovery", "agent", FAILURE_TITLE, "warn",
+                      f"the repo handles failures ({backing[0]['ref']}) but no run is described", refs,
+                      data={**data, "advice": "Your code handles failures; now show it. Describe one real "
+                                              "run where a call failed and what the agent did next, with "
+                                              "a trace link or screenshot."})
+    return _check("failure_recovery", "agent", FAILURE_TITLE, "fail",
+                  "no described failure run and no retry/fallback code, logs or traces found",
+                  data={**data, "advice": FAILURE_ADVICE})
 
 
 # ---------------------------------------------------------------- hygiene

@@ -170,7 +170,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             rubric.check_demo_video(links, videos_meta, readme_text),
             rubric.check_public_posts(readme_text, links),
             rubric.check_before_after(readme_text),
-            rubric.check_failure_run(readme_text),
+            rubric.check_failure_run(readme_text, tree_paths),
             rubric.check_dead_links(links),
         ]
 
@@ -276,8 +276,9 @@ async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None,
     agent.pop("agent_ms", None)
     phases = {**report.get("phases", {}), "deep": deep}
     quick = phases.get("quick") or {"ms": 0, "usage": {"total_tokens": 0, "calls": 0}}
+    checks = agent.pop("checks", None) or report.get("checks", [])
     report.update(
-        mode="full", phase="complete",
+        mode="full", phase="complete", checks=checks, summary=rubric.summarize(checks),
         score=agent.pop("score"), verdict=agent.pop("verdict"), agent=agent, phases=phases,
         usage={"total_tokens": quick["usage"].get("total_tokens", 0) + usage.get("total_tokens", 0),
                "calls": quick["usage"].get("calls", 0) + usage.get("calls", 0),
