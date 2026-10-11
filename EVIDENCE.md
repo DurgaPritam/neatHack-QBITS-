@@ -141,6 +141,13 @@ Other production checks the same day:
   its own exporter from `NEATLOGS_API_KEY` in `os.environ` (loaded by dotenv) during tests. Fixed:
   spans only after `init_tracing()`, keys blanked in `conftest.py`, and a test checks that no exporter starts.
 
+## M5 eval set (baseline 2026-10-11)
+`python -m evals.run --sheets --tag baseline`: 9 repos (our own, openai/swarm,
+huggingface/smolagents, langchain-ai/open_deep_research, and five neatHack submissions anonymised
+as Repo A-E), quick + deep phase each, admin reserve, 181k tokens in total. Results:
+`backend/evals/results/2026-10-11-baseline.json` (audit ids double as neatlogs session ids, tagged
+`test`). Accuracy is reported once the label sheets are marked.
+
 ## Entire
 - Enabled 2026-10-11 for Claude Code, ref-based storage (`refs/entire/checkpoints/<shard>/<id>`),
   synced to `origin`.
