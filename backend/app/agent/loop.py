@@ -441,7 +441,7 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
             else:
                 llm.steps.note(f"{purpose}.roast_template", "rewrite still broke the rules: " + "; ".join(again))
                 verdict = verdict.model_copy(update={"roast": roast_rules.template_roast(
-                    style, facts, score["score"], variant=len(recent))})
+                    style, report, score, repo_name, recent)})
                 templated = True
     except LLMError as exc:
         llm.steps.note(f"{purpose}.llm_failed", str(exc), status="failed")
@@ -451,7 +451,7 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
         event("verdict fell back to template", level="warning")
         out = template_verdict(score, report)
         if not score.get("gated"):
-            out["roast"] = roast_rules.template_roast(style, facts, score["score"], variant=len(recent))
+            out["roast"] = roast_rules.template_roast(style, report, score, repo_name, recent)
         return {**out, "style": style}, "template"
 
     if not templated:  # only real jokes go into the memory the model must not repeat

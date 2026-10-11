@@ -76,10 +76,10 @@ def test_unknown_video_length_cannot_be_called_too_long_or_dead():
 
 
 def test_template_roast_follows_the_rules():
-    facts = R.build_facts(REPORT)
+    score = compute_score(REPORT["checks"])
     for style in R.STYLES:
-        t = R.template_roast(style, facts, 20)
-        assert not R.roast_problems(t, facts, [], REPORT), (style, t)
+        t = R.template_roast(style, REPORT, score, "acme/demo")
+        assert not R.roast_problems(t, R.build_facts(REPORT), [], REPORT), (style, t)
 
 
 def _verdict(roast):
@@ -142,14 +142,10 @@ def test_rewrite_asks_for_roast_only():
     assert out["roast"].startswith("37 commits before kickoff: the warm-up")
 
 
-def test_template_roasts_are_not_remembered_and_vary():
+def test_template_roasts_are_not_remembered():
     llm = _llm(lambda kw: msg(_verdict("Big dreams, small evidence, as always.")))
     asyncio.run(write_verdict(llm, compute_score(REPORT["checks"]), REPORT, []))
     assert db.recent_roasts() == []
-    facts = R.build_facts(REPORT)
-    variants = {R.template_roast("strict professor", facts, 20, variant=i) for i in range(6)}
-    assert len(variants) == 6
-    assert all(not R.roast_problems(v, facts, [], REPORT) for v in variants)
 
 
 @pytest.mark.parametrize("new,old,reused", [

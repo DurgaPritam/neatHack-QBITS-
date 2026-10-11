@@ -209,20 +209,186 @@ def roast_problems(roast: str, facts: list[dict], recent: list[str], report: dic
     return problems
 
 
-def template_roast(style: str, facts: list[dict], score: int, variant: int = 0) -> str:
-    """Fallback that still follows the rules: styled, factual, no stock phrases, and it varies."""
-    punchy = [f for f in facts if f["anchors"] and not f["fact"].startswith("README claim")]
-    anchored = punchy or [f for f in facts if f["anchors"]] or [{"fact": f"a score of {score}/100"}]
-    fact = anchored[variant % len(anchored)]["fact"]
-    openers = {
-        "sports commentator": ["Live from the judging arena:", "Play-by-play update:", "Official stat sheet:"],
-        "movie trailer": ["Coming soon to a judging table near you:", "This October, one repo dares to ship:",
-                          "Rated E for Evidence-free:"],
-        "food critic": ["Tonight's tasting menu features", "The amuse-bouche arrives:", "From the chef's table:"],
-        "strict professor": ["Grading note:", "Feedback on your submission:", "Office hours reminder:"],
-        "Bollywood drama": ["Interval twist:", "Picture abhi baaki hai, because", "Cue the slow-motion rain scene:"],
-    }
-    closers = ["Judges grade evidence, not intentions.", "The rubric has questions.",
-               "Ship the proof before the deadline does.", "That's a lot of trust to ask for."]
-    opts = openers.get(style, ["Audit note:"])
-    return f"{opts[variant % len(opts)]} {fact}. {closers[(variant // len(opts)) % len(closers)]}"
+# ---------------------------------------------------------------- fact-only (template) roasts
+#
+# Used when the Groq budget is low or the LLM's roast fails the fact check, so they have to be
+# funny on their own. Slots are filled from the structured results only:
+#   {stat}   the most interesting big number ("37 commits pushed before the hackathon even started")
+#   {score}  the score;  {miss} the biggest missing item, {miss_pts} the points it would add
+#   {date}   last push, only when it was before the hackathon started
+#   {video}  demo length, only when it is over the 3:00 limit
+# Every template uses at least one of stat/date/video, which carry the fact-check anchors.
+
+TEMPLATES: dict[str, list[str]] = {
+    "sports commentator": [
+        "And it's {stat}! The scoreboard reads {score}/100, and the coach is still looking for {miss}.",
+        "What a stat line: {stat}. Sadly the referee only counts what's on the rubric, and {miss} is "
+        "still warming the bench. Final whistle: {score}/100.",
+        "{video} on the clock for a demo video! The limit is 3:00, folks; this team is playing extra time "
+        "nobody asked for. Scoreboard: {score}/100.",
+        "Last touch on the ball: {date}. Since then the team has been sitting in the dugout while {miss} "
+        "waits to come on. {score}/100 at the half.",
+        "The analysts are stunned: {stat}, yet {miss} is a no-show worth {miss_pts} points. That's a "
+        "penalty miss in stoppage time.",
+        "Instant replay confirms it: {stat}. The judges award {score}/100 and a long stare at the empty "
+        "spot where {miss} should be.",
+        "Clean sheet! {stat} and a {score}/100 finish; the judges will need video review to find a foul.",
+    ],
+    "movie trailer": [
+        "They had {stat}. They had ambition. What they didn't have... was {miss}. PreJudge: {score}/100. "
+        "Rated PG for Pretty Generous.",
+        "From the studio that brought you {stat} comes the sequel nobody storyboarded: the search for "
+        "{miss}. Opening at {score}/100.",
+        "One demo. {video} of footage. A judging limit of 3:00. This fall, someone has to make the cut. "
+        "{score}/100.",
+        "Last seen on {date}. The commits stopped. The README went quiet. And somewhere out there, {miss} "
+        "is still missing. {score}/100.",
+        "Critics are calling it \"a repo with {stat}\". Critics are also asking where {miss} went. In "
+        "theaters at {score}/100.",
+        "This October, {stat} stand between one team and glory. Also standing in the way: {miss}, worth "
+        "{miss_pts} points.",
+        "In a season of half-finished repos, one team arrived with {stat} and {score}/100. The judges "
+        "never saw it coming.",
+    ],
+    "food critic": [
+        "The kitchen served {stat}, which is generous plating, but the main course, {miss}, never left "
+        "the pass. {score}/100, and I'm still hungry.",
+        "A {video} demo is not an appetiser, it's a nine-course tasting menu for a judge who booked a "
+        "3:00 table. {score}/100.",
+        "The ingredients were fresh on {date}; I'm less sure about them now. Missing from the plate: "
+        "{miss}. {score}/100, would send back.",
+        "{stat}: an ambitious menu. Then {miss} turned out to be \"off tonight\", which cost the table "
+        "{miss_pts} points. {score}/100.",
+        "I ordered {miss} and was brought {stat} instead. Inventive substitution. {score}/100, service "
+        "not included.",
+        "The house special is {stat}, served with a side of {score}/100. The sommelier suggests pairing "
+        "it with {miss}.",
+        "{stat}, plated with precision. {score}/100. I came to complain and left asking for the recipe.",
+    ],
+    "strict professor": [
+        "You submitted {stat}. Impressive. The assignment asked for {miss}, which I note is absent. "
+        "{score}/100; reread the rubric.",
+        "Your demo runs {video}. The syllabus said 3:00. I stopped grading at 3:01. {score}/100.",
+        "Last submission received {date}. The late-work policy also applies to {miss}, which I have yet "
+        "to receive. {score}/100.",
+        "Strong attendance: {stat}. Weak citations: {miss} is worth {miss_pts} points and appears nowhere "
+        "in your bibliography. {score}/100.",
+        "I counted {stat}. I also counted how many times you showed me {miss}: not once. {score}/100, "
+        "resubmission encouraged.",
+        "Grade: {score}/100. Commendable effort on {stat}; the remaining marks went to {miss}, which you "
+        "forgot to hand in.",
+        "{stat} and {score}/100. I have reread this submission twice looking for something to deduct.",
+    ],
+    "Bollywood drama": [
+        "{stat}! Thunder strikes, the violins swell, and Maa asks the only question that matters: where "
+        "is {miss}? {score}/100. Picture abhi baaki hai.",
+        "Interval twist: the demo video runs {video}, longer than the item song. The judges walk out at "
+        "3:00. {score}/100.",
+        "Since {date} the repo has waited at the railway station for {miss}, which never arrives. "
+        "Violins. {score}/100.",
+        "The hero has {stat}. The villain has the rubric. And {miss}, worth {miss_pts} points, is lost "
+        "at the mela. {score}/100.",
+        "Dhishoom! {stat} land like a punch, but {miss} is still missing from the family photo. "
+        "{score}/100, sequel pending.",
+        "The family astrologer reads the stars: {stat}, a {score}/100 destiny, and {miss} returning in "
+        "the final reel, hopefully before the deadline.",
+        "{stat}, {score}/100, and not a single tear shed. Even the villain is clapping.",
+    ],
+}
+
+MISSING = {
+    "demo_video": "a demo video", "public_posts": "a single #neatHack post",
+    "cfo_ai_plan": "a cfo.ai business plan", "neatlogs_sdk": "neatlogs tracing",
+    "neatlogs_traces": "a neatlogs trace link", "entire_checkpoints": "an Entire checkpoint",
+    "before_after": "a before/after comparison with numbers", "failure_recovery": "a documented failure run",
+    "commits_in_window": "commits inside the hackathon window", "readme_exists": "a README worth reading",
+    "dead_links": "links that work",
+}
+
+
+def _int(text: str | None, rx: str) -> int | None:
+    m = re.search(rx, text or "")
+    return int(m.group(1)) if m else None
+
+
+def roast_slots(report: dict, score: dict) -> dict:
+    """The facts a template may use, each phrased so it contains its fact-check anchor."""
+    checks = {c["id"]: c for c in report.get("checks", [])}
+    repo = report.get("repo") or {}
+    slots: dict = {"score": score.get("score", 0)}
+
+    stats = []  # (interest, phrase)
+    commits = (checks.get("commits_in_window") or {})
+    if commits.get("status") not in (None, "unverified"):
+        inside = _int(commits["detail"], r"(\d+) inside")
+        before = _int(commits["detail"], r"(\d+) before start")
+        if before and before >= 5:
+            stats.append((90 + before, f"{before} commits pushed before the hackathon even started"))
+        if inside and inside >= 10:
+            stats.append((40 + inside, f"{inside} commits inside the hackathon window"))
+    m = re.search(r"(\d+)/(\d+) links dead", (checks.get("dead_links") or {}).get("detail", ""))
+    if m and int(m.group(1)) >= 2:
+        stats.append((80 + int(m.group(1)), f"{m.group(1)} of {m.group(2)} README links leading nowhere"))
+    stars = repo.get("stars") or 0
+    if stars >= 100:
+        stats.append((60 + min(stars // 100, 100), f"{stars:,} GitHub stars"))
+    words = _int((checks.get("readme_exists") or {}).get("detail"), r"(\d+) words")
+    if words and words >= 1200:
+        stats.append((35, f"{words} words of README"))
+    files = report.get("files_seen") or 0
+    if files >= 150:
+        stats.append((30, f"{files} files"))
+    if not stats and files:
+        stats.append((0, f"{files} files"))
+    if stats:
+        slots["stat"] = max(stats)[1]
+
+    video = (checks.get("demo_video") or {}).get("data") or {}
+    if video.get("duration_status") == "too_long" and video.get("duration"):
+        slots["video"] = video["duration"]
+    pushed = repo.get("pushed_at")
+    if pushed:
+        from app.tools.rubric import WINDOW_START
+        d = datetime.fromisoformat(pushed.replace("Z", "+00:00"))
+        if d < WINDOW_START:
+            slots["date"] = f"{d.day} {d:%b %Y}"
+
+    for f in score.get("fix_candidates") or []:
+        if f["check_id"] in MISSING:
+            miss = MISSING[f["check_id"]]
+            if f["check_id"] == "demo_video" and "video" in slots:
+                miss = "a demo under 3:00"
+            slots.update(miss=miss, miss_pts=f"{f['points']:g}")
+            break
+    return slots
+
+
+def _fields(template: str) -> set[str]:
+    return set(re.findall(r"{(\w+)}", template))
+
+
+def template_roast(style: str, report: dict, score: dict, repo_name: str = "",
+                   recent: list[str] | tuple = ()) -> str:
+    """A fact-only roast in this repo's style, chosen by a hash of the repo name.
+
+    Only templates whose slots all exist are eligible; the hash picks one, and the next one is
+    tried if it would repeat a recent joke or break a roast rule.
+    """
+    slots = roast_slots(report, score)
+    pool = TEMPLATES.get(style) or TEMPLATES["strict professor"]
+    eligible = [t for t in pool if _fields(t) <= set(slots) and _fields(t) & {"stat", "date", "video"}]
+    if "miss" not in slots:  # nothing big is missing: the compliment templates fit best
+        eligible = [t for t in eligible if "miss" not in _fields(t)] or eligible
+    if not eligible:
+        facts = [f for f in build_facts(report) if f["anchors"] and not f["fact"].startswith("README claim")]
+        return f"{facts[0]['fact'][:1].upper()}{facts[0]['fact'][1:]}, and {slots['score']}/100." if facts \
+            else f"{slots['score']}/100: the judges will want more to go on."
+    start = int(hashlib.sha256(f"{repo_name.lower()}|template".encode()).hexdigest(), 16) % len(eligible)
+    facts = build_facts(report)
+    first = None
+    for i in range(len(eligible)):
+        text = eligible[(start + i) % len(eligible)].format(**slots)
+        first = first or text
+        if not roast_problems(text, facts, list(recent), report):
+            return text
+    return first
