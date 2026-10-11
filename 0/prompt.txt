@@ -1,0 +1,20 @@
+https://github.com/DurgaPritam/neatHack-QBITS-
+
+<pasted_content id="a983">
+Read CLAUDE.md carefully. Implement Milestone M1 only:
+- Set up backend/ with FastAPI, a .env.example, and requirements.
+- Build app/tools/github.py (README, file tree, file contents, commit list with dates) using GITHUB_TOKEN.
+- Build app/tools/links.py and app/tools/rubric.py with the deterministic checks listed in CLAUDE.md.
+  Leave check_entire() as a clearly marked stub.
+- Add a CLI: python -m app.cli <repo_url> that prints a JSON report.
+- Handle failures (private repo, 404, rate limit) as recorded steps, not crashes.
+Test it on 2 real public repos. Commit after each working piece with clear messages.
+Do not start M2 yet.
+</pasted_content id="a983">
+
+groq api key- REDACTED
+
+neatcode api key- 
+REDACTED
+
+creat the required .env file and add these in them
