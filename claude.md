@@ -83,9 +83,12 @@ EVIDENCE.md              # hackathon evidence log
    (agent quality, usefulness) get an LLM estimate that cites evidence, is labelled
    "estimated" and is capped.
 
-Unknowns (keep pluggable, mark "unverified" until confirmed on Discord):
-- how Entire checkpoints appear in a repo (`check_entire()` is a stub)
-- whether neatlogs trace links are viewable without login
+Resolved unknowns (2026-10-11):
+- Entire: commits carry an `Entire-Checkpoint: <id>` trailer; storage is pushed as
+  `refs/entire/checkpoints/...` or the `entire/checkpoints/v1` branch; links look like
+  `https://entire.io/gh/OWNER/REPO/commit/SHA`. Nothing found = "couldn't verify", not scored.
+- neatlogs trace links redirect logged-out visitors to `/auth?intent=signin`: reported as
+  "found, but not publicly viewable"; README screenshots count.
 
 ## Roast rules
 - 1–3 sentences, funny, about the repo not the people. No identity insults, no profanity.
