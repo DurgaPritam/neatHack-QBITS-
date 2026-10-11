@@ -339,3 +339,11 @@ def test_results_are_noindex(client):
     assert page.headers["x-robots-tag"] == "noindex, nofollow"
     assert client.get(f"/api/audits/{aid}").headers["x-robots-tag"] == "noindex, nofollow"
     assert "x-robots-tag" not in client.get("/api/stats").headers
+
+
+def test_public_counter_excludes_builtin_examples(client):
+    assert len(client.get("/api/examples").json()) == 3
+    assert client.get("/api/stats").json()["total_audits"] == 0
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    assert client.get("/api/stats").json()["total_audits"] == 1

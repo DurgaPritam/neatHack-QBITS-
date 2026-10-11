@@ -258,7 +258,7 @@ def stats() -> dict:
     with _lock:
         total, real, done = _db().execute(
             "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'complete' AND run_kind = 'real') "
-            "FROM audits").fetchone()
+            "FROM audits WHERE is_example = 0").fetchone()  # built-in examples aren't visitors' audits
     return {"total_audits": real or 0, "completed_audits": done or 0, "including_test_runs": total or 0}
 
 
