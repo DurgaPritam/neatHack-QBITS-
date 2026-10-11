@@ -1,0 +1,7 @@
+<pasted_content id="8f34">
+To be clear: go with option 1. Delete the 13 unpushed Entire checkpoint refs that name
+other teams' repos. Then add the redaction rules, keep other teams' repo URLs only in a
+gitignored file (e.g. evals/repos.private.yaml, with Repo A/B/C in committed files),
+scan the next checkpoint, and tell me when it's safe to git push. Don't push anything
+that mentions other teams' repos.
+</pasted_content id="8f34">
