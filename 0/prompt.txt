@@ -1,0 +1,43 @@
+<pasted_content id="a983">
+M2 is done. Before M3, implement these M2.5 improvements. Read CLAUDE.md first.
+
+1. Two-speed audits
+   - "quick" phase: deterministic checks + short verdict and roast, target under ~3k tokens
+     and ~15s. Saved and returned as soon as it's ready (status "quick_ready").
+   - "deep" phase: claim verification runs after, queued; when done, rescore and update the
+     audit (status "complete"). The quick result must never wait on the deep phase.
+   - GET /api/audits/{id} returns which phase is done, queue position and estimated wait.
+
+2. Cheaper, better verification
+   - Download the repo once as a tarball via the GitHub API (size cap ~30 MB; skip binaries,
+     node_modules, vendor, lockfiles; reject symlinks and path traversal; never execute anything).
+   - Add a search_repo(pattern) tool that greps the local copy and returns matching
+     snippets with file:line and a few lines of context. Prefer it over read_file.
+   - Keep read_file but cap it. Remove the "1–4 files read" limitation for large repos.
+   - Compare tokens, time and verified-claim counts on swarm, smolagents and
+     open_deep_research before vs after, and add the numbers to EVIDENCE.md.
+
+3. Throughput under the 8k tokens/min limit
+   - Check in the Groq console/docs whether limits are per model. If so, rotate calls across
+     the available tool-calling models (configured as a list in .env: GROQ_MODELS=...),
+     tracking each model's remaining quota from response headers.
+   - Use the rate-limit headers to schedule calls instead of only reacting to 429s.
+   - Measure: how many quick audits and deep audits per hour can we sustain? Report the numbers.
+
+4. Better roasts
+   - The roast must mention at least one specific fact from this repo (a file name, a number,
+     a claim, a commit date). Ban stock phrases (store a list; include "museum exhibit").
+   - Rotate between a few styles (sports commentator, movie trailer, food critic,
+     strict professor, Bollywood drama), chosen from a hash of the repo name so it's stable.
+   - Keep the last 20 roasts and tell the model not to reuse their jokes.
+   - The roast may only state facts present in the structured results. If a check is
+     "unknown" (e.g. video duration couldn't be read), say so plainly; never guess.
+
+5. Video duration: report the actual duration when readable; otherwise "unknown", with the
+   reason. The fix list must not claim the video is too long when the duration is unknown.
+
+Update tests for all of the above (mock network and Groq). Run --full on the 3 repos again
+and show me: quick-phase time and tokens, deep-phase time and tokens, score, roast, top 3 fixes,
+verified claims, and the throughput numbers. Commit after each working piece
+(no Co-Authored-By lines).
+</pasted_content id="a983">
