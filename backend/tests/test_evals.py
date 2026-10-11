@@ -75,4 +75,4 @@ def test_committed_files_never_name_other_teams():
         if e["kind"] == "neathack":
             assert "url" not in e and e["name"].startswith("Repo ")
     ignore = (R.HERE / ".gitignore").read_text()
-    assert "private/" in ignore and "labels/repo-*.md" in ignore
+    assert "repos.private.yaml" in ignore and "private/" in ignore and "labels/repo-*.md" in ignore

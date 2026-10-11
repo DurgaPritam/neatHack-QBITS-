@@ -31,13 +31,13 @@ DEEP_EST_TOKENS = 18_000
 
 def load_repos(only: list[str] | None = None) -> list[dict]:
     entries = yaml.safe_load((HERE / "repos.yaml").read_text())["repos"]
-    private = HERE / "private" / "repos.yaml"
+    private = HERE / "repos.private.yaml"
     urls = yaml.safe_load(private.read_text()) if private.exists() else {}
     out = []
     for e in entries:
         url = e.get("url") or (urls or {}).get(e["id"])
         if not url:
-            print(f"skip {e['id']}: no URL (add it to evals/private/repos.yaml)", file=sys.stderr)
+            print(f"skip {e['id']}: no URL (add it to evals/repos.private.yaml)", file=sys.stderr)
             continue
         if only and e["id"] not in only:
             continue

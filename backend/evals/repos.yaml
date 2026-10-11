@@ -1,6 +1,6 @@
 # Eval set: labelled by hand in evals/labels/<id>.md, run with `python -m evals.run`.
 # Other teams' repos are anonymised here (Repo A, Repo B...); their URLs live in the
-# gitignored evals/private/repos.yaml as `<id>: <url>`. Public and our own repos are named.
+# gitignored evals/repos.private.yaml as `<id>: <url>`. Public and our own repos are named.
 repos:
   - {id: own,                kind: own,     name: DurgaPritam/neatHack-QBITS-, url: https://github.com/DurgaPritam/neatHack-QBITS-}
   - {id: swarm,              kind: public,  name: openai/swarm, url: https://github.com/openai/swarm}
