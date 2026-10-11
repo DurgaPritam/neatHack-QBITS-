@@ -89,6 +89,26 @@ feedback CSV export, metrics counters, per-IP limit (6th audit in 10 min → 429
 repo cooldown, nonexistent repo, unknown audit id, CORS rejects other origins, noindex headers,
 daily backup written.
 
+### Self-audit before launch (2026-10-11)
+PreJudge on its own repo in production, before and after rewriting the README as the submission
+page (both runs complete; same code, same rubric):
+
+| | Before (`29def6e19f64`, commit `6ab6239`) | After (`5d7a44233910`, commit `8d76aab`) |
+|---|---|---|
+| Quick score | 40 | 61 |
+| Deep score | 46 | 64 |
+| Claims verified | 6 of 6 | 5 of 8 |
+| Deep tokens / time | 17,232 / 40.5 s | 24,728 / 67.1 s |
+
+Fixes still open after that run: demo video (+17), #neatHack post links (+3), neatlogs
+screenshots (+2.7), Entire checkpoint (+2.1). The run itself hit another production 429 on
+`qwen/qwen3.8-27b` in `llm.verify.final` and finished on `openai/gpt-oss-120b` and
+`openai/gpt-oss-20b`.
+
+The self-audit also found three PreJudge bugs, now fixed: a re-audit within 10 minutes of a push
+returned the stale result (cooldown now compares commits), any neatlogs.com link counted as a
+trace, and the before/after check missed numbers in a table.
+
 ## Entire
 - Checkpoint link + ID: <paste>
 
