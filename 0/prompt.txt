@@ -1,0 +1,39 @@
+<pasted_content id="8f34">
+Continue from the last session. Entire is now enabled in this repo (entire status shows
+Enabled, checkpoints sync to origin). Production cleanup is done (9 audits left).
+
+1. Entire: make a small commit, confirm it has an Entire-Checkpoint trailer, push,
+   check the checkpoint data reached GitHub, and add the checkpoint link + ID to
+   README.md and EVIDENCE.md.
+2. Entire history import: `entire enable` found importable history for Claude Code.
+   Before importing, read Entire's docs on what import stores and pushes, and on secret
+   redaction. Then check the old session history for secrets (API keys, tokens, .env
+   contents, the ADMIN_TOKEN, AWS credentials). Only import if it's safe or can be
+   redacted; otherwise tell me and skip it. Never print any secret you find.
+3. Fix the failure-and-recovery check before launch: the deep phase should verify it
+   like README claims (look for a described failure + what the agent did next, with
+   evidence such as trace links, screenshots, code paths for retry/fallback, or logs).
+   No team should lose points just because the quick phase can't check it.
+4. Clean the stored production audits that still contain raw tool errors
+   (e.g. fc5068d87579): take a backup first, then rewrite their stored messages with the
+   new friendly versions.
+5. Make fact-only (template) roasts actually funny, since they'll be common when the Groq
+   budget is low: write 25+ templates across the five styles (sports commentator, movie
+   trailer, food critic, strict professor, Bollywood drama), each filled with the repo's
+   most interesting specific fact (score, the biggest missing item, a big number, commit
+   dates, video length). Never use dull facts like "dependency file: pyproject.toml".
+   Pick the template by a hash of the repo name. Show me 5 examples for real audits.
+6. Find why a test printed neatlogs "failed to export spans". Tests must never send traces,
+   so make sure tracing is fully disabled in tests.
+7. YOUTUBE_API_KEY is now in backend/.env and backend/.env.production. After redeploying,
+   confirm YouTube durations work in production: re-audit langchain-ai/open_deep_research
+   and check its demo video shows as 12:46 (too long). Never print the key.
+8. Before pushing anything: scan the full git history and the Entire checkpoint data for
+   secrets, since the repo will be public on Monday.
+9. Run the self-audit in production again and show me the new score and remaining fixes.
+Add tests, commit (no Co-Authored-By lines), push and redeploy.
+</pasted_content id="8f34">
+
+---
+
+Your claude.ai usage limit has reset. Continue the task you were working on when the limit was reached; do not repeat work that is already complete.
