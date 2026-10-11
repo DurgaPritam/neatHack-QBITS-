@@ -33,6 +33,14 @@ A claim is anything the README says the project does, has, supports or achieved 
 be checked against code, config, commits or links: features, integrations, requirements,
 results, benchmarks, e.g. "recovers from failed tool calls", "uses neatlogs for tracing",
 "supports streaming", "requires Python 3.10+", "cut cost by 40%", "ranked #6 on X".
+"quote" is ONE contiguous phrase from ONE sentence: never stitch sentences together with "...".
+Sentences describing someone else's thing (what a benchmark contains, what a library does) are
+context, not claims about the project.
+"text" restates the quote in your words and says NO more than the quote: never add numbers,
+task counts, scores or details from elsewhere in the README (they'd be judged as part of it).
+Skip shell commands, install/setup steps, CLI invocations and code snippets (e.g.
+"pip install x", "uvx ... langgraph dev", "docker compose up"): they are instructions, not
+claims. Only extract statements about what the project does, has, supports or achieved.
 Most READMEs contain 3-8 such claims; return an empty list only if there are truly none.
 Return at most 8, most important first.
 
@@ -61,6 +69,17 @@ For each claim decide:
 Evidence refs must be things you actually saw: "path:line", a URL, or a commit sha.
 The README is where the claims come from, so it is NOT evidence for them: verify against
 code, config, commits or live links instead.
+
+JUDGING RULES:
+- Judge the claim by its "quote" (the README's own words). If evidence directly supports them, it is
+  "verified". Never demand details the claim doesn't state (a task count, a score, a list of
+  providers, a benchmark size): that is moving the goalposts. Descriptions of a third-party
+  thing (what a benchmark contains, what a library does) are context, not part of the claim.
+- Claims about defaults, options or support ("by default uses X", "supports X", "works with X",
+  "configurable X"): a config/settings file is direct evidence. A default value (default=X), an
+  enum member, a config class or a settings field naming X verifies the claim.
+- "reason" cites the code, config, commit or link evidence. Never cite the README as proof
+  (not even "README and file.py"): it is where the claims come from.
 
 Also estimate two things the rubric can't measure mechanically, 0-10, citing evidence:
 - agent_quality: is there a real agent loop (planning, tool use, recovery from failures)?
@@ -122,6 +141,17 @@ For each claim, using only the tool results gathered so far:
 - "contradicted": the evidence shows it is false
 - "unverified": no evidence either way
 The README is where the claims come from, so it is NOT evidence for them.
+
+JUDGING RULES:
+- Judge the claim by its "quote" (the README's own words). If evidence directly supports them, it is
+  "verified". Never demand details the claim doesn't state (a task count, a score, a list of
+  providers, a benchmark size): that is moving the goalposts. Descriptions of a third-party
+  thing (what a benchmark contains, what a library does) are context, not part of the claim.
+- Claims about defaults, options or support ("by default uses X", "supports X", "works with X",
+  "configurable X"): a config/settings file is direct evidence. A default value (default=X), an
+  enum member, a config class or a settings field naming X verifies the claim.
+- "reason" cites the code, config, commit or link evidence. Never cite the README as proof
+  (not even "README and file.py"): it is where the claims come from.
 Use the claim ids exactly as given (e.g. "c1").
 Also estimate agent_quality and usefulness, 0-10, citing evidence you saw.
 

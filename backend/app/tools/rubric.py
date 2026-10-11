@@ -17,7 +17,7 @@ WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
 WINDOW_END = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)   # 23:55 IST
 
 # Bump when check logic changes: cached audits from an older version are not reused.
-CHECKS_VERSION = "2026-10-11.4"
+CHECKS_VERSION = "2026-10-11.5"
 
 WEIGHTS = {
     "agent": 0.30,
@@ -307,14 +307,14 @@ def check_cfo_ai(readme: str, links: list[dict]) -> dict:
         status = "warn" if "cfo.ai" in text else "fail"
         return _check("cfo_ai_plan", "tools", title, status,
                       "no cfo.ai plan link" + (" (mentioned in text only)" if status == "warn" else ""),
-                      topics)
+                      data={"topics": topics})
     if any(l["ok"] is False for l in cfo_links):
         return _check("cfo_ai_plan", "tools", title, "fail", "cfo.ai link is dead",
                       [l["url"] for l in cfo_links])
     status = "pass" if len(topics) >= 3 else "warn"
     return _check("cfo_ai_plan", "tools", title, status,
                   f"cfo.ai link present; README covers {len(topics)}/4 of pricing/costs/revenue/runway",
-                  [l["url"] for l in cfo_links] + topics)
+                  [l["url"] for l in cfo_links], data={"topics": topics})
 
 
 # ---------------------------------------------------------------- demo video

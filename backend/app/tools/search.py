@@ -7,6 +7,7 @@ decompression bombs.
 """
 import io
 import posixpath
+import re
 import tarfile
 from collections import Counter
 from dataclasses import dataclass, field
@@ -128,7 +129,7 @@ class RepoSnapshot:
                 "skipped": dict(self.skipped), "truncated": self.truncated}
 
     def search(self, pattern: str, max_matches: int = SEARCH_MAX_MATCHES,
-               context: int = SEARCH_CONTEXT) -> tuple[list[dict], int, set[str]]:
+               context: int = SEARCH_CONTEXT, only=None) -> tuple[list[dict], int, set[str]]:
         """Case-insensitive literal search; '|' separates alternatives.
 
         Code files are searched before docs, and the README last (it can't prove itself).
@@ -139,6 +140,8 @@ class RepoSnapshot:
             raise ValueError("pattern needs at least one term of 2+ characters")
         matches, total, hit_files = [], 0, set()
         for path in sorted(self.files, key=_search_rank):
+            if only is not None and not only(path):
+                continue
             lines = self.files[path].splitlines()
             last_shown = -10**9
             for i, line in enumerate(lines):
@@ -155,6 +158,16 @@ class RepoSnapshot:
                     snippet = [f"{n + 1}{':' if n == i else '-'} {lines[n][:LINE_CHARS]}" for n in range(lo, hi)]
                     matches.append({"path": path, "line": i + 1, "snippet": "\n".join(snippet)})
         return matches, total, hit_files
+
+
+_CONFIG_FILE = re.compile(
+    r"(^|/)[^/]*(config|configuration|settings|options|defaults|constants|enums?)[^/]*\.(py|ts|tsx|js|mjs|json|toml|ya?ml|ini|cfg)$"
+    r"|\.(toml|ya?ml|ini|cfg)$|(^|/)\.env\.example$", re.I)
+
+
+def is_config_file(path: str) -> bool:
+    """Settings, configuration and enum files: where defaults and supported options are declared."""
+    return bool(_CONFIG_FILE.search(path))
 
 
 def _search_rank(path: str) -> tuple:

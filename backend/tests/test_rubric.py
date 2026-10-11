@@ -92,3 +92,12 @@ def test_before_after_and_links():
 def test_pick_dependency_files():
     paths = ["web/node_modules/x/package.json", "backend/requirements.txt", "package.json", "src/app.py"]
     assert rubric.pick_dependency_files(paths) == ["package.json", "backend/requirements.txt"]
+
+
+def test_cfo_evidence_has_no_stray_topic_words():
+    from app.tools.rubric import check_cfo_ai
+    c = check_cfo_ai("We mention cfo.ai and our cost and pricing.", [])
+    assert c["evidence"] == [] and c["data"]["topics"] == ["pricing", "cost"]
+    link = {"url": "https://cfo.ai/s/x", "kind": "cfo_ai", "ok": True}
+    c = check_cfo_ai("pricing, cost, revenue, runway", [link])
+    assert c["evidence"] == ["https://cfo.ai/s/x"]

@@ -3,6 +3,7 @@ import asyncio
 import base64
 
 import httpx
+import pytest
 
 from app.agent import prompts
 from app.audit import run_full_audit
@@ -222,3 +223,85 @@ def test_final_prompt_always_fits_one_models_rate_limit():
     body = msgs[1]["content"]
     assert body.count("[c3] search") <= 1  # presearch evidence is not sent twice
     assert "read_file(src/big0.py)" in body and "No more tools" in body
+
+
+@pytest.mark.parametrize("text,non_claim", [
+    ('uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev', True),
+    ("pip install -r requirements.txt", True),
+    ("$ docker compose up -d", True),
+    ("from open_deep_research import graph", True),
+    ("supports a wide range of LLM providers via the init_chat_model() API", False),
+    ("Python 3.11 or newer is required", False),
+    ("Make your docs honest: every quickstart is run end to end", False),
+    ("By default it uses the Tavily search API; MCP servers are optional", False),
+])
+def test_commands_and_code_are_not_claims(text, non_claim):
+    from app.agent.loop import is_non_claim
+    assert is_non_claim(text) == non_claim
+
+
+def test_reason_never_cites_the_readme():
+    from app.agent.loop import no_readme_proof
+    ev = [{"ref": "legacy.md:40"}, {"ref": "README.md:12"}]
+    assert no_readme_proof("README and legacy.md contain the launch command.", ev) == "Evidence: legacy.md:40."
+    assert no_readme_proof("Code and README confirm GPT-5 support. tests/run_evaluate.py:14 sets gpt-5.", ev) \
+        == "tests/run_evaluate.py:14 sets gpt-5."
+    assert no_readme_proof("configuration.py sets default=SearchAPI.TAVILY.", ev) == \
+        "configuration.py sets default=SearchAPI.TAVILY."
+
+
+def test_presearch_puts_config_files_first_for_default_claims():
+    from app.agent.loop import presearch
+    from app.agent.schemas import ClaimList
+    from app.agent.tools import RepoToolbox
+    from app.tools.search import RepoSnapshot
+    snap = RepoSnapshot(files={
+        "src/a.py": "import tavily\n" * 5, "src/b.py": "tavily_client = 1\n" * 5, "src/c.py": "tavily\n" * 5,
+        "src/open_deep_research/configuration.py": "class SearchAPI(Enum):\n    TAVILY = 'tavily'\n"
+                                                   "search_api: SearchAPI = Field(default=SearchAPI.TAVILY)\n"})
+    box = RepoToolbox(None, None, "main", list(snap.files), [], StepLog(), snapshot=snap)
+    claims = ClaimList.model_validate({"claims": [{"id": "c8", "text": "By default it uses the Tavily search API",
+                                                    "quote": "By default it uses the Tavily search API",
+                                                    "search": ["tavily"]}]})
+    evidence, _ = presearch(box, claims, StepLog())
+    assert evidence.index("configuration.py") < evidence.index("src/a.py")
+
+
+def test_presearch_shows_config_hits_for_every_claim():
+    from app.agent.loop import presearch
+    from app.agent.schemas import ClaimList
+    from app.agent.tools import RepoToolbox
+    from app.tools.search import RepoSnapshot
+    snap = RepoSnapshot(files={"pyproject.toml": "openai\nanthropic\n", "src/a.py": "import openai\n" * 4,
+                               "src/pkg/configuration.py": 'OPENAI = "openai"  # OpenAI Native Web Search\n'})
+    box = RepoToolbox(None, None, "main", list(snap.files), [], StepLog(), snapshot=snap)
+    claims = ClaimList.model_validate({"claims": [{"id": "c1", "text": "native web search for OpenAI",
+                                                    "quote": "work native web search for OpenAI", "search": ["openai"]}]})
+    evidence, _ = presearch(box, claims, StepLog())
+    assert "src/pkg/configuration.py" in evidence
+
+
+def test_claim_text_never_adds_numbers_the_quote_lacks():
+    from app.agent.loop import faithful
+    from app.agent.schemas import Claim
+    padded = Claim(id="c4", text="Configured for Deep Research Bench (100 tasks, RACE score)",
+                   quote="configured for evaluation with Deep Research Bench")
+    assert faithful(padded).text == "configured for evaluation with Deep Research Bench"
+    ok = Claim(id="c1", text="Ranked 6th with a score of 0.4344", quote="#6 ranking with an overall score of 0.4344")
+    assert faithful(ok).text == ok.text
+
+
+
+def test_stitched_quote_is_cut_to_the_claim():
+    from app.agent.loop import faithful
+    from app.agent.schemas import Claim
+    c = Claim(id="c4", text="Configured for Deep Research Bench, which has 100 PhD-level tasks across 22 fields",
+              quote="configured for evaluation with Deep Research Bench... 100 PhD-level research tasks... 22 fields")
+    readme = ("Open Deep Research is configured for evaluation with Deep Research Bench. This benchmark has "
+              "100 PhD-level research tasks (50 English, 50 Chinese), crafted by experts across 22 fields.")
+    out = faithful(c, readme)
+    assert out.quote == "configured for evaluation with Deep Research Bench" and out.text == out.quote
+    # an elision inside ONE sentence is kept: the score is part of that claim
+    same = Claim(id="c1", text="Ranked 6th with a score of 0.4344", quote="#6 ranking ... overall score of 0.4344")
+    readme2 = "Achieved #6 ranking on the Leaderboard with an overall score of 0.4344. Next sentence."
+    assert faithful(same, readme2).text == same.text

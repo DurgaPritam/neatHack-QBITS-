@@ -20,7 +20,7 @@ from app.scoring import compute_score
 from app.steps import StepLog
 from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError
-from app.tools.search import RepoSnapshot, format_matches
+from app.tools.search import RepoSnapshot, format_matches, is_config_file
 from app.tracing import event, span
 
 MAX_TOOL_STEPS = 15
@@ -78,14 +78,69 @@ async def extract_claims(llm: LLM, readme: str) -> ClaimList | None:
                                     + untrusted("README", readme[:README_CHARS])},
     ]
     claims = await ask_json(llm, "claims", messages, ClaimList, max_tokens=1000)
+    claims = drop_non_claims(claims, llm.steps, readme)
     if claims is not None and not claims.claims and len(readme.split()) > 300:
         # A long README with no checkable claims is unlikely; ask once more, explicitly.
         llm.steps.note("claims.empty_retry", f"0 claims from a {len(readme.split())}-word README; asking again")
         retry = messages + [{"role": "assistant", "content": claims.model_dump_json()},
                             {"role": "user", "content": "That README describes features, requirements and "
                              "integrations. List the 3-8 most checkable ones as claims."}]
-        claims = await ask_json(llm, "claims.retry", retry, ClaimList, max_tokens=1000) or claims
+        claims = drop_non_claims(await ask_json(llm, "claims.retry", retry, ClaimList, max_tokens=1000),
+                                 llm.steps, readme) or claims
     return claims
+
+
+_COMMAND = re.compile(  # lowercase on purpose: "Python 3.11 is required" is a claim, "python -m x" isn't
+    r"^\s*(\$\s*)?(uvx?|pip3?|pipx|npm|npx|pnpm|yarn|bun|git|python3?|docker|docker-compose|curl|wget|cd|"
+    r"cargo|brew|apt-get|sudo|poetry|conda|langgraph|uvicorn|streamlit)\s")
+_CODE = re.compile(r"^\s*(import\s|from\s+[\w.]+\s+import\b|def\s|class\s+\w+\s*[:(]|const\s|let\s|function\s)|=>|\{\s*\"")
+
+
+def is_non_claim(text: str) -> bool:
+    """A shell command, install step or code snippet: an instruction, not a claim."""
+    t = (text or "").strip().strip("`")
+    if not t:
+        return False
+    flags = len(re.findall(r"(^|\s)--?[a-z][\w-]*", t))
+    return bool(_COMMAND.match(t) or _CODE.search(t) or (flags >= 2 and len(t.split()) <= 20))
+
+
+def _same_sentence(readme: str, first: str, later: str) -> bool:
+    """Do two quoted fragments sit in the same README sentence? (Unknown -> assume yes.)"""
+    flat = " ".join((readme or "").split()).lower()
+    i, j = flat.find(" ".join(first.split()).lower()), flat.find(" ".join(later.split()).lower())
+    if i < 0 or j < 0 or j < i:
+        return True
+    return not re.search(r"[.!?](\s|$)", flat[i + len(first):j])
+
+
+def faithful(c, readme: str = ""):
+    """Keep a claim to what the team actually claimed.
+
+    - A quote stitched across sentences with "..." keeps only its first sentence: the rest is
+      context (e.g. what a third-party benchmark contains). An elision inside one sentence stays.
+    - The paraphrase may not add numbers the quote doesn't have ("100 tasks", "RACE score"):
+      the judge would demand evidence for details nobody claimed. Fall back to the quote.
+    """
+    if not c.quote:
+        return c
+    parts = [x.strip() for x in re.split(r"\s*(?:\.\.\.|…)\s*", c.quote) if x.strip()]
+    if len(parts) > 1:
+        cut = next((k for k in range(1, len(parts)) if not _same_sentence(readme, parts[k - 1], parts[k])), None)
+        if cut is not None:
+            c = c.model_copy(update={"quote": " … ".join(parts[:cut])})
+    extra = set(re.findall(r"\d+(?:\.\d+)?", c.text)) - set(re.findall(r"\d+(?:\.\d+)?", c.quote))
+    return c.model_copy(update={"text": c.quote}) if extra else c
+
+
+def drop_non_claims(claims: ClaimList | None, steps: StepLog, readme: str = "") -> ClaimList | None:
+    if claims is None:
+        return None
+    kept = [faithful(c, readme) for c in claims.claims if not (is_non_claim(c.quote) or is_non_claim(c.text))]
+    dropped = len(claims.claims) - len(kept)
+    if dropped:
+        steps.note("claims.dropped_commands", f"skipped {dropped} command/code line(s): instructions, not claims")
+    return claims.model_copy(update={"claims": kept})
 
 
 def _assistant_dict(msg) -> dict:
@@ -168,6 +223,10 @@ async def verify_claims(llm: LLM, toolbox: RepoToolbox, claims: ClaimList, repor
         _compact(messages, turn_start)
 
 
+_CONFIG_CLAIM = re.compile(r"\b(default|defaults|by default|supports?|supported|options?|configur\w*|"
+                           r"settings?|works with|compatib\w*|providers?|choose|select)\b", re.I)
+
+
 def presearch(toolbox: RepoToolbox, claims: ClaimList, steps: StepLog) -> tuple[str, int]:
     """Search the local copy for every claim's terms, no LLM turns needed.
 
@@ -186,6 +245,14 @@ def presearch(toolbox: RepoToolbox, claims: ClaimList, steps: StepLog) -> tuple[
             pattern = "|".join(terms)
             try:
                 matches, total, files = snap.search(pattern, max_matches=PRESEARCH_MATCHES, context=1)
+                # Defaults, options and supported providers are declared in config files, which a
+                # plain search often ranks below dependency lists: always show config hits first
+                # (more of them for claims about defaults/options/support).
+                n_cfg = PRESEARCH_MATCHES if _CONFIG_CLAIM.search(f"{c.text} {c.quote}") else 2
+                cfg, _, cfg_files = snap.search(pattern, max_matches=n_cfg, context=1, only=is_config_file)
+                seen = {(m["path"], m["line"]) for m in cfg}
+                matches = (cfg + [m for m in matches if (m["path"], m["line"]) not in seen])[:PRESEARCH_MATCHES + 2]
+                files = files | cfg_files
             except ValueError:
                 continue
             toolbox.searched_paths.update(m["path"] for m in matches)
@@ -276,6 +343,22 @@ def _match_results(claims: ClaimList, verify: VerifyResult | None) -> dict:
     return out
 
 
+_SENTENCE_END = re.compile(r"(?<=[.;!?])\s+")  # a dot inside "legacy.md" doesn't end a sentence
+
+
+def no_readme_proof(reason: str, evidence: list[dict]) -> str:
+    """The README is where claims come from, so a reason never cites it as proof. Sentences
+    that do are dropped; if nothing is left, the reason names the evidence instead."""
+    if not reason or "readme" not in reason.lower() or reason.startswith("downgraded:"):
+        return reason
+    kept = " ".join(x.strip() for x in _SENTENCE_END.split(reason.strip())
+                    if x.strip() and not re.search(r"\breadme\b", x, re.I))
+    if kept:
+        return kept
+    refs = [e.get("ref") for e in evidence if e.get("ref") and "readme" not in e["ref"].lower()][:3]
+    return f"Evidence: {', '.join(refs)}." if refs else "No evidence outside the README."
+
+
 def ground_results(claims: ClaimList, verify: VerifyResult | None, toolbox: RepoToolbox,
                    readme_path: str, report: dict, commits: list[dict]) -> list[dict]:
     link_urls = {l["url"] for l in report.get("links", [])} | {l.get("final_url") for l in report.get("links", [])}
@@ -298,7 +381,7 @@ def ground_results(claims: ClaimList, verify: VerifyResult | None, toolbox: Repo
                           f"(README restating a claim doesn't count) ({reason})")[:500]
             evidence = seen or evidence
         out.append({"claim_id": c.id, "claim": c.text, "quote": c.quote, "category": c.category,
-                    "status": status, "evidence": evidence, "reason": reason})
+                    "status": status, "evidence": evidence, "reason": no_readme_proof(reason, evidence)})
     return out
 
 

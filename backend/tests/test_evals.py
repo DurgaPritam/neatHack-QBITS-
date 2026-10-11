@@ -61,7 +61,7 @@ def test_score_counts_false_fails_and_claim_agreement(tmp_path, monkeypatch):
     s = R.score_run([run])
     assert s["overall"]["false_fails"] == 1 and s["overall"]["accuracy"] == 50.0
     assert s["top_errors"] == [{"check": "cfo_ai_plan", "kind": "false_fail", "count": 1}]
-    assert s["claims"]["agreement"] == 100.0
+    assert s["claims"]["accuracy"] == 100.0
     # after a fix the check passes: the same label now scores it correct
     fixed = {**REPORT, "checks": [{**c, "status": "pass"} if c["id"] == "cfo_ai_plan" else c for c in REPORT["checks"]]}
     s2 = R.score_run([{**run, "report": fixed}])
@@ -76,3 +76,31 @@ def test_committed_files_never_name_other_teams():
             assert "url" not in e and e["name"].startswith("Repo ")
     ignore = (R.HERE / ".gitignore").read_text()
     assert "repos.private.yaml" in ignore and "private/" in ignore and "labels/repo-*.md" in ignore
+
+
+def test_claim_labels_in_the_teams_style(tmp_path, monkeypatch):
+    report = {**REPORT, "agent": {"claims": [
+        {"claim_id": "c1", "claim": "default search is Tavily", "quote": "By default it uses the Tavily search API",
+         "status": "unverified", "evidence": [], "reason": "no clear statement"},
+        {"claim_id": "c2", "claim": "launch command", "quote": "uvx --refresh langgraph dev --python 3.11",
+         "status": "verified", "evidence": [], "reason": "x"}]}}
+    (tmp_path / "labels").mkdir()
+    p = tmp_path / "labels" / "repo-y.md"
+    L.write_sheet(p, {"name": "Repo Y"}, "https://github.com/team/app", report, {"audit_id": "a", "phase": "deep",
+                                                                                 "date": "d"})
+    text = p.read_text().replace("Mark each", "Labels: AI-assisted, spot-checked by the team\n\nMark each")
+    i = text.index("## claim c1"); j = text.index("label: ?", i)
+    text = text[:j] + "label: wrong fail -- configuration.py sets default=SearchAPI.TAVILY" + text[j + 8:]
+    i = text.index("## claim c2"); j = text.index("label: ?", i)
+    text = text[:j] + "label: wrong pass -- not a claim, it's a shell command" + text[j + 8:]
+    p.write_text(text)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    run = {"id": "repo-y", "audit_id": "a", "phase": "deep", "report": report, "tokens": 1, "seconds": 1}
+    before = R.score_run([run])
+    assert before["claims"]["false_fails"] == 1 and before["claims"]["false_passes"] == 1
+    assert before["repos"][0]["labels"] == "AI-assisted, spot-checked by the team"
+    # after the fixes: the default is verified (reworded quote) and the command is no longer a claim
+    fixed = {**report, "agent": {"claims": [{**report["agent"]["claims"][0], "status": "verified",
+                                             "quote": "By default it uses the Tavily search API."}]}}
+    after = R.score_run([{**run, "report": fixed}])
+    assert after["claims"]["accuracy"] == 100.0 and after["claims"]["false_fails"] == 0
