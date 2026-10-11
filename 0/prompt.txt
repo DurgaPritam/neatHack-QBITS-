@@ -1,0 +1,38 @@
+<pasted_content id="a983">
+M2.5 is done. Read CLAUDE.md, then implement M3. Groq's daily quota is used up, so build
+and test everything against saved audits: do not make live LLM calls during M3.
+
+Backend prep (small, do first):
+1. Record/replay: save the real Groq responses from existing audits as fixtures and add
+   LLM_MODE=replay so the app and tests run without spending tokens.
+2. Quick-by-default: POST /api/audits runs only the quick phase. Add
+   POST /api/audits/{id}/deep to queue the deep phase (returns queue position and ETA).
+3. Daily token budget manager: track usage per model from Groq headers/429 messages,
+   keep a configurable reserve (BUDGET_RESERVE_PCT, default 25) that public traffic can't use
+   (only requests with an ADMIN_TOKEN header can use it, for demo and eval runs).
+4. Claim judging uses only models listed in JUDGE_MODELS. If none have budget, the deep
+   audit waits in the queue instead of falling back to a weaker model.
+5. Expose budget state in GET /api/stats: "normal", "busy" (deep queue long), or
+   "cooling" (LLM budget exhausted, templates in use).
+6. Add GET /api/audits/{id}/card.png (server-side roast card, Pillow) and GET /r/{id}
+   (HTML with Open Graph + Twitter card meta using card.png, redirecting to /a/{id}).
+
+Frontend (frontend/, Vite + React + TypeScript, plain CSS):
+- Home: headline "Get roasted before the judges do", repo URL input, live
+  "N repos roasted" counter, 3 example results from saved audits.
+- Audit page /a/{id}: live step log (poll every 1.5s), then the quick result.
+  "Run deep check" button -> shows queue position and ETA -> updates the result in place
+  with a "deep check complete" badge.
+- Result: big score + 5 rubric categories ("estimated" ones labelled), the roast,
+  "best thing about this repo", fix list ordered by points, claim results with evidence
+  (file:line, links, commits), and a "this verdict is wrong" button per check/claim.
+- Roast card 1200x630 (score, roast, repo name, #neatHack, our URL): PNG download via
+  html-to-image and a "Share on X" button with prefilled text using the /r/{id} link.
+- Honest states: when a verdict came from a template, label it ("Quick facts mode: the roast
+  oven is cooling, check back later for the full roast"); also private repo, not found,
+  queue busy, network error.
+- Bold, fun, high contrast, mobile friendly. No accounts.
+
+Test the full flow locally in replay mode on the 3 saved audits and the error cases.
+Commit after each working piece (no Co-Authored-By lines).
+</pasted_content id="a983">
