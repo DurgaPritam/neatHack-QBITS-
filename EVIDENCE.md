@@ -125,6 +125,12 @@ entire.io), README claims evidence (+2.9). The deep phase recovered from an inva
 `verify` (condensed final answer, recorded as `verify.invalid_json`) and the quick roast was rejected
 by the fact check once (`quick_verdict.roast_rejected`).
 
+After onboarding the repo on entire.io (mirrored on aws-ap-south-1 and aws-us-east-2), the
+checkpoint link opens (HTTP 200) and the self-audit `2b98e8ffae31` (commit `a67e64a`) scores
+**64 quick / 68 deep** with 0 dead links and 5 of 8 claims verified (19,858 deep tokens, 40.3 s).
+The LLM roast failed the fact check, so a fact-only template roast was used. Fixes left: demo video (+20),
+#neatHack posts (+3), neatlogs trace screenshots (+2.7), claim evidence (+3.7).
+
 Other production checks the same day:
 - **Demo video length via the YouTube Data API:** re-audit `6c596bffbbb7` of
   langchain-ai/open_deep_research reads **12:46** (`source: youtube_api`) and fails it as over 3:00.
