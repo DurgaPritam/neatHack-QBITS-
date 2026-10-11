@@ -1,0 +1,35 @@
+<pasted_content id="8f34">
+Status check: is Part A (M6) done and deployed? List which of these are live in production:
+daily deep-check caps, max 3 deep checks per repo per day, deep only on new commits,
+the "no new commits" reuse message, score progress (+N since last check), percentiles,
+and the /admin page. If any aren't done, finish and deploy them now, before the M5 fixes.
+</pasted_content id="8f34">
+
+---
+
+<pasted_content id="8f34">
+The open_deep_research label sheet is done (AI-assisted, spot-checked by us against
+src/open_deep_research/configuration.py). Record in evals that labels are
+"AI-assisted, spot-checked by the team".
+
+What it shows: the 9 rubric checks are all correct, but the claim judge is too strict
+(4 false fails out of 8) and treated a shell command as a claim. Fix these error types:
+
+1. Goalpost-moving: a claim is verified when evidence directly supports what the claim
+   actually says. Don't demand details the claim doesn't mention (e.g. "100 PhD-level tasks").
+2. Config files: for claims about defaults, options or support ("by default uses X",
+   "supports X"), always search config/settings files (configuration.py, settings, *.toml,
+   *.yaml, enums) and treat a default value, enum option or config class as direct evidence.
+3. Claim extraction: skip shell commands, install steps and code snippets; only extract
+   statements about what the project does or achieved.
+4. Verdict text must never cite the README as proof (it's where claims come from).
+5. Don't show stray single-word evidence bullets like "cost" in the check evidence.
+
+Then:
+- Re-run the eval on all labelled sheets and report before/after: rubric-check accuracy,
+  claim accuracy, false fails, false passes.
+- Tell me which sheets still have unlabelled lines, so I can label or spot-check them.
+- Add the before/after accuracy table to README.md and EVIDENCE.md (other teams anonymised),
+  deploy the fixes, and commit (no Co-Authored-By lines).
+- Before telling me to push, check that no committed file or checkpoint names other teams' repos.
+</pasted_content id="8f34">

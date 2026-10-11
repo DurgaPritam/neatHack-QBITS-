@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4NV1ZRM9Z0MNXTRWX6VVYD6",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "backend/app/agent/loop.py",
+    "backend/app/agent/prompts.py",
+    "backend/app/tools/rubric.py",
+    "backend/app/tools/search.py",
+    "backend/tests/test_agent.py",
+    "backend/tests/test_evals.py",
+    "backend/tests/test_rubric.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 88,
+    "cache_creation_tokens": 56736,
+    "cache_read_tokens": 20718291,
+    "output_tokens": 41506,
+    "api_call_count": 41
+  }
+}
