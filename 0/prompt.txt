@@ -1,0 +1,23 @@
+<pasted_content id="a983">
+I've added cfo.ai business plan files to the repo:
+- docs/cfo-ai-model.* (exported model)
+- docs/cfo-ai-notes-raw.md (Ari's summaries, pasted as-is)
+- evidence/cfo-*.png (screenshots)
+- Share link: https://cfo.ai/s/xBCsLLiMtconXUBf
+
+Please:
+1. Write docs/business-plan.md: a clean 1–2 page summary of the final model (v3):
+   customers and pricing (licenses + size-based event pricing + free tier),
+   real AI cost per audit ($0.005 quick, $0.02 deep, ~$0.0095 blended, measured from
+   our neatlogs traces and Groq prices), hosting, starting cash, break-even, runway,
+   gross margin, Main/Upside/Downside, and the key risks (slow sales in the downside,
+   hire only after a revenue target).
+   Include the v1 → v2 → v3 comparison table and explain what each correction changed.
+   Use the numbers from the latest summary in docs/cfo-ai-notes-raw.md.
+2. Update EVIDENCE.md under "cfo.ai" with the share link, the v1/v2/v3 headline numbers,
+   and links to the files and screenshots.
+3. Add a short "Business plan" section to README.md linking to docs/business-plan.md
+   and the cfo.ai share link.
+4. Make sure no account details or personal info from cfo.ai are in the files.
+Commit (no Co-Authored-By line) and push.
+</pasted_content id="a983">
