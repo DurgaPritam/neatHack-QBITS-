@@ -175,7 +175,8 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
         recent = db.recent_for_repo(repo_key, limits.REPO_COOLDOWN_S)
         # Per-repo cooldown: same commit (or unknown) -> hand back the recent audit, no new work.
         # A new push always gets a fresh audit (the per-IP limit still applies).
-        if recent and (head_sha is None or recent.get("commit_sha") in (None, head_sha)):
+        recent_sha = recent and (recent.get("commit_sha") or recent.get("head_sha"))  # older rows: head_sha only
+        if recent and (head_sha is None or recent_sha in (None, head_sha)):
             return {"id": recent["id"], "status": recent["status"], "cached": True, "cooldown": True}
 
     if not admin:
