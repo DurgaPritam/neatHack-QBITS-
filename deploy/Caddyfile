@@ -1,0 +1,35 @@
+# Caddy gets a real Let's Encrypt certificate for the sslip.io name automatically.
+{$SITE_DOMAIN:3-82-224-157.sslip.io} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+
+	# API and share pages go to the backend (Caddy sets X-Forwarded-For to the real client IP)
+	@backend path /api/* /r/*
+	handle @backend {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else: the built React app (single-page: unknown paths get index.html)
+	handle {
+		root * /srv
+		header /a/* X-Robots-Tag "noindex, nofollow"
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@pages not path /assets/*
+		header @pages Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

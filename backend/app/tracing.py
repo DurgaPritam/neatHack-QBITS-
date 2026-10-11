@@ -1,7 +1,7 @@
 """Thin wrapper around the neatlogs SDK so tracing never breaks an audit.
 
 - init_tracing(): one-time SDK init with a secret-redacting mask.
-- audit_context(): binds audit id + run kind ("test"/"real") to every span in an audit.
+- audit_context(): binds audit id + run kind ("test"/"real") + env ("prod"/"dev") to every span.
 - event(): a timestamped step (retry, fallback, ...) inside the current span.
 """
 import json
@@ -36,6 +36,11 @@ def redact(value):
     return value
 
 
+def deploy_env() -> str:
+    """Where this process runs: "prod" on the server, "dev" locally (NEATLOGS_ENV)."""
+    return config.env("NEATLOGS_ENV", "dev")
+
+
 def _mask(span: dict) -> dict:
     return redact(span)
 
@@ -54,7 +59,7 @@ def init_tracing(workflow_name: str = "prejudge") -> bool:
         neatlogs.init(
             api_key=config.NEATLOGS_API_KEY,
             workflow_name=workflow_name,
-            tags=["neatHack", "prejudge"],
+            tags=["neatHack", "prejudge", deploy_env()],
             mask=_mask,
         )
         _enabled = True
@@ -93,10 +98,10 @@ def audit_context(audit_id: str, run_kind: str, repo_url: str, phase: str = "aud
                     f"prejudge.{phase}",
                     session_id=audit_id,
                     **{
-                        "tag.tags": ["prejudge", run_kind],
+                        "tag.tags": ["prejudge", run_kind, deploy_env()],
                         "metadata": json.dumps(
                             {"audit_id": audit_id, "run_kind": run_kind, "repo_url": repo_url,
-                             "phase": phase}
+                             "phase": phase, "env": deploy_env()}
                         ),
                     },
                 ))

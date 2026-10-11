@@ -1,0 +1,69 @@
+# PreJudge production stack: backend (FastAPI) + Caddy (HTTPS, static frontend) + daily backup.
+# Lives in /home/ubuntu/prejudge on the server; scripts/deploy.sh copies it there.
+name: prejudge
+
+x-backend-image: &backend-image
+  build: ./backend
+  image: prejudge-backend:latest
+  env_file: .env
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  backend:
+    <<: *backend-image
+    restart: unless-stopped
+    environment:
+      PREJUDGE_DB: /data/prejudge.db
+    volumes:
+      - prejudge-data:/data
+    expose: ["8000"]
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  backup:
+    <<: *backend-image
+    restart: unless-stopped
+    command: ["python", "-m", "app.backup"]
+    environment:
+      PREJUDGE_DB: /data/prejudge.db
+      BACKUP_DIR: /backups
+      BACKUP_KEEP: "7"
+      NEATLOGS_API_KEY: ""
+    volumes:
+      - prejudge-data:/data:ro
+      - ./backups:/backups
+    mem_limit: 128m
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  prejudge-data:
+  caddy-data:
+  caddy-config:
