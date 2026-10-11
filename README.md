@@ -162,7 +162,7 @@ Trace links (these need a neatlogs login, so screenshots follow):
 
 ## Building in public
 
-> 🔗 **#neatHack post links:** _to add_
+- **#neatHack launch thread on X:** https://x.com/PritamLite/status/2109287438342582620
 
 ## Run it yourself
 

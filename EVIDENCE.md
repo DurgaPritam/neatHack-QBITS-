@@ -183,4 +183,4 @@ Other production checks the same day:
   lowest cash is $248 in Jan 2027, profitable every month from Feb 2027, $88,022 by Sep 2028.
 
 ## Building in public (#neatHack)
-- <post links>
+- Launch thread on X (#neatHack): https://x.com/PritamLite/status/2109287438342582620
