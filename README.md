@@ -49,7 +49,10 @@ binaries, `node_modules`, vendored code, lockfiles, symlinks and path traversal 
 extracts the README's claims and verifies each one with the agent tools in
 `backend/app/agent/tools.py`. `search_repo` (`backend/app/tools/search.py`) returns `file:line`
 snippets with context. A claim only counts as verified when the agent cites evidence it actually
-saw in the code; citing the README is not enough.
+saw in the code; citing the README is not enough. The failure-and-recovery check is judged here
+too (`verify_failure_recovery()` in `rubric.py`): a described run, what failed and what the agent did
+next, must be backed by a trace link, a screenshot in the repo, a log or retry/fallback code. The
+quick phase never scores it, so no one loses points for what it can't read.
 
 **Scoring** (`backend/app/scoring.py`) is plain code with the rubric weights: agent 30%, neatlogs +
 Entire + cfo.ai 25%, demo video 20%, building in public 15%, usefulness 10%. The LLM never sets the
@@ -170,7 +173,7 @@ cd ../frontend && npm install && npm run dev      # http://localhost:5173
 ```
 
 - CLI: `cd backend && .venv/bin/python -m app.cli <repo_url> --full`
-- Tests: `cd backend && .venv/bin/python -m pytest` (152 tests) and `cd frontend && ./e2e/run.sh`
+- Tests: `cd backend && .venv/bin/python -m pytest` (196 tests) and `cd frontend && ./e2e/run.sh`
   (Playwright, replay mode, no LLM tokens)
 - Deploy: [DEPLOY.md](DEPLOY.md) (EC2, Docker Compose, Caddy HTTPS, daily backups)
 
