@@ -312,6 +312,9 @@ def demo_video_fix(check: dict | None) -> str:
 def fix_text(candidate: dict, worded: str | None, checks_by_id: dict) -> str:
     """LLM wording if it's consistent with the facts, else a template."""
     cid = candidate["check_id"]
+    advice = (((checks_by_id.get(cid) or {}).get("data")) or {}).get("advice")
+    if advice:
+        return advice  # deterministic advice built from what the check actually found
     if cid == "demo_video":
         status = ((checks_by_id.get(cid) or {}).get("data") or {}).get("duration_status")
         if not worded or (status != "too_long" and _TOO_LONG_RX.search(worded)):

@@ -51,6 +51,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
     commits_truncated = False
     links: list[dict] = []
     videos_meta: list[dict] = []
+    entire_refs: dict | None = None
 
     async with GitHubClient(token=token, transport=transport) as gh:
         report["github_authenticated"] = gh.authenticated
@@ -122,6 +123,14 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             else:
                 log.skip("github.get_commits", f"API unavailable ({repo_error})")
 
+            if api_ok:
+                with log.step("github.get_entire_refs") as s:
+                    entire_refs = await gh.get_entire_refs(ref)
+                    s.detail = (f"{len(entire_refs['ids'])} checkpoint refs"
+                                + (f", branch {entire_refs['branch']}" if entire_refs["branch"] else ""))
+            else:
+                log.skip("github.get_entire_refs", f"API unavailable ({repo_error})")
+
             if readme:
                 with log.step("links.check") as s:
                     urls = extract_links(readme)
@@ -153,8 +162,9 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             rubric.check_readme(readme),
             rubric.check_commit_window(commits, commits_truncated),
             rubric.check_neatlogs_usage(dep_files, readme_text),
-            rubric.check_neatlogs_traces(links),
-            rubric.check_entire(tree_paths, readme_text, links),
+            rubric.check_neatlogs_traces(links, readme_text),
+            rubric.check_entire(tree_paths, readme_text, links, commits, entire_refs,
+                               (repo or {}).get("full_name") or ref.full_name),
             rubric.check_cfo_ai(readme_text, links),
             rubric.check_demo_video(links, videos_meta),
             rubric.check_public_posts(readme_text, links),

@@ -199,3 +199,4 @@ button { font: inherit; }
   .fixes li { flex-direction: column; gap: 6px; }
   .deep-panel { flex-direction: column; align-items: stretch; }
 }
+.check-advice { margin: 4px 0 0; }

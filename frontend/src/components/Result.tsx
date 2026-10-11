@@ -167,13 +167,17 @@ function Checks({ checks, report, auditId }: { checks: Check[]; report: Report; 
       <ul className="checks">
         {checks.map((c) => {
           const st = CHECK_STATUS[c.status] ?? { label: c.status, tone: 'muted' }
+          const notScored = c.data?.not_scored === true
+          const advice = typeof c.data?.advice === 'string' ? c.data.advice : null
           return (
             <li key={c.id} className="check">
               <div className="claim-head">
                 <span className={`pill tone-${st.tone}`}>{st.label}</span>
                 <span className="claim-text">{c.title}</span>
+                {notScored && <span className="tag-estimated" data-testid="not-scored">not scored</span>}
               </div>
               <p className="muted small">{c.detail}</p>
+              {advice && <p className="small check-advice">{advice}</p>}
               <EvidenceRefs refs={c.evidence.filter((e) => /^https?:|:\d+$/.test(e)).slice(0, 4)} report={report} />
               <FeedbackButton auditId={auditId} checkId={c.id} />
             </li>

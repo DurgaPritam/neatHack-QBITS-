@@ -9,6 +9,7 @@ convention from the organisers is needed). Scoring is NOT done here (M2).
 import re
 from datetime import datetime, timezone
 from pathlib import PurePosixPath
+from urllib.parse import urlparse
 
 # Source: neatlogs.com/hackathon
 WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
@@ -148,33 +149,140 @@ def check_neatlogs_usage(dep_files: dict[str, str], readme: str) -> dict:
     return _check("neatlogs_sdk", "tools", title, "fail", "no sign of neatlogs in dependencies or README")
 
 
-def check_neatlogs_traces(links: list[dict]) -> dict:
+_IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)|<img\b[^>]*\bsrc=[\"']([^\"']+)", re.I)
+_TRACE_WORDS = re.compile(r"neatlogs|trace", re.I)
+_LOGIN_PATH = re.compile(r"^/(auth|login|signin|sign-in)\b", re.I)
+
+
+def trace_screenshots(readme: str) -> list[str]:
+    """README-embedded images whose alt text or path mentions neatlogs/trace."""
+    out = []
+    for m in _IMAGE.finditer(readme or ""):
+        alt, src = m.group(1) or "", m.group(2) or m.group(3) or ""
+        if _TRACE_WORDS.search(alt) or _TRACE_WORDS.search(src):
+            out.append(src)
+    return out[:5]
+
+
+def needs_login(link: dict) -> bool:
+    """neatlogs answers a logged-out visitor with a redirect to /auth?intent=signin (or a 401)."""
+    final = urlparse(link.get("final_url") or link["url"])
+    return (bool(_LOGIN_PATH.search(final.path or "")) or "callbackUrl=" in (final.query or "")
+            or link.get("status") == 401)
+
+
+def check_neatlogs_traces(links: list[dict], readme: str = "") -> dict:
     title = "neatlogs trace links"
     traces = [l for l in links if l["kind"] == "neatlogs_trace"]
+    shots = trace_screenshots(readme)
     if not traces:
+        if shots:
+            return _check("neatlogs_traces", "tools", title, "pass",
+                          f"{len(shots)} trace screenshot(s) embedded in the README", shots)
         return _check("neatlogs_traces", "tools", title, "fail",
                       "no neatlogs trace links in README (judges expect links or screenshots)")
-    dead = [l["url"] for l in traces if l["ok"] is False]
+    login = [l for l in traces if needs_login(l)]
+    dead = [l["url"] for l in traces if l["ok"] is False and l not in login]
     if dead:
         return _check("neatlogs_traces", "tools", title, "fail", f"{len(dead)} trace link(s) are dead", dead)
-    # neatlogs is a SPA: HTTP 200 doesn't prove the trace is publicly viewable.
+    if login:
+        urls = [l["url"] for l in login]
+        if shots:
+            return _check("neatlogs_traces", "tools", title, "pass",
+                          f"{len(login)} trace link(s) need a neatlogs login, but the README embeds "
+                          f"{len(shots)} trace screenshot(s)", urls + shots, data={"visibility": "login_required"})
+        advice = ("Your neatlogs trace links are found, but not publicly viewable (they redirect to a "
+                  "login page). Add screenshots of the traces to the README or use a public share link.")
+        return _check("neatlogs_traces", "tools", title, "warn",
+                      f"{len(login)} trace link(s) found, but not publicly viewable: add screenshots "
+                      "or a public share link", urls, data={"visibility": "login_required", "advice": advice})
+    public = [l["url"] for l in traces if l["ok"] is True]
+    if public:
+        return _check("neatlogs_traces", "tools", title, "pass",
+                      f"{len(public)} trace link(s) open without a login redirect", public,
+                      data={"visibility": "public"})
     return _check("neatlogs_traces", "tools", title, "unverified",
-                  f"{len(traces)} trace link(s) reachable; public visibility not confirmed",
+                  f"{len(traces)} trace link(s); neatlogs didn't answer, so visibility is unknown",
                   [l["url"] for l in traces])
 
 
-def check_entire(tree_paths: list[str], readme: str, links: list[dict]) -> dict:
-    """STUB — how Entire checkpoints appear in a repo is not yet confirmed by the organisers.
+_CHECKPOINT_ID = re.compile(r"[0-9a-f]{12}|[0-9A-HJKMNP-TV-Z]{26}")  # branch backend | ref backend (ULID)
+_ENTIRE_ADVICE = ("Commit with Entire enabled (answer yes when it asks to link the commit), push so the "
+                  "checkpoints reach GitHub, then put a checkpoint link "
+                  "(https://entire.io/gh/OWNER/REPO/commit/FULL_SHA) and its checkpoint ID in the README.")
 
-    TODO(confirm on Discord): replace with the real convention (checkpoint ID format,
-    entire-graph output file, link shape). Until then this always returns "unverified"
-    and only reports hints it noticed.
+
+def check_entire(tree_paths: list[str], readme: str, links: list[dict], commits: list[dict] | None = None,
+                 refs: dict | None = None, repo_full_name: str = "") -> dict:
+    """Entire evidence, strongest first (format per docs.entire.io + hack.entire.io/neathacks-2026):
+    - commits carrying an `Entire-Checkpoint: <id>` trailer (12-hex or 26-char ULID ids)
+    - pushed checkpoint storage: refs/entire/checkpoints/<shard>/<id> or the entire/checkpoints/v1 branch
+    - a checkpoint link in the README: https://entire.io/gh/OWNER/REPO/commit/SHA (+ the ID)
+    The README alone never proves a checkpoint exists. When nothing is found in git we can't be sure
+    (unpushed refs, a failed lookup), so the result is "unverified" and not scored (no deduction).
     """
-    hints = [p for p in tree_paths if re.search(r"(^|/)\.?entire", p, re.I)][:5]
-    hints += [l["url"] for l in links if l["kind"] == "entire"][:5]
-    hints += _snippets(readme, re.compile(r"\bentire\b.{0,40}(checkpoint|graph)", re.I), 2)
-    return _check("entire_checkpoints", "tools", "Entire checkpoints / entire-graph output",
-                  "unverified", "STUB: Entire evidence format not yet confirmed; hints listed", hints)
+    title = "Entire checkpoints / entire-graph output"
+    tagged = [c for c in commits or [] if c.get("checkpoint")]
+    ref_ids = [i for i in (refs or {}).get("ids") or [] if _CHECKPOINT_ID.fullmatch(i)]
+    branch = (refs or {}).get("branch")
+    known = {c["checkpoint"] for c in tagged} | set(ref_ids)
+    repo_path = f"/gh/{repo_full_name.lower()}/" if repo_full_name else None
+    cp_links = [l for l in links if l["kind"] == "entire" and (
+        (repo_path and repo_path in l["url"].lower()) or "checkpoint" in l["url"].lower()
+        or any(i in l["url"] for i in known))]
+    readme_ids = sorted(i for i in known if i in (readme or ""))
+    config_files = [p for p in tree_paths if p.startswith(".entire/")][:5]
+
+    found = []
+    if tagged:
+        found.append(f"{len(tagged)} commit(s) carry an Entire-Checkpoint trailer")
+    if ref_ids:
+        found.append(f"{len(ref_ids)}{'+' if (refs or {}).get('more') else ''} checkpoint ref(s) pushed")
+    elif (refs or {}).get("ids"):  # other layouts (e.g. refs/entire/checkpoints/v2/...)
+        found.append(f"{len(refs['ids'])}{'+' if refs.get('more') else ''} checkpoint storage ref(s) pushed")
+    if branch:
+        found.append(f"checkpoint branch {branch} pushed")
+    example = None
+    if tagged and repo_full_name:
+        c = tagged[0]
+        example = f"https://entire.io/gh/{repo_full_name}/commit/{c['full_sha']} (checkpoint {c['checkpoint']})"
+    data = {"checkpoint_ids": sorted(known)[:10], "readme_ids": readme_ids}
+
+    if found:
+        evidence = ([f"{c['sha']} Entire-Checkpoint: {c['checkpoint']}" for c in tagged[:3]]
+                    + [l["url"] for l in cp_links][:3])
+        live = [l for l in cp_links if l["ok"] is not False]
+        if live or readme_ids:
+            shown = []
+            if live:
+                shown.append(f"{len(live)} checkpoint link(s)")
+            if readme_ids:
+                shown.append(f"checkpoint ID {readme_ids[0]} that matches the repo")
+            return _check("entire_checkpoints", "tools", title, "pass",
+                          "; ".join(found) + "; README shows " + " and ".join(shown), evidence, data)
+        if cp_links:
+            fix = example or "https://entire.io/gh/OWNER/REPO/commit/FULL_SHA"
+            return _check("entire_checkpoints", "tools", title, "warn",
+                          "; ".join(found) + "; but the README's checkpoint link is dead", evidence,
+                          {**data, "advice": f"Your Entire checkpoint link is dead; replace it with {fix}."})
+        advice = ("Entire checkpoints are in your git history, but the README doesn't link one. Add a "
+                  "checkpoint link and its ID" + (f", e.g. {example}" if example else "") + ".")
+        return _check("entire_checkpoints", "tools", title, "warn",
+                      "; ".join(found) + "; README has no checkpoint link or ID (judges ask for both)",
+                      evidence, {**data, "advice": advice})
+
+    # Nothing in git isn't proof of absence (unpushed refs, a failed lookup): don't deduct.
+    hints = [*config_files, *[l["url"] for l in cp_links][:3],
+             *_snippets(readme, re.compile(r"\bentire\b.{0,40}(checkpoint|graph)", re.I), 2)]
+    if refs is None and commits is None:
+        why = "couldn't read commits or checkpoint refs"
+    elif hints:
+        why = "Entire is mentioned or configured, but no checkpoints were found in pushed commits or refs"
+    else:
+        why = "no Entire checkpoints found in commits, refs or the README"
+    return _check("entire_checkpoints", "tools", title, "unverified",
+                  f"couldn't verify automatically: {why} (not scored)", hints,
+                  {**data, "not_scored": True, "advice": _ENTIRE_ADVICE})
 
 
 def check_cfo_ai(readme: str, links: list[dict]) -> dict:

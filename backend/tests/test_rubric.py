@@ -24,16 +24,45 @@ def test_injection_is_flagged():
     assert rubric.check_prompt_injection({"README.md": "A normal readme about judges."})["status"] == "pass"
 
 
-def test_entire_is_stub():
-    c = rubric.check_entire([".entire/checkpoints.json"], "", [])
-    assert c["status"] == "unverified" and "STUB" in c["detail"]
+def test_entire_nothing_found_is_unverified_and_not_scored():
+    c = rubric.check_entire([".entire/settings.json"], "", [], commits=[], refs={"ids": [], "branch": None})
+    assert c["status"] == "unverified" and c["data"]["not_scored"] and "couldn't verify" in c["detail"]
+    assert c["data"]["advice"] and ".entire/settings.json" in c["evidence"]
+
+
+def test_entire_trailers_and_readme_link():
+    commits = [{"sha": "abc123def456", "checkpoint": "01KXGTTNGCEACC83QZEJ5YAF0D",
+                "full_sha": "abc123def456" + "0" * 28}]
+    refs = {"ids": ["01KXGTTNGCEACC83QZEJ5YAF0D"], "branch": None}
+    # in git, but README links nothing (a hack.entire.io guide link doesn't count)
+    c = rubric.check_entire([], "", [link("https://hack.entire.io/neathacks-2026/")], commits, refs, "me/app")
+    assert c["status"] == "warn" and "entire.io/gh/me/app/commit/abc123def456" in c["data"]["advice"]
+    # README quotes a checkpoint ID that really exists
+    c = rubric.check_entire([], "Checkpoint 01KXGTTNGCEACC83QZEJ5YAF0D", [], commits, refs, "me/app")
+    assert c["status"] == "pass" and "matches the repo" in c["detail"]
+    c = rubric.check_entire([], "", [link("https://entire.io/gh/Me/App/commit/abc")], None, refs, "me/app")
+    assert c["status"] == "pass"
+    # a README ID that isn't in git proves nothing
+    c = rubric.check_entire([], "Checkpoint 01KXGTTNGCEACC83QZEJ5YAF0D", [], [], {"ids": [], "branch": None})
+    assert c["status"] == "unverified" and c["data"]["not_scored"]
+
+
+def test_neatlogs_login_wall_is_found_not_missing():
+    walled = {**link("https://app.neatlogs.com/traces/abc"),
+              "final_url": "https://app.neatlogs.com/auth?intent=signin&callbackUrl=%2Ftraces%2Fabc"}
+    c = rubric.check_neatlogs_traces([walled])
+    assert c["status"] == "warn" and "not publicly viewable" in c["detail"] and c["data"]["advice"]
+    c = rubric.check_neatlogs_traces([walled], "![neatlogs trace](docs/trace.png)")
+    assert c["status"] == "pass"
+    assert rubric.check_neatlogs_traces([], "<img src='img/neatlogs-run.png'>")["status"] == "pass"
+    assert rubric.check_neatlogs_traces([], "")["status"] == "fail"
 
 
 def test_tool_checks():
     links = [link("https://app.neatlogs.com/trace/1"), link("https://cfo.ai/plan/abc"),
              link("https://youtu.be/abc"), link("https://x.com/me/status/1")]
     readme = "Pricing, costs, revenue and runway. #neatHack"
-    assert rubric.check_neatlogs_traces(links)["status"] == "unverified"
+    assert rubric.check_neatlogs_traces(links)["status"] == "pass"  # no login redirect
     assert rubric.check_cfo_ai(readme, links)["status"] == "pass"
     assert rubric.check_demo_video(links)["status"] == "unverified"
     assert rubric.check_public_posts(readme, links)["status"] == "pass"

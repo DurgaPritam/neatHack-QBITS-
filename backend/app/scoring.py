@@ -56,7 +56,11 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
     for cat, items in ITEMS.items():
         cat_max = WEIGHTS[cat] * 100
         cat_claims = [c for c in claims if c.get("category") == cat]
-        weighted = list(items)
+        # A check that couldn't be verified automatically and is marked not_scored gives its
+        # weight to the rest of the category: no deduction for what we can't see.
+        skipped = {i for i, _ in items if ((by_id.get(i) or {}).get("data") or {}).get("not_scored")}
+        kept = sum(w for i, w in items if i not in skipped)
+        weighted = [(i, w / (kept or 1)) for i, w in items if i not in skipped]
         if cat_claims:
             weighted = [(i, w * (1 - CLAIMS_WEIGHT)) for i, w in items] + [("claims", CLAIMS_WEIGHT)]
         rows = []
@@ -87,6 +91,11 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
             if gain > 0.05 and not row["estimated"]:
                 fix_candidates.append({"check_id": item_id, "category": cat, "title": row["title"],
                                        "detail": row["detail"], "points": round(gain, 1)})
+        for item_id in skipped:
+            chk = by_id[item_id]
+            rows.append({"id": item_id, "max_points": 0, "estimated": False, "title": chk["title"],
+                         "status": chk["status"], "detail": chk["detail"], "credit": 0, "points": 0,
+                         "not_scored": True})
         pts = sum(r["points"] for r in rows)
         total += pts
         categories.append({"id": cat, "weight": WEIGHTS[cat], "max_points": cat_max,

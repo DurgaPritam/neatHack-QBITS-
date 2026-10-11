@@ -26,6 +26,9 @@ _URL_RE = re.compile(
 _SHORT_RE = re.compile(r"^([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)$")
 
 
+_CHECKPOINT_TRAILER = re.compile(r"^Entire-Checkpoint:\s*([0-9a-f]{12}|[0-9A-HJKMNP-TV-Z]{26})\s*$", re.M)
+
+
 class GitHubError(Exception):
     """kind: invalid_url | not_found | private | rate_limited | forbidden | network | http_error"""
 
@@ -220,22 +223,37 @@ class GitHubClient:
             batch = r.json()
             for c in batch:
                 info = c.get("commit", {})
-                commits.append(
-                    {
-                        "sha": c.get("sha", "")[:12],
-                        "message": (info.get("message") or "").splitlines()[0][:200]
-                        if info.get("message")
-                        else "",
-                        "author": (info.get("author") or {}).get("name"),
-                        "authored_at": (info.get("author") or {}).get("date"),
-                        "committed_at": (info.get("committer") or {}).get("date"),
-                    }
-                )
+                row = {
+                    "sha": c.get("sha", "")[:12],
+                    "message": (info.get("message") or "").splitlines()[0][:200]
+                    if info.get("message")
+                    else "",
+                    "author": (info.get("author") or {}).get("name"),
+                    "authored_at": (info.get("author") or {}).get("date"),
+                    "committed_at": (info.get("committer") or {}).get("date"),
+                }
+                trailer = _CHECKPOINT_TRAILER.search(info.get("message") or "")
+                if trailer:  # Entire links the commit to its session context with this trailer
+                    row["checkpoint"] = trailer.group(1)
+                    row["full_sha"] = c.get("sha", "")
+                commits.append(row)
             if len(batch) < 100:
                 break
             if page == MAX_COMMIT_PAGES:
                 truncated = 'rel="next"' in r.headers.get("link", "")
         return {"count": len(commits), "truncated": truncated, "commits": commits}
+
+
+    @span("TOOL", "github.get_entire_refs")
+    async def get_entire_refs(self, ref: RepoRef) -> dict:
+        """Entire checkpoint storage pushed to GitHub: refs/entire/checkpoints/<shard>/<id>
+        (ref backend) and/or the entire/checkpoints/v1 branch (branch backend)."""
+        refs = (await self._get(f"{API}/repos/{ref.full_name}/git/matching-refs/entire/checkpoints",
+                                params={"per_page": 100})).json()
+        heads = (await self._get(f"{API}/repos/{ref.full_name}/git/matching-refs/heads/entire/checkpoints")).json()
+        ids = [r["ref"].rsplit("/", 1)[-1] for r in refs if isinstance(r, dict) and r.get("ref")]
+        return {"ids": ids, "more": len(ids) >= 100,
+                "branch": next((h["ref"][len("refs/heads/"):] for h in heads if isinstance(h, dict)), None)}
 
 
 def _decode(content_payload: dict) -> str:

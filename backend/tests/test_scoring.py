@@ -52,3 +52,16 @@ def test_claims_feed_their_category():
 def test_injection_neutralises_estimates():
     s = compute_score(checks(), estimates=GOOD_EST, injection_detected=True)
     assert s["estimated_points"] == 7.0 and s["flags"]["prompt_injection"]
+
+
+def test_not_scored_check_gives_its_weight_to_the_category():
+    base = compute_score(checks(), estimates=GOOD_EST)
+    c = checks()
+    entire = next(x for x in c if x["id"] == "entire_checkpoints")
+    entire.update(status="unverified", data={"not_scored": True})
+    s = compute_score(c, estimates=GOOD_EST)
+    assert s["score"] == base["score"]  # no deduction
+    tools = next(cat for cat in s["categories"] if cat["id"] == "tools")
+    row = next(r for r in tools["items"] if r["id"] == "entire_checkpoints")
+    assert row["not_scored"] and row["max_points"] == 0
+    assert all(f["check_id"] != "entire_checkpoints" for f in s["fix_candidates"])
