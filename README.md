@@ -77,6 +77,25 @@ recorded as an `llm.<purpose>.fallback` step. Other errors get exponential backo
 recorded as steps, and the user always gets at least a partial report. Per-IP limits, a deep-queue
 cap and a per-repo cooldown protect the shared budget (`backend/app/limits.py`).
 
+**Protecting the budget and reusing results** (M6):
+- **Daily caps** (env): total deep checks per day, 3 per repo per day, and a token cap for public
+  traffic. The admin reserve is kept separate. Every limit answers with a friendly message ("Today's
+  deep checks are used up. Your quick result is ready; try the deep check tomorrow").
+- **Same commit, same result:** if a repo's latest commit (and the check logic) hasn't changed,
+  PreJudge hands back the stored audit with no LLM calls, however old it is ("No new commits since
+  your last check 3 hours ago…"). Tokens saved this way are counted. A deep check whose claim judging
+  failed is never reused.
+- **Priority:** repos with commits inside the hackathon window go first in the deep queue.
+- **Progress:** a re-check after a push shows "+22 since your last check (46 → 68)" and the checks that
+  were fixed. Quick scores are compared with quick ones and deep with deep. A positive delta also
+  appears on the roast card.
+- **Percentiles:** "Your score beats 62% of neatHack repos we've checked", plus per-check rates such as
+  "Only 34% of teams have a demo under 3:00". These are anonymous: computed over the latest real audit
+  of each repo with commits in the window, shown only from 15 repos, never naming a repo, and with no
+  leaderboard.
+- **`/admin`** (token kept in memory only): budget per model, deep checks against the cap, queues,
+  tokens saved, limit hits, projects, recent audits, feedback and per-day metrics.
+
 ## How we use neatlogs, Entire and cfo.ai
 
 ### neatlogs
@@ -174,7 +193,7 @@ cd ../frontend && npm install && npm run dev      # http://localhost:5173
 ```
 
 - CLI: `cd backend && .venv/bin/python -m app.cli <repo_url> --full`
-- Tests: `cd backend && .venv/bin/python -m pytest` (196 tests) and `cd frontend && ./e2e/run.sh`
+- Tests: `cd backend && .venv/bin/python -m pytest` (226 tests) and `cd frontend && ./e2e/run.sh`
   (Playwright, replay mode, no LLM tokens)
 - Deploy: [DEPLOY.md](DEPLOY.md) (EC2, Docker Compose, Caddy HTTPS, daily backups)
 
