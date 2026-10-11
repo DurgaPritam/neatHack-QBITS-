@@ -78,8 +78,8 @@ def attach_progress(audit_id: str, repo_key: str | None, run_kind: str, created_
         return result
     try:
         # the most recent earlier audit with a score from the same phase
-        p = next((x for x in (progress(prev, result) for prev in
-                              db.previous_audits(repo_key, created_at, audit_id, run_kind)) if x), None)
+        prevs = [r for r in db.previous_audits(repo_key, created_at, audit_id, run_kind) if not db._degraded(r)]
+        p = next((x for x in (progress(prev, result) for prev in prevs) if x), None)
     except Exception:
         p = None
     if p:

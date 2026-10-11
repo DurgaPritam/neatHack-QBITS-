@@ -299,3 +299,12 @@ def test_old_degraded_rows_are_detected_from_steps(repo):
               result={"checks_version": CHECKS_VERSION, "score": {"score": 1}})
     assert db.find_deep_result("team/old", "s9", CHECKS_VERSION) is None
     assert db.find_reusable("team/old", "s9", CHECKS_VERSION) is None
+
+
+def test_progress_skips_degraded_runs(repo):
+    for i, (score, steps) in enumerate([(68, []), (61, [{"name": "verify.llm_failed", "status": "failed"}])]):
+        db.create(f"prev{i:08d}", "https://github.com/team/p", "team/p", f"s{i}", "real", status="complete",
+                  steps=steps, result={"phase": "complete", "score": {"score": score}, "checks": []})
+    out = history.attach_progress("new000000000", "team/p", "real", "9999",
+                                  {"phase": "complete", "mode": "full", "score": {"score": 66}, "checks": []})
+    assert out["progress"]["text"] == "-2 since your last check (68 → 66)"
