@@ -37,7 +37,7 @@ def test_facts_have_anchors_and_unknowns_are_marked():
     facts = R.build_facts(REPORT)
     text = " ".join(f["fact"] for f in facts)
     assert "37 before it started" in text and "3 of 33" in text
-    assert "UNKNOWN" in text and "Private video" in text
+    assert "UNKNOWN" in text and "Private video" not in text  # raw tool errors never reach the model
     assert any("2025-03-11" in f["anchors"] for f in facts)
 
 

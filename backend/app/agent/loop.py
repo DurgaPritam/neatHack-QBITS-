@@ -302,8 +302,10 @@ def demo_video_fix(check: dict | None) -> str:
         return (f"Your demo runs {data.get('duration')}; cut it to 3:00 or less and make sure it shows "
                 "neatlogs, Entire and cfo.ai.")
     if status == "unknown":
-        return (f"We couldn't read the demo's length ({data.get('reason') or 'unknown reason'}). Make sure "
-                "the video is public, at most 3:00, and state its length in the README.")
+        from app.tools.rubric import VIDEO_UNKNOWN_ADVICE
+        return f"{data.get('reason') or 'We could not read the video length.'} {VIDEO_UNKNOWN_ADVICE}"
+    if status == "unwatchable":
+        return f"{data.get('reason')} Make it public (or unlisted) and check the link in a private window."
     if status == "dead_link":
         return "The demo video link is dead; re-upload it (at most 3:00) and fix the README link."
     return TEMPLATE_FIXES["demo_video"]

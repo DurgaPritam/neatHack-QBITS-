@@ -41,7 +41,9 @@ from app import budget, config, db, limits, replay
 from app.card import render_card
 from app.jobs import AuditQueues
 from app.llm import POOL, configured_models
+from app.public import public_steps
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
+from app.tools.rubric import CHECKS_VERSION
 from app.tracing import flush, init_tracing
 
 queues = AuditQueues()
@@ -160,6 +162,8 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
 
     if head_sha:
         cached = db.find_cached(repo_key, head_sha)
+        if cached and (cached["result"] or {}).get("checks_version") != CHECKS_VERSION:
+            cached = None  # audited with older check logic: run it again
         if cached:
             result = {**cached["result"], "audit_id": audit_id, "cached_from": cached["id"]}
             deep = "done" if cached["status"] == "complete" else "available"
@@ -176,7 +180,10 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
         # Per-repo cooldown: same commit (or unknown) -> hand back the recent audit, no new work.
         # A new push always gets a fresh audit (the per-IP limit still applies).
         recent_sha = recent and (recent.get("commit_sha") or recent.get("head_sha"))  # older rows: head_sha only
-        if recent and (head_sha is None or recent_sha in (None, head_sha)):
+        # still running (so it's on the current code), or finished with the current check logic
+        current = recent and (recent["status"] == "queued"
+                              or (recent["result"] or {}).get("checks_version") == CHECKS_VERSION)
+        if current and (head_sha is None or recent_sha in (None, head_sha)):
             return {"id": recent["id"], "status": recent["status"], "cached": True, "cooldown": True}
 
     if not admin:
@@ -215,7 +222,8 @@ def request_deep(audit_id: str, request: Request, x_admin_token: str | None = He
 
 @app.get("/api/audits/{audit_id}", responses={404: {"description": "Audit not found"}})
 def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -> dict:
-    row = _get(audit_id, is_admin(x_admin_token))
+    admin = is_admin(x_admin_token)
+    row = _get(audit_id, admin)
     return {
         "hidden": bool(row.get("hidden")),
         "id": row["id"],
@@ -226,7 +234,7 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "cached": row["cached_from"] is not None,
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
-        "steps": row["steps"],
+        "steps": row["steps"] if admin else public_steps(row["steps"]),  # raw errors: admins only
         "result": row["result"],
         "error": row["error"],
     }

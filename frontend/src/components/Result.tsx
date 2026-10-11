@@ -47,6 +47,11 @@ function ScoreBlock({ report, deep }: { report: Report; deep: boolean }) {
           ) : (
             <span className="badge">Quick check</span>
           )}
+          {s.scored_max != null && s.scored_max < 100 && (
+            <span className="badge badge-muted" data-testid="rescaled-badge">
+              Scored on the {s.scored_max} points we could check, scaled to 100
+            </span>
+          )}
           {s.estimated_points > 0 && (
             <span className="badge badge-muted" data-testid="estimate-badge">
               {placeholders
@@ -67,13 +72,14 @@ function ScoreBlock({ report, deep }: { report: Report; deep: boolean }) {
                     {estimated && <span className="tag-estimated">{placeholders ? 'placeholder' : 'estimated'}</span>}
                   </span>
                   <span className="cat-pts">
-                    {c.points} / {c.max_points}
+                    {c.not_scored ? <span className="muted" data-testid="cat-not-scored">not scored</span>
+                      : `${c.points} / ${c.max_points}`}
                   </span>
                 </div>
-                <div className="bar" role="meter" aria-valuenow={c.points} aria-valuemin={0} aria-valuemax={c.max_points}
+                {!c.not_scored && <div className="bar" role="meter" aria-valuenow={c.points} aria-valuemin={0} aria-valuemax={c.max_points}
                      aria-label={CATEGORY_LABELS[c.id] ?? c.id}>
                   <span className={`bar-fill tone-${scoreTone(pct)}`} style={{ width: `${pct}%` }} />
-                </div>
+                </div>}
               </li>
             )
           })}

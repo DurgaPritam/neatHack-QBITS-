@@ -32,6 +32,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
         "repo_url": repo_url,
         "audited_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "mode": "deterministic",
+        "checks_version": rubric.CHECKS_VERSION,
         "window": {"start": rubric.WINDOW_START.isoformat(), "end": rubric.WINDOW_END.isoformat()},
     }
 
@@ -141,8 +142,8 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
                 if video_links:
                     with log.step("video.duration") as s:
                         videos_meta = list(await asyncio.gather(*(get_duration(u) for u in video_links)))
-                        s.detail = "; ".join(f"{m['duration'] or 'unknown'}"
-                                             + (f" ({m['reason']})" if m["reason"] else "") for m in videos_meta)
+                        s.detail = "; ".join(m["duration"] or m["reason"] or "unknown" for m in videos_meta)
+                        s.data["sources"] = [m.get("source") or m.get("reason_code") for m in videos_meta]
                         if all(m["status"] == "unknown" for m in videos_meta):
                             s.status, s.error_kind = "failed", "duration_unknown"
             else:
@@ -166,7 +167,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             rubric.check_entire(tree_paths, readme_text, links, commits, entire_refs,
                                (repo or {}).get("full_name") or ref.full_name),
             rubric.check_cfo_ai(readme_text, links),
-            rubric.check_demo_video(links, videos_meta),
+            rubric.check_demo_video(links, videos_meta, readme_text),
             rubric.check_public_posts(readme_text, links),
             rubric.check_before_after(readme_text),
             rubric.check_failure_run(readme_text),

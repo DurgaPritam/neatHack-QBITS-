@@ -105,9 +105,14 @@ def build_facts(report: dict, claim_results: list[dict] | None = None) -> list[d
         st = data.get("duration_status")
         if st in ("known", "too_long"):
             facts.append(_fact(f"demo video runs {data['duration']} (limit 3:00)", data["duration"]))
+        elif st == "self_reported":
+            facts.append(_fact(f"the README says the demo video is {data['duration']} (we couldn't time it "
+                               "ourselves)", data["duration"]))
+        elif st == "unwatchable":
+            facts.append(_fact("the demo video can't be watched (private or removed)", "private", "removed"))
         elif st == "unknown":
-            facts.append(_fact(f"demo video link works but its length is UNKNOWN ({data.get('reason')}); "
-                               "do not guess its length"))
+            facts.append(_fact("demo video link works but its length is UNKNOWN; do not guess its length "
+                               "and do not call it missing"))
         elif st == "no_video":
             facts.append(_fact("no demo video link in the README", "no demo video", "no video"))
         elif st == "dead_link":

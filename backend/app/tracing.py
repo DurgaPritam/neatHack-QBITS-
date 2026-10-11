@@ -17,7 +17,7 @@ _enabled = False
 
 _SECRET_RX = re.compile(
     r"(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|gsk_[A-Za-z0-9]{20,}"
-    r"|ygbnp_[A-Za-z0-9]{16,}|Bearer\s+[A-Za-z0-9._\-]{16,})"
+    r"|ygbnp_[A-Za-z0-9]{16,}|AIza[0-9A-Za-z_\-]{30,}|Bearer\s+[A-Za-z0-9._\-]{16,})"
 )
 
 
@@ -25,7 +25,8 @@ def redact(value):
     """Recursively replace anything that looks like one of our secrets."""
     if isinstance(value, str):
         out = _SECRET_RX.sub("[REDACTED]", value)
-        for secret in (config.GITHUB_TOKEN, config.GROQ_API_KEY, config.NEATLOGS_API_KEY):
+        for secret in (config.GITHUB_TOKEN, config.GROQ_API_KEY, config.NEATLOGS_API_KEY,
+                       config.env("YOUTUBE_API_KEY")):
             if secret and len(secret) > 8:
                 out = out.replace(secret, "[REDACTED]")
         return out

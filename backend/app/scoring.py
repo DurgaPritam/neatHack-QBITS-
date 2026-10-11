@@ -61,6 +61,15 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
         skipped = {i for i, _ in items if ((by_id.get(i) or {}).get("data") or {}).get("not_scored")}
         kept = sum(w for i, w in items if i not in skipped)
         weighted = [(i, w / (kept or 1)) for i, w in items if i not in skipped]
+        if not weighted:
+            # Nothing in this category could be checked (e.g. the demo video's length is unknown):
+            # leave the whole category out and rescale the total below.
+            rows = [{"id": i, "max_points": 0, "estimated": False, "title": by_id[i]["title"],
+                     "status": by_id[i]["status"], "detail": by_id[i]["detail"], "credit": 0, "points": 0,
+                     "not_scored": True} for i, _ in items]
+            categories.append({"id": cat, "weight": WEIGHTS[cat], "max_points": 0, "points": 0,
+                               "not_scored": True, "items": rows})
+            continue
         if cat_claims:
             weighted = [(i, w * (1 - CLAIMS_WEIGHT)) for i, w in items] + [("claims", CLAIMS_WEIGHT)]
         rows = []
@@ -101,6 +110,9 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
         categories.append({"id": cat, "weight": WEIGHTS[cat], "max_points": cat_max,
                            "points": round(pts, 1), "items": rows})
 
+    scored_max = sum(c["max_points"] for c in categories)
+    if 0 < scored_max < 100:
+        total = total * 100 / scored_max
     repo_check = by_id.get("repo_public")
     gated = bool(repo_check and repo_check["status"] == "fail")
     estimated_points = sum(r["points"] for c in categories for r in c["items"] if r["estimated"])
@@ -111,6 +123,7 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
         "gated": gated,
         "gate_reason": repo_check["detail"] if gated else None,
         "estimated_points": round(estimated_points, 1),
+        "scored_max": round(scored_max, 1),   # < 100 when a whole category couldn't be checked
         "categories": categories,
         "fix_candidates": [] if gated else fix_candidates,
         "flags": {"prompt_injection": injection_detected},

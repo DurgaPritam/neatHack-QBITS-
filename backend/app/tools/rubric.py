@@ -15,6 +15,9 @@ from urllib.parse import urlparse
 WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
 WINDOW_END = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)   # 23:55 IST
 
+# Bump when check logic changes: cached audits from an older version are not reused.
+CHECKS_VERSION = "2026-10-11.3"
+
 WEIGHTS = {
     "agent": 0.30,
     "tools": 0.25,              # neatlogs + Entire + cfo.ai
@@ -315,10 +318,36 @@ def check_cfo_ai(readme: str, links: list[dict]) -> dict:
 
 # ---------------------------------------------------------------- demo video
 
-def check_demo_video(links: list[dict], videos_meta: list[dict] | None = None) -> dict:
-    """Pass if a live video is <= 3:00; fail if none, dead, or every known duration is too long;
-    unverified (with the reason) when the duration can't be read. Never guesses a length."""
-    from app.tools.video import MAX_DEMO_SECONDS, fmt_duration
+_VIDEO_WORDS = re.compile(r"\b(demo|video|walkthrough|screencast)\b", re.I)
+_CLOCK = re.compile(r"(?<![\d:])(\d{1,2}):([0-5]\d)(?![\d:])(?!\s*(?:am|pm|ist|utc|gmt)\b)", re.I)
+_MIN_SEC = re.compile(r"\b(\d{1,2})\s*(?:m|min|mins|minutes?)\b(?:\s*(?:and\s*)?(\d{1,2})\s*(?:s|sec|secs|seconds?)\b)?", re.I)
+
+
+def self_reported_length(readme: str) -> tuple[int, str] | None:
+    """A demo length the README states on a line about the demo/video ('Demo: 2:45',
+    '2 min 45 s video'). -> (seconds, the line), first match."""
+    for line in (readme or "").splitlines():
+        if not _VIDEO_WORDS.search(line):
+            continue
+        m = _CLOCK.search(line)
+        if m:
+            return int(m.group(1)) * 60 + int(m.group(2)), " ".join(line.split())[:160]
+        m = _MIN_SEC.search(line)
+        if m:
+            return int(m.group(1)) * 60 + int(m.group(2) or 0), " ".join(line.split())[:160]
+    return None
+
+
+VIDEO_UNKNOWN_ADVICE = ("Make sure the video is public and mention its length (e.g. 'Demo: 2:45') in your "
+                        "README.")
+
+
+def check_demo_video(links: list[dict], videos_meta: list[dict] | None = None, readme: str = "") -> dict:
+    """Pass if a live video is <= 3:00; fail if none, dead, unwatchable (private/removed) or every
+    known duration is too long. When the length can't be read, a length stated in the README
+    counts as "self-reported"; otherwise the item is not scored (no deduction) and we give advice.
+    Never guesses a length, never shows raw tool errors (reasons come from video.FRIENDLY)."""
+    from app.tools.video import GONE, MAX_DEMO_SECONDS, fmt_duration
 
     title = "Demo video (<= 3 min, covers all three tools)"
     videos = [l for l in links if l["kind"] == "video"]
@@ -338,17 +367,40 @@ def check_demo_video(links: list[dict], videos_meta: list[dict] | None = None) -
         return _check("demo_video", "demo_video", title, "pass",
                       f"video is {m['duration']} (limit {limit}); whether it covers all three tools isn't checked",
                       [m["url"]], data={"duration_status": "known", "duration_s": m["duration_s"],
-                                        "duration": m["duration"]})
+                                        "duration": m["duration"], "source": m.get("source")})
     if known and len(known) == len(meta) and meta:
         m = min(known, key=lambda v: v["duration_s"])
         return _check("demo_video", "demo_video", title, "fail",
                       f"video is {m['duration']}, over the {limit} limit",
                       [m["url"]], data={"duration_status": "too_long", "duration_s": m["duration_s"],
-                                        "duration": m["duration"]})
-    reason = next((m["reason"] for m in meta if m["status"] == "unknown"), None) or "duration not checked"
+                                        "duration": m["duration"], "source": m.get("source")})
+    gone = [m for m in meta if m.get("reason_code") in GONE]
+    if meta and len(gone) == len(meta):
+        return _check("demo_video", "demo_video", title, "fail", f"judges can't watch the video: {gone[0]['reason']}",
+                      [m["url"] for m in gone], data={"duration_status": "unwatchable", "reason": gone[0]["reason"],
+                                                     "advice": "Make the demo video public (or unlisted) and "
+                                                               "check the link in a private browser window."})
+    reason = next((m["reason"] for m in meta if m["status"] == "unknown" and m.get("reason")), None) \
+        or "We didn't check the video length."
+    stated = self_reported_length(readme)
+    if stated:
+        seconds, line = stated
+        if seconds <= MAX_DEMO_SECONDS:
+            return _check("demo_video", "demo_video", title, "pass",
+                          f"video is {fmt_duration(seconds)} (self-reported in the README; {reason[0].lower()}{reason[1:]})",
+                          [l["url"] for l in live] + [line],
+                          data={"duration_status": "self_reported", "duration_s": seconds,
+                                "duration": fmt_duration(seconds), "reason": reason})
+        return _check("demo_video", "demo_video", title, "fail",
+                      f"the README says the video is {fmt_duration(seconds)}, over the {limit} limit (self-reported)",
+                      [l["url"] for l in live] + [line],
+                      data={"duration_status": "too_long", "self_reported": True, "duration_s": seconds,
+                            "duration": fmt_duration(seconds)})
     return _check("demo_video", "demo_video", title, "unverified",
-                  f"video link live; duration unknown ({reason})",
-                  [l["url"] for l in live], data={"duration_status": "unknown", "reason": reason})
+                  f"video link works; length unknown: {reason} (not scored)",
+                  [l["url"] for l in live],
+                  data={"duration_status": "unknown", "reason": reason, "not_scored": True,
+                        "advice": VIDEO_UNKNOWN_ADVICE})
 
 
 # ---------------------------------------------------------------- building in public

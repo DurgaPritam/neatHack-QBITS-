@@ -37,6 +37,7 @@ export interface Category {
   weight: number
   max_points: number
   points: number
+  not_scored?: boolean // nothing in it could be checked: left out, total rescaled
   items: ScoreItem[]
 }
 
@@ -46,6 +47,7 @@ export interface Score {
   gated: boolean
   gate_reason: string | null
   estimated_points: number
+  scored_max?: number // < 100 when a category was left out
   categories: Category[]
 }
 

@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import db, jobs, limits, main
+from app.tools.rubric import CHECKS_VERSION
 
 
 class Gate:
@@ -28,6 +29,7 @@ def client(tmp_path, monkeypatch):
         await asyncio.sleep(0.02)
         source = "template" if "flaky" in repo_url else "llm"
         return {"audit_id": audit_id, "repo_url": repo_url, "phase": "quick", "score": {"score": 30},
+                "checks_version": CHECKS_VERSION,
                 "verdict": {"source": source, "roast": "quick roast"}, "steps": steps.to_list()}
 
     async def fake_deep(report, ctx, steps, use_reserve=False):
@@ -354,3 +356,23 @@ def test_public_counter_excludes_builtin_examples(client):
     aid = post(client, "https://github.com/acme/demo").json()["id"]
     wait_for(client, aid, ("quick_ready",))
     assert client.get("/api/stats").json()["total_audits"] == 1
+
+
+def test_raw_step_errors_only_for_admins(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    row = db.get(aid)
+    db.update(aid, steps=row["steps"] + [{"name": "llm.verify", "status": "failed", "error_kind": "rate_limited",
+                                          "detail": "Error code: 429 - {'error': 'raw'}", "duration_ms": 1, "data": {}}])
+    public = client.get(f"/api/audits/{aid}").json()["steps"][-1]["detail"]
+    admin = client.get(f"/api/audits/{aid}", headers=ADMIN).json()["steps"][-1]["detail"]
+    assert "Error code" not in public and "Error code" in admin
+
+
+def test_results_from_older_check_logic_are_not_reused(client):
+    first = post(client, "https://github.com/acme/demo").json()
+    wait_for(client, first["id"], ("quick_ready",))
+    row = db.get(first["id"])
+    db.update(first["id"], result={**row["result"], "checks_version": "old"})
+    again = post(client, "https://github.com/acme/demo").json()
+    assert again["cached"] is False and again["id"] != first["id"]
