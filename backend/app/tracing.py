@@ -4,6 +4,8 @@
 - audit_context(): binds audit id + run kind ("test"/"real") + env ("prod"/"dev") to every span.
 - event(): a timestamped step (retry, fallback, ...) inside the current span.
 """
+import functools
+import inspect
 import json
 import logging
 import re
@@ -74,14 +76,29 @@ def init_tracing(workflow_name: str = "prejudge") -> bool:
 
 
 def span(kind: str, name: str | None = None, **kwargs):
-    """neatlogs.span decorator, or a no-op if the SDK can't be imported."""
+    """neatlogs.span decorator, used only once init_tracing() has succeeded.
+
+    The decision is made per call, not at import: the SDK bootstraps its own exporter
+    from os.environ["NEATLOGS_API_KEY"] when a decorated function runs, even without
+    neatlogs.init(). Gating on _enabled keeps tests and key-less runs from exporting.
+    """
     def deco(fn):
         try:
             import neatlogs
 
-            return neatlogs.span(kind, name, **kwargs)(fn)
+            traced = neatlogs.span(kind, name, **kwargs)(fn)
         except Exception:
             return fn
+        if inspect.iscoroutinefunction(fn):
+            @functools.wraps(fn)
+            async def async_gate(*a, **kw):
+                return await (traced if _enabled else fn)(*a, **kw)
+            return async_gate
+
+        @functools.wraps(fn)
+        def gate(*a, **kw):
+            return (traced if _enabled else fn)(*a, **kw)
+        return gate
 
     return deco
 

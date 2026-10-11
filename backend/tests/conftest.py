@@ -2,9 +2,15 @@
 import os
 import tempfile
 
-import pytest
+# Before app.config runs load_dotenv (which never overrides a variable that is already set):
+# the neatlogs SDK reads NEATLOGS_API_KEY from os.environ by itself and would start exporting.
+for _key in ("NEATLOGS_API_KEY", "GROQ_API_KEY", "GITHUB_TOKEN", "YOUTUBE_API_KEY"):
+    os.environ[_key] = ""
+os.environ["NEATLOGS_DISABLE_EXPORT"] = "true"
 
-from app import config, db
+import pytest  # noqa: E402
+
+from app import config, db  # noqa: E402
 
 config.NEATLOGS_API_KEY = ""
 # Tests pin their own settings instead of inheriting the developer's .env
