@@ -46,10 +46,17 @@ def extract_links(text: str) -> list[str]:
     return list(seen)[:MAX_LINKS]
 
 
+_TRACE_PATH = re.compile(r"/(traces?|sessions?|spans?|share)\b", re.I)
+
+
 def classify(url: str) -> str:
-    host = (urlparse(url).hostname or "").lower()
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
     for kind, rx in _KINDS:
         if rx.search(host):
+            # a neatlogs homepage or docs link isn't a trace
+            if kind == "neatlogs_trace" and not _TRACE_PATH.search(parsed.path or ""):
+                return "other"
             return kind
     return "other"
 

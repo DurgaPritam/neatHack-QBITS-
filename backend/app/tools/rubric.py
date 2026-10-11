@@ -374,9 +374,19 @@ _FAILURE = re.compile(r"\b(fail(ed|ure|s)?|retr(y|ied|ies)|fallback|recover(s|ed
 
 
 def check_before_after(readme: str) -> dict:
+    """Numbers may sit next to the words or in the table rows that follow a Before | After header."""
     title = "Before/after runs with numbers compared"
-    hits = _snippets(readme, _BEFORE_AFTER, 3, 40)
-    with_numbers = [h for h in hits if _NUMBER.search(h)]
+    text = readme or ""
+    hits = _snippets(text, _BEFORE_AFTER, 3, 40)
+    with_numbers = []
+    for m in _BEFORE_AFTER.finditer(text):
+        window = text[max(0, m.start() - 40):m.end() + 400]
+        num = _NUMBER.search(window)
+        if num:
+            row = window[:num.end() + 20].splitlines()
+            with_numbers.append(" ".join(" ".join(row[:1] + row[-1:]).split())[:200])
+        if len(with_numbers) >= 3:
+            break
     if with_numbers:
         return _check("before_after", "agent", title, "pass", "before/after comparison with numbers found",
                       with_numbers)

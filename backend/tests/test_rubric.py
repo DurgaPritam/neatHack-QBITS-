@@ -74,6 +74,15 @@ def test_tool_checks():
     assert rubric.check_dead_links(links + [link("https://example.com/x", ok=False)])["status"] == "fail"
 
 
+def test_before_after_table_and_neatlogs_link_kinds():
+    table = "| Change | Before | After |\n|---|---|---|\n| first result | 52 s | 5.5 s |\n"
+    assert rubric.check_before_after(table)["status"] == "pass"
+    assert rubric.check_before_after("| Change | Before | After |\n|---|---|---|\n| vibes | meh | good |")["status"] == "warn"
+    assert classify("https://neatlogs.com") == "other"
+    assert classify("https://docs.neatlogs.com/quickstart") == "other"
+    assert classify("https://app.neatlogs.com/traces/abc?orgId=1") == "neatlogs_trace"
+
+
 def test_before_after_and_links():
     assert rubric.check_before_after("Before: 40% accuracy, after: 85% accuracy")["status"] == "pass"
     assert rubric.check_before_after("nothing here")["status"] == "fail"
