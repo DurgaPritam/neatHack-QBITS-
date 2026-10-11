@@ -15,7 +15,7 @@ from app.agent import roast as roast_rules
 from app.agent.prompts import untrusted
 from app.agent.schemas import ClaimList, RoastOnly, Verdict, VerifyResult, parse_json
 from app.agent.tools import TOOL_SCHEMAS, RepoToolbox
-from app.llm import LLM, LLMError
+from app.llm import CHARS_PER_TOKEN, LLM, LLMError, estimate_tokens
 from app.scoring import compute_score
 from app.steps import StepLog
 from app.tools import rubric
@@ -33,6 +33,8 @@ PRESEARCH_MATCHES = 3
 PRESEARCH_CHARS = 900       # per claim
 COMPACT_TO = 600           # older tool outputs are shrunk to save tokens (8k TPM)
 FINAL_TOOL_CHARS = 1200    # per tool output in the condensed final-answer prompt
+FINAL_ANSWER_TOKENS = 1500
+FINAL_PROMPT_BUDGET = 6500  # whole final call, estimated; every model's TPM limit is 8,000
 MAX_FIXES = 6
 
 
@@ -193,19 +195,45 @@ def presearch(toolbox: RepoToolbox, claims: ClaimList, steps: StepLog) -> tuple[
     return "\n".join(blocks), used
 
 
+def _condensed(task: str, logs: list[str], reason: str) -> list[dict]:
+    return [
+        {"role": "system", "content": prompts.VERIFY_FINAL_SYSTEM},  # no tool talk: gpt-oss would call one
+        {"role": "user", "content": task
+            + "\n\nTool results gathered so far:\n" + ("\n\n".join(logs) or "(none)")
+            + (f"\n\nThe {reason} is used up." if reason != "answer attempt" else "")
+            + "\n\nNo more tools. Reply now with the final JSON only."},
+    ]
+
+
+def fit_final_prompt(task: str, tool_log: list[str], reason: str, max_tokens: int = FINAL_ANSWER_TOKENS,
+                     budget: int = FINAL_PROMPT_BUDGET) -> list[dict]:
+    """The condensed prompt, shrunk until the whole call fits one model's per-minute limit.
+
+    A call estimated above every model's TPM can never be scheduled: it waits, gives up, and
+    every claim comes back "not assessed". Tool outputs shrink first, then the evidence block.
+    """
+    logs = [t for t in tool_log if t and t not in task]  # presearch evidence is already in the task
+    per = FINAL_TOOL_CHARS
+    msgs = _condensed(task, logs, reason)
+    while estimate_tokens(msgs, None, max_tokens) > budget and per > 150:
+        per = int(per * 0.7)
+        msgs = _condensed(task, [l[:per] + ("…" if len(l) > per else "") for l in logs], reason)
+    over = estimate_tokens(msgs, None, max_tokens) - budget
+    if over > 0 and "\n\nEVIDENCE" in task:
+        head, ev = task.split("\n\nEVIDENCE", 1)
+        keep = max(0, len(ev) - int(over * CHARS_PER_TOKEN) - 200)
+        task = head + "\n\nEVIDENCE" + ev[:keep] + "\n[evidence truncated to fit the model's rate limit]"
+        msgs = _condensed(task, [l[:per] for l in logs], reason)
+    return msgs
+
+
 async def _final_answer(llm: LLM, messages: list[dict], tool_log: list[str], reason: str):
     """Fresh prompt with the findings so far and no tool-call history.
 
     Cheaper than replaying the conversation, and the model can't try to call a tool.
     """
-    condensed = [
-        {"role": "system", "content": prompts.VERIFY_FINAL_SYSTEM},  # no tool talk: gpt-oss would call one
-        {"role": "user", "content": messages[1]["content"]
-            + "\n\nTool results gathered so far:\n" + ("\n\n".join(tool_log) or "(none)")
-            + (f"\n\nThe {reason} is used up." if reason != "answer attempt" else "")
-            + "\n\nNo more tools. Reply now with the final JSON only."},
-    ]
-    return await ask_json(llm, "verify.final", condensed, VerifyResult, max_tokens=1500)
+    condensed = fit_final_prompt(messages[1]["content"], tool_log, reason)
+    return await ask_json(llm, "verify.final", condensed, VerifyResult, max_tokens=FINAL_ANSWER_TOKENS)
 
 
 # ---------------------------------------------------------------- evidence check

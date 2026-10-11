@@ -209,3 +209,16 @@ def test_deep_phase_rechecks_failure_recovery():
     assert any(s["name"] == "verify.failure_recovery" for s in r["steps"])
     assert r["summary"] == {s: sum(1 for c in r["checks"] if c["status"] == s)
                             for s in ("pass", "warn", "fail", "unverified")}
+
+
+def test_final_prompt_always_fits_one_models_rate_limit():
+    from app.agent.loop import FINAL_PROMPT_BUDGET, fit_final_prompt
+    from app.llm import estimate_tokens
+    evidence = "\n".join(f"[c{i}] search 'x':\n== src/f{i}.py:{i}\n" + "code line " * 120 for i in range(8))
+    task = "Claims to verify...\n" + "c " * 2000 + "\n\nEVIDENCE (code searched the repo for each claim):\n" + evidence
+    tool_log = [evidence] + [f"read_file(src/big{i}.py) ->\n" + "x = 1\n" * 400 for i in range(6)]
+    msgs = fit_final_prompt(task, tool_log, "turn budget")
+    assert estimate_tokens(msgs, None, 1500) <= FINAL_PROMPT_BUDGET
+    body = msgs[1]["content"]
+    assert body.count("[c3] search") <= 1  # presearch evidence is not sent twice
+    assert "read_file(src/big0.py)" in body and "No more tools" in body

@@ -51,6 +51,14 @@ def deep_budget_ok(use_reserve: bool) -> bool:
     return any(POOL.daily_ok(m, DEEP_EST_TOKENS, use_reserve) for m in judge_models() or configured_models())
 
 
+DEGRADED_STEPS = {"claims.llm_failed", "verify.llm_failed"}
+
+
+def degraded(result: dict) -> bool:
+    """The deep phase finished but couldn't judge the claims (LLM errors or no quota)."""
+    return any(s.get("name") in DEGRADED_STEPS for s in result.get("steps") or [])
+
+
 def cacheable(result: dict) -> bool:
     """Reuse only results the LLM actually wrote; a template (cooling) verdict should be retried."""
     return (result.get("verdict") or {}).get("source") == "llm"
@@ -241,6 +249,8 @@ class AuditQueues:
             return
         self.ctx_cache.pop(audit_id, None)
         db.bump("deep_completed")
+        if degraded(result):
+            result["deep_degraded"] = True  # claim judging failed: never hand this out as "the" deep result
         result = history.attach_progress(audit_id, row.get("repo_key"), row.get("run_kind", "real"),
                                          row.get("created_at", ""), result)
         history.record(audit_id, row, result, deep=True)

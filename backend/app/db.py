@@ -152,6 +152,13 @@ def find_cached(repo_key: str, head_sha: str) -> dict | None:
     return _row(r)
 
 
+def _degraded(row: dict) -> bool:
+    """A deep run that couldn't judge the claims (flagged, or older rows: seen in the steps)."""
+    if (row["result"] or {}).get("deep_degraded"):
+        return True
+    return any(s.get("name") in ("claims.llm_failed", "verify.llm_failed") for s in row["steps"] or [])
+
+
 def find_reusable(repo_key: str, commit_sha: str, checks_version: str) -> dict | None:
     """Most recent finished audit of this exact commit with the same check logic (complete first).
     Unlike find_cached, template verdicts count too: the caller decides whether to retry them."""
@@ -162,7 +169,8 @@ def find_reusable(repo_key: str, commit_sha: str, checks_version: str) -> dict |
             "ORDER BY status = 'complete' DESC, created_at DESC LIMIT 10", (repo_key, commit_sha)).fetchall()
     for r in rows:
         row = _row(r)
-        if (row["result"] or {}).get("checks_version") == checks_version:
+        if (row["result"] or {}).get("checks_version") == checks_version \
+                and not _degraded(row):
             return row
     return None
 
@@ -175,7 +183,8 @@ def find_deep_result(repo_key: str, commit_sha: str, checks_version: str) -> dic
             "AND is_example = 0 ORDER BY created_at DESC LIMIT 10", (repo_key, commit_sha)).fetchall()
     for r in rows:
         row = _row(r)
-        if (row["result"] or {}).get("checks_version") == checks_version:
+        if (row["result"] or {}).get("checks_version") == checks_version \
+                and not _degraded(row):
             return row
     return None
 

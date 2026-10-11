@@ -276,3 +276,26 @@ def test_progress_compares_quick_with_quick_and_deep_with_deep():
     assert history.progress(old_row, quick_now) is None
     quick_prev = {"id": "q", "created_at": "t", "status": "quick_ready", "result": {"score": {"score": 50}}}
     assert history.progress(quick_prev, deep_now) is None  # no earlier deep check to compare with
+
+
+def test_degraded_deep_result_is_not_reused(repo, monkeypatch):
+    async def failing_deep(report, ctx, steps, use_reserve=False):
+        steps.note("verify.llm_failed", "still no quota after 4 waits", status="failed")
+        return {**report, "phase": "complete", "mode": "full", "score": {"score": 40},
+                "verdict": {"source": "llm", "roast": "r"}, "steps": steps.to_list()}
+    monkeypatch.setattr(jobs, "_run_deep", failing_deep)
+    a, _ = audit(repo)
+    repo.post(f"/api/audits/{a['id']}/deep")
+    done = wait_for(repo, a["id"], {"complete"})
+    assert done["result"]["deep_degraded"] is True
+    assert db.find_deep_result("team/app", "sha1", CHECKS_VERSION) is None
+    again = post(repo, "https://github.com/team/app").json()
+    assert not (again.get("reuse") or {}).get("deep")  # the failed deep run isn't handed out
+
+
+def test_old_degraded_rows_are_detected_from_steps(repo):
+    db.create("old0degraded", "https://github.com/team/old", "team/old", "s9", "real", status="complete",
+              steps=[{"name": "verify.llm_failed", "status": "failed"}],
+              result={"checks_version": CHECKS_VERSION, "score": {"score": 1}})
+    assert db.find_deep_result("team/old", "s9", CHECKS_VERSION) is None
+    assert db.find_reusable("team/old", "s9", CHECKS_VERSION) is None
