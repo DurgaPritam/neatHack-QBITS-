@@ -35,7 +35,7 @@ BANNED_PHRASES = [
 ]
 
 RECENT_ROASTS = 20
-SHINGLE = 5
+SHINGLE = 8           # only long repeated phrases count as a reused joke
 STOPWORDS = set("""a an the and or but of to in on at for with by from as is are was were be been it its
 this that these those there here we you your our they their i me my he she his her them us so very
 just than then too not no all any some more most such what which who whom how when where why do does

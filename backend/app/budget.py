@@ -51,3 +51,7 @@ def attach(pool) -> None:
             db._db().commit()
 
     pool.persist = persist
+    # public token cap: today's spend survives restarts via the counters table
+    pool._roll_public()
+    pool.public_used = max(pool.public_used, db.today_count("llm_public_tokens"))
+    pool.persist_public = lambda day, tokens: db.bump("llm_public_tokens", tokens)

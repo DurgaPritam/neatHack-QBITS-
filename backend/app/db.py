@@ -43,6 +43,21 @@ CREATE TABLE IF NOT EXISTS counters (   -- plain daily counts; no cookies, no pe
     count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (day, name)
 );
+CREATE TABLE IF NOT EXISTS projects (     -- one row per repo: history and the percentile cohort
+    repo_key          TEXT PRIMARY KEY,
+    repo_url          TEXT NOT NULL,
+    first_seen        TEXT NOT NULL,
+    last_audit_at     TEXT,
+    last_audit_id     TEXT,
+    audit_count       INTEGER NOT NULL DEFAULT 0,
+    deep_count        INTEGER NOT NULL DEFAULT 0,
+    latest_score      INTEGER,
+    best_score        INTEGER,
+    is_hackathon_repo INTEGER NOT NULL DEFAULT 0,  -- has commits inside the hackathon window
+    last_deep_sha     TEXT,                        -- commit of the last finished deep check
+    last_deep_id      TEXT,
+    last_deep_version TEXT                         -- check logic version it ran with
+);
 CREATE TABLE IF NOT EXISTS roasts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_key   TEXT,
@@ -137,6 +152,49 @@ def find_cached(repo_key: str, head_sha: str) -> dict | None:
     return _row(r)
 
 
+def find_reusable(repo_key: str, commit_sha: str, checks_version: str) -> dict | None:
+    """Most recent finished audit of this exact commit with the same check logic (complete first).
+    Unlike find_cached, template verdicts count too: the caller decides whether to retry them."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND commit_sha = ? AND status IN ('complete', 'quick_ready') "
+            "AND cached_from IS NULL AND hidden = 0 AND is_example = 0 "
+            "ORDER BY status = 'complete' DESC, created_at DESC LIMIT 10", (repo_key, commit_sha)).fetchall()
+    for r in rows:
+        row = _row(r)
+        if (row["result"] or {}).get("checks_version") == checks_version:
+            return row
+    return None
+
+
+def find_deep_result(repo_key: str, commit_sha: str, checks_version: str) -> dict | None:
+    """A finished deep check of this commit with the same check logic, for deep-check reuse."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND commit_sha = ? AND status = 'complete' AND hidden = 0 "
+            "AND is_example = 0 ORDER BY created_at DESC LIMIT 10", (repo_key, commit_sha)).fetchall()
+    for r in rows:
+        row = _row(r)
+        if (row["result"] or {}).get("checks_version") == checks_version:
+            return row
+    return None
+
+
+def previous_audit(repo_key: str, before: str, exclude_id: str, run_kind: str) -> dict | None:
+    """The latest earlier scored audit of this repo (for "+22 since your last check")."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND id != ? AND created_at <= ? AND run_kind = ? "
+            "AND status IN ('complete', 'quick_ready') AND hidden = 0 AND is_example = 0 "
+            "AND cached_from IS NULL AND rowid < (SELECT COALESCE(MAX(rowid), 1e18) FROM audits WHERE id = ?) "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 5", (repo_key, exclude_id, before, run_kind, exclude_id)).fetchall()
+    for r in rows:
+        row = _row(r)
+        if ((row["result"] or {}).get("score") or {}).get("score") is not None:
+            return row
+    return None
+
+
 def find_in_progress(repo_key: str, head_sha: str) -> dict | None:
     """An audit of this exact commit whose quick phase is still running: follow it instead."""
     with _lock:
@@ -178,6 +236,87 @@ def bump(name: str, n: int = 1) -> None:
         _db().execute("INSERT INTO counters (day, name, count) VALUES (?, ?, ?) "
                       "ON CONFLICT (day, name) DO UPDATE SET count = count + excluded.count", (day, name, n))
         _db().commit()
+
+
+def today_count(name: str) -> int:
+    day = datetime.now(timezone.utc).date().isoformat()
+    with _lock:
+        r = _db().execute("SELECT count FROM counters WHERE day = ? AND name = ?", (day, name)).fetchone()
+    return r[0] if r else 0
+
+
+def today_counters(prefix: str) -> dict[str, int]:
+    day = datetime.now(timezone.utc).date().isoformat()
+    with _lock:
+        rows = _db().execute("SELECT name, count FROM counters WHERE day = ? AND name LIKE ?",
+                             (day, prefix.replace("%", "") + "%")).fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+# ---------------------------------------------------------------- projects
+
+def upsert_project(repo_key: str, repo_url: str, audit_id: str, score: int | None, is_hackathon: bool,
+                   deep: bool = False, deep_sha: str | None = None, checks_version: str | None = None,
+                   new_audit: bool = True) -> None:
+    """Called when a phase finishes. new_audit=False for the deep phase of an audit already counted."""
+    now = _now()
+    with _lock:
+        _db().execute(
+            "INSERT INTO projects (repo_key, repo_url, first_seen) VALUES (?, ?, ?) ON CONFLICT (repo_key) DO NOTHING",
+            (repo_key, repo_url, now))
+        _db().execute(
+            "UPDATE projects SET repo_url = ?, last_audit_at = ?, last_audit_id = ?, "
+            "audit_count = audit_count + ?, deep_count = deep_count + ?, "
+            "latest_score = COALESCE(?, latest_score), "
+            "best_score = MAX(COALESCE(best_score, -1), COALESCE(?, -1)), "
+            "is_hackathon_repo = MAX(is_hackathon_repo, ?) WHERE repo_key = ?",
+            (repo_url, now, audit_id, int(new_audit), int(deep), score, score, int(is_hackathon), repo_key))
+        if deep and deep_sha:
+            _db().execute("UPDATE projects SET last_deep_sha = ?, last_deep_id = ?, last_deep_version = ? "
+                          "WHERE repo_key = ?", (deep_sha, audit_id, checks_version, repo_key))
+        _db().execute("UPDATE projects SET best_score = NULL WHERE repo_key = ? AND best_score = -1", (repo_key,))
+        _db().commit()
+
+
+def get_project(repo_key: str) -> dict | None:
+    with _lock:
+        r = _db().execute("SELECT * FROM projects WHERE repo_key = ?", (repo_key,)).fetchone()
+    return dict(r) if r else None
+
+
+def all_projects(limit: int = 500) -> list[dict]:
+    with _lock:
+        rows = _db().execute("SELECT * FROM projects ORDER BY last_audit_at DESC LIMIT ?", (limit,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def cohort_rows(exclude_repo: str | None) -> list[dict]:
+    """Latest visible real audit (scored) per hackathon repo: the anonymous percentile cohort."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT a.repo_key, a.result FROM audits a JOIN projects p ON p.repo_key = a.repo_key "
+            "WHERE p.is_hackathon_repo = 1 AND a.run_kind = 'real' AND a.hidden = 0 AND a.is_example = 0 "
+            "AND a.status IN ('complete', 'quick_ready') AND a.repo_key != ? "
+            "AND a.created_at = (SELECT MAX(b.created_at) FROM audits b WHERE b.repo_key = a.repo_key "
+            "  AND b.run_kind = 'real' AND b.hidden = 0 AND b.is_example = 0 AND b.status IN ('complete', 'quick_ready'))",
+            (exclude_repo or "",)).fetchall()
+    out, seen = [], set()
+    for repo_key, result in rows:
+        if repo_key in seen or not result:
+            continue
+        seen.add(repo_key)
+        out.append({"repo_key": repo_key, "result": json.loads(result)})
+    return out
+
+
+def recent_audits(limit: int = 50) -> list[dict]:
+    with _lock:
+        rows = _db().execute(
+            "SELECT id, repo_url, repo_key, status, phase_deep, run_kind, cached_from, hidden, created_at, "
+            "json_extract(result, '$.score.score') AS score, "
+            "json_extract(result, '$.usage.total_tokens') AS tokens FROM audits WHERE is_example = 0 "
+            "ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+    return [dict(r) for r in rows]
 
 
 def all_feedback() -> list[dict]:
@@ -271,7 +410,9 @@ def add_roast(repo_key: str | None, style: str, roast: str) -> None:
         _db().commit()
 
 
-def recent_roasts(limit: int = 20) -> list[str]:
+def recent_roasts(limit: int = 20, exclude_repo: str | None = None) -> list[str]:
+    """Other repos' recent roasts (a repo's own earlier roast may share its facts and phrasing)."""
     with _lock:
-        rows = _db().execute("SELECT roast FROM roasts ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        rows = _db().execute("SELECT roast FROM roasts WHERE COALESCE(repo_key, '') != ? ORDER BY id DESC LIMIT ?",
+                             ((exclude_repo or "").lower(), limit)).fetchall()
     return [r[0] for r in rows]

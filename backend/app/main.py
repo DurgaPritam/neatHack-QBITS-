@@ -37,9 +37,9 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, db, limits, replay
+from app import budget, config, db, history, limits, replay
 from app.card import render_card
-from app.jobs import AuditQueues
+from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import POOL, configured_models
 from app.public import public_steps
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
@@ -78,7 +78,7 @@ async def noindex_results(request: Request, call_next):
     """Audit results, cards and share pages stay out of search engines."""
     response = await call_next(request)
     path = request.url.path
-    if path.startswith(("/r/", "/api/audits/", "/api/admin/")):
+    if path.startswith(("/r/", "/api/audits/", "/api/admin/", "/admin")):
         response.headers.update(NOINDEX)
     return response
 
@@ -117,11 +117,38 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def too_many(window: limits.SlidingWindow, key: str, message: str) -> None:
+def too_many(window: limits.SlidingWindow, key: str, message: str, kind: str = "rate",
+             repo: str | None = None) -> None:
     wait = window.hit(key)
     if wait:
+        limits.HITS.add(kind, ip=key, repo=repo)
+        db.bump(f"limit:{kind}")
         raise HTTPException(429, f"{message} Try again in {limits.wait_text(wait)}.",
                             headers={"Retry-After": str(int(wait))})
+
+
+def limit_reached(kind: str, message: str, ip: str, repo: str | None, status: int = 429,
+                  retry_after: int = 3600) -> HTTPException:
+    """A daily or queue limit: recorded for the admin page, explained to the user."""
+    limits.HITS.add(kind, ip=ip, repo=repo)
+    db.bump(f"limit:{kind}")
+    return HTTPException(status, message, headers={"Retry-After": str(retry_after)})
+
+
+def _tokens(result: dict | None) -> int:
+    return int(((result or {}).get("usage") or {}).get("total_tokens") or 0)
+
+
+def reuse_result(prior: dict, audit_id: str, deep: bool) -> dict:
+    """A stored result handed out again for the same commit: no LLM calls, tokens saved counted."""
+    saved = _tokens(prior["result"])
+    db.bump("reused_deep" if deep else "reused_audits")
+    db.bump("tokens_saved", saved)
+    result = {**prior["result"], "audit_id": audit_id, "cached_from": prior["id"],
+              "reuse": {"from": prior["id"], "checked_at": prior["created_at"], "tokens_saved": saved,
+                        "deep": deep}}
+    result.pop("progress", None)  # no new commits: nothing changed since that check
+    return result
 
 
 async def resolve_head_sha(repo_url: str) -> str | None:
@@ -161,16 +188,17 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
     audit_id = uuid.uuid4().hex[:12]
 
     if head_sha:
-        cached = db.find_cached(repo_key, head_sha)
-        if cached and (cached["result"] or {}).get("checks_version") != CHECKS_VERSION:
-            cached = None  # audited with older check logic: run it again
+        # Same commit + same check logic = same result, however long ago: no LLM calls.
+        cached = db.find_reusable(repo_key, head_sha, CHECKS_VERSION)
+        if cached and not cacheable(cached["result"] or {}) and public_budget_ok():
+            cached = None  # a fact-only (template) verdict: write a real one while budget allows
         if cached:
-            result = {**cached["result"], "audit_id": audit_id, "cached_from": cached["id"]}
+            result = reuse_result(cached, audit_id, deep=False)
             deep = "done" if cached["status"] == "complete" else "available"
             db.create(audit_id, req.repo_url, repo_key, head_sha, req.run_kind, status=cached["status"],
                       phase_quick="done", phase_deep=deep, cached_from=cached["id"],
                       steps=cached["steps"], result=result)
-            return {"id": audit_id, "status": cached["status"], "cached": True}
+            return {"id": audit_id, "status": cached["status"], "cached": True, "reuse": result["reuse"]}
         running = db.find_in_progress(repo_key, head_sha)
         if running:  # same commit already being audited: follow that one
             return {"id": running["id"], "status": running["status"], "cached": False, "deduplicated": True}
@@ -187,8 +215,8 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
             return {"id": recent["id"], "status": recent["status"], "cached": True, "cooldown": True}
 
     if not admin:
-        too_many(limits.AUDITS, client_ip(request),
-                 f"Easy there: {limits.AUDITS.limit} new audits per 10 minutes per person.")
+        too_many(limits.AUDITS, client_ip(request), limits.MESSAGES["audits_ip"].format(n=limits.AUDITS.limit),
+                 kind="audits_ip", repo=repo_key)
     db.create(audit_id, req.repo_url, repo_key, head_sha, req.run_kind)
     queue = await queues.submit(audit_id, req.repo_url, req.run_kind, use_reserve=admin)
     return {"id": audit_id, "status": "queued", "cached": False, "queue": queue}
@@ -207,17 +235,40 @@ def request_deep(audit_id: str, request: Request, x_admin_token: str | None = He
         raise HTTPException(409, f"quick result isn't ready (status: {row['status']})")
     if row["phase_deep"] == "skipped":
         raise HTTPException(409, "nothing to verify: the repo couldn't be read")
+    repo_key, sha = row.get("repo_key"), row.get("commit_sha")
+    if audit_id not in queues.deep and repo_key and sha:
+        # No new commits since this repo's last deep check (same check logic): hand that one back.
+        prior = db.find_deep_result(repo_key, sha, CHECKS_VERSION)
+        if prior and prior["id"] != audit_id:
+            result = reuse_result(prior, audit_id, deep=True)
+            db.update(audit_id, status="complete", phase_deep="done", result=result, steps=prior["steps"])
+            return {"id": audit_id, "status": "complete", "queue": None, "reuse": result["reuse"]}
+    ip = client_ip(request)
     if audit_id not in queues.deep and not admin:  # asking again for a queued audit is free
+        repo_today = db.today_count(f"deep_repo:{repo_key}")
+        if repo_today >= limits.DEEP_PER_REPO_DAILY:
+            raise limit_reached("deep_repo", limits.MESSAGES["deep_repo"].format(n=repo_today), ip, repo_key)
+        if db.today_count("deep_started") >= limits.DEEP_DAILY_CAP:
+            raise limit_reached("deep_daily", limits.MESSAGES["deep_daily"], ip, repo_key)
+        if replay.mode() != "replay" and not POOL.public_tokens_ok(DEEP_EST_TOKENS):
+            raise limit_reached("public_tokens", limits.MESSAGES["public_tokens"], ip, repo_key)
         if queues.deep.length() >= limits.DEEP_QUEUE_MAX:
-            raise HTTPException(503, f"The deep-check queue is full ({queues.deep.length()} waiting). Your quick "
-                                     "result is saved; try the deep check again in a few minutes.",
-                                headers={"Retry-After": "300"})
-        too_many(limits.DEEP, client_ip(request),
-                 f"You've used your {limits.DEEP.limit} deep checks for this hour.")
+            raise limit_reached("deep_queue", limits.MESSAGES["deep_queue"].format(n=queues.deep.length()), ip,
+                                repo_key, status=503, retry_after=300)
+        too_many(limits.DEEP, ip, limits.MESSAGES["deep_ip"].format(n=limits.DEEP.limit), kind="deep_ip",
+                 repo=repo_key)
     if audit_id not in queues.deep:
         db.bump("deep_requested")
-    queue = queues.request_deep(audit_id, use_reserve=admin)
+        db.bump("deep_started")
+        db.bump(f"deep_repo:{repo_key}")
+    # Repos with commits inside the hackathon window go first.
+    priority = 1 if history.is_hackathon_repo(row["result"] or {}) else 0
+    queue = queues.request_deep(audit_id, use_reserve=admin, priority=priority)
     return {"id": audit_id, "status": row["status"], "phase_deep": "queued", "queue": queue}
+
+
+def public_budget_ok() -> bool:
+    return replay.mode() == "replay" or POOL.budget(configured_models(), est=3000)["public_available"]
 
 
 @app.get("/api/audits/{audit_id}", responses={404: {"description": "Audit not found"}})
@@ -236,8 +287,16 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "updated_at": row["updated_at"],
         "steps": row["steps"] if admin else public_steps(row["steps"]),  # raw errors: admins only
         "result": row["result"],
+        "percentiles": _percentiles(row),
         "error": row["error"],
     }
+
+
+def _percentiles(row: dict) -> dict | None:
+    try:
+        return history.percentiles(row.get("repo_key"), row["result"])
+    except Exception:
+        return None  # a nicety; never break the result page
 
 
 @app.post("/api/audits/{audit_id}/feedback", status_code=201, responses={404: {"description": "Audit not found"}})
@@ -290,6 +349,33 @@ def admin_metrics() -> dict:
     return {**db.metrics(), "deep_queue": queues.deep.length(), "llm_mode": replay.mode()}
 
 
+@app.get("/api/admin/overview", dependencies=[Depends(require_admin)])
+def admin_overview() -> dict:
+    """Everything the /admin page shows, in one call."""
+    models = configured_models()
+    metrics = db.metrics()
+    deep_by_repo = {k.split(":", 1)[1]: v for k, v in db.today_counters("deep_repo:").items()}
+    return {
+        "budget": {**POOL.budget(models), "reserve_pct": POOL.reserve_pct, "snapshot": POOL.snapshot(),
+                   "state": budget_state()},
+        "deep": {"used_today": db.today_count("deep_started"), "daily_cap": limits.DEEP_DAILY_CAP,
+                 "per_repo_cap": limits.DEEP_PER_REPO_DAILY,
+                 "by_repo": sorted(({"repo": k, "count": v} for k, v in deep_by_repo.items()),
+                                   key=lambda r: -r["count"])},
+        "queue": {"quick": queues.quick.length(), "deep": queues.deep.length(),
+                  "deep_max": limits.DEEP_QUEUE_MAX, "waiting_budget": queues.deep.waiting_budget},
+        "reuse": {"tokens_saved_today": db.today_count("tokens_saved"),
+                  "tokens_saved_total": metrics["totals"].get("tokens_saved", 0),
+                  "reused_today": db.today_count("reused_audits") + db.today_count("reused_deep")},
+        "limits": {**limits.HITS.summary(), "today": db.today_counters("limit:")},
+        "projects": db.all_projects(),
+        "recent_audits": db.recent_audits(),
+        "feedback": db.all_feedback()[-100:][::-1],
+        "metrics": metrics,
+        "llm_mode": replay.mode(),
+    }
+
+
 @app.get("/api/admin/removals", dependencies=[Depends(require_admin)])
 def admin_removals() -> list[dict]:
     return db.hidden_audits()
@@ -340,8 +426,9 @@ def _card_bits(row: dict) -> dict:
     verdict = r.get("verdict") or {}
     repo = (r.get("repo") or {}).get("full_name") or row["repo_url"]
     roast = verdict.get("roast") or "Still in the oven: check back in a few seconds."
+    delta = (r.get("progress") or {}).get("delta")
     return {"repo": repo, "score": (r.get("score") or {}).get("score"), "roast": roast,
-            "source": verdict.get("source", "llm")}
+            "source": verdict.get("source", "llm"), "delta": delta if delta and delta > 0 else None}
 
 
 @app.get("/api/audits/{audit_id}/card.png", responses={404: {"description": "Audit not found"}})

@@ -51,6 +51,54 @@ EVENTS = SlidingWindow(30, 60)          # card download / share click counters
 REMOVALS = SlidingWindow(10, 3600)
 DEEP_QUEUE_MAX = _int("DEEP_QUEUE_MAX", 10)
 REPO_COOLDOWN_S = _int("REPO_COOLDOWN_S", 600)
+# Daily budget protection (UTC days). The admin reserve in app.llm stays separate from these.
+DEEP_DAILY_CAP = _int("DEEP_DAILY_CAP", 40)              # deep checks per day, all repos
+DEEP_PER_REPO_DAILY = _int("DEEP_PER_REPO_DAILY", 3)     # deep checks per repo per day
+PUBLIC_DAILY_TOKENS = _int("PUBLIC_DAILY_TOKENS", 350_000)  # LLM tokens per day for public traffic
+
+MESSAGES = {
+    "deep_daily": "Today's deep checks are used up. Your quick result is ready; try the deep check tomorrow.",
+    "deep_repo": "This repo has had {n} deep checks today, the daily maximum. Your quick result is ready; "
+                 "push your fixes and try the deep check tomorrow.",
+    "public_tokens": "Today's AI budget for deep checks is used up. Your quick result is ready; "
+                     "try the deep check tomorrow.",
+    "deep_queue": "The deep-check queue is full ({n} waiting). Your quick result is saved; "
+                  "try the deep check again in a few minutes.",
+    "deep_ip": "You've used your {n} deep checks for this hour. Your quick result is saved.",
+    "audits_ip": "Easy there: {n} new audits per 10 minutes per person.",
+}
+
+
+class LimitLog:
+    """Recent limit hits for the admin page. In memory only: IPs are never written to disk."""
+
+    def __init__(self, size: int = 300):
+        self._hits: deque = deque(maxlen=size)
+        self._lock = threading.Lock()
+
+    def add(self, kind: str, ip: str | None = None, repo: str | None = None) -> None:
+        with self._lock:
+            self._hits.append({"at": time.time(), "kind": kind, "ip": ip, "repo": repo})
+
+    def summary(self) -> dict:
+        with self._lock:
+            hits = list(self._hits)
+        by_ip: dict[str, int] = defaultdict(int)
+        by_repo: dict[str, int] = defaultdict(int)
+        for h in hits:
+            if h["ip"]:
+                by_ip[h["ip"]] += 1
+            if h["repo"]:
+                by_repo[h["repo"]] += 1
+        top = lambda d: sorted(({"key": k, "hits": v} for k, v in d.items()), key=lambda r: -r["hits"])[:20]
+        return {"recent": hits[-50:][::-1], "by_ip": top(by_ip), "by_repo": top(by_repo)}
+
+    def reset(self) -> None:
+        with self._lock:
+            self._hits.clear()
+
+
+HITS = LimitLog()
 
 
 def wait_text(seconds: float) -> str:
@@ -60,3 +108,4 @@ def wait_text(seconds: float) -> str:
 def reset_all() -> None:
     for w in (AUDITS, DEEP, EVENTS, REMOVALS):
         w.reset()
+    HITS.reset()

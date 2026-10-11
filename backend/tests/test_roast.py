@@ -62,9 +62,12 @@ def test_number_anchor_needs_whole_number():
 
 def test_reused_joke_rejected():
     facts = R.build_facts(REPORT)
-    old = "Thirty seven commits arrived before the party even started, fashionably early."
-    p = R.roast_problems("Wow, 37 commits arrived before the party even started.", facts, [old], REPORT)
+    old = "Thirty seven commits arrived before the party even started, fashionably early, with snacks."
+    p = R.roast_problems("Wow, 37 commits arrived before the party even started, fashionably early.",
+                         facts, [old], REPORT)
     assert any("reuses a joke" in x for x in p)
+    short = R.roast_problems("Wow, 37 commits arrived before the party even started.", facts, [old], REPORT)
+    assert not any("reuses a joke" in x for x in short)  # 7 shared words: below the 8-word bar
 
 
 def test_unknown_video_length_cannot_be_called_too_long_or_dead():
@@ -111,8 +114,12 @@ def test_write_verdict_retries_bad_roast_then_remembers_good_one(tmp_path):
     # the next verdict is told about recent roasts
     llm2 = _llm(lambda kw: (seen.append(kw["messages"][1]["content"]),
                             msg(_verdict("3/33 links dead, a strong opening act.")))[1])
-    asyncio.run(write_verdict(llm2, score, REPORT, []))
+    other = {**REPORT, "repo": {**REPORT["repo"], "full_name": "other/repo"}}
+    asyncio.run(write_verdict(llm2, score, other, []))
     assert "37 commits before kickoff" in seen[-1] and "STYLE:" in seen[-1]
+    # a repo's own earlier roast is not held against it (it shares the same facts)
+    asyncio.run(write_verdict(llm2, score, REPORT, []))
+    assert "37 commits before kickoff" not in seen[-1].split("RECENT ROASTS")[1]
 
 
 def test_write_verdict_falls_back_to_template_roast(tmp_path):
@@ -151,10 +158,12 @@ def test_template_roasts_are_not_remembered():
 @pytest.mark.parametrize("new,old,reused", [
     ("We are live at the stadium where 37 commits landed early.", "We are live at the arena for this one.", False),
     ("37 commits during the hackathon window? None, all before.", "Zero commits during the hackathon window, sad.", False),
-    ("A 1490-word README that reads like a Michelin guide with no food.",
-     "This README that reads like a Michelin guide, but where is dinner?", True),
-    ("An absence of evidence so severe it borders on academic malpractice.",
-     "The citations: so severe it borders on academic malpractice.", True),
+    ("A 1490-word README that reads like a travel guide written by someone who never left home.",
+     "This README reads like a travel guide written by someone who never left home, sadly.", True),
+    ("An absence of evidence so severe it borders on academic malpractice and paperwork fraud.",
+     "The citations: so severe it borders on academic malpractice and paperwork fraud.", True),
+    ("A README that reads like a Michelin guide with no food.",
+     "This README that reads like a Michelin guide, but where is dinner?", False),
 ])
 def test_joke_reuse_targets_distinctive_phrases(new, old, reused):
     facts = R.build_facts(REPORT)

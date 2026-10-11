@@ -12,7 +12,7 @@ import logging
 import time
 from collections import OrderedDict, deque
 
-from app import db, replay
+from app import db, history, replay
 from app.llm import POOL, BudgetExhausted, judge_models
 from app.steps import StepLog
 
@@ -56,6 +56,10 @@ def cacheable(result: dict) -> bool:
     return (result.get("verdict") or {}).get("source") == "llm"
 
 
+def _priority(payload) -> int:
+    return payload[1] if isinstance(payload, tuple) and len(payload) == 2 else 0
+
+
 class Lane:
     """A FIFO lane with one worker, visible positions and a moving-average duration."""
 
@@ -70,8 +74,14 @@ class Lane:
     def start(self) -> None:
         self._wake = asyncio.Event()
 
-    def put(self, audit_id: str, payload, front: bool = False) -> None:
-        (self.pending.appendleft if front else self.pending.append)((audit_id, payload))
+    def put(self, audit_id: str, payload, front: bool = False, priority: int = 0) -> None:
+        """front: back at the head (waiting for budget). Otherwise higher priority goes ahead of
+        lower, FIFO within the same priority (hackathon repos are priority 1)."""
+        if front:
+            self.pending.appendleft((audit_id, payload))
+        else:
+            at = next((i for i, (_, p) in enumerate(self.pending) if _priority(p) < priority), len(self.pending))
+            self.pending.insert(at, (audit_id, payload))
         self._wake.set()
 
     def __contains__(self, audit_id: str) -> bool:
@@ -130,10 +140,10 @@ class AuditQueues:
         self.quick.put(audit_id, (repo_url, run_kind, use_reserve))
         return self.position(audit_id)
 
-    def request_deep(self, audit_id: str, use_reserve: bool = False) -> dict:
+    def request_deep(self, audit_id: str, use_reserve: bool = False, priority: int = 0) -> dict:
         if audit_id not in self.deep:
             db.update(audit_id, phase_deep="queued")
-            self.deep.put(audit_id, use_reserve)
+            self.deep.put(audit_id, (use_reserve, priority), priority=priority)
         return self.position(audit_id)
 
     def position(self, audit_id: str) -> dict | None:
@@ -172,6 +182,9 @@ class AuditQueues:
                       error=type(exc).__name__, steps=steps.to_list())
             return
         deep_state = "available" if ctx.get("repo_available") else "skipped"
+        row = db.get(audit_id) or {}
+        report = history.attach_progress(audit_id, row.get("repo_key"), run_kind, row.get("created_at", ""), report)
+        history.record(audit_id, row, report, deep=False)
         db.update(audit_id, status="quick_ready", phase_quick="done", phase_deep=deep_state,
                   steps=report.get("steps", steps.to_list()), result=report,
                   **({} if cacheable(report) else {"head_sha": None}))
@@ -180,28 +193,30 @@ class AuditQueues:
 
     async def _deep_worker(self) -> None:
         while True:
-            audit_id, use_reserve = await self.deep.get()
+            audit_id, payload = await self.deep.get()
+            use_reserve, priority = payload if isinstance(payload, tuple) else (payload, 0)
             if not deep_budget_ok(use_reserve):
-                await self._wait_for_budget(audit_id, use_reserve)
+                await self._wait_for_budget(audit_id, use_reserve, priority=priority)
                 continue
             self.deep.running = (audit_id, time.monotonic())
             try:
-                await self._deep(audit_id, use_reserve)
+                await self._deep(audit_id, use_reserve, priority)
             except Exception:
                 log.exception("deep phase crashed for %s", audit_id)
             finally:
                 self.deep.observe(time.monotonic() - self.deep.running[1])
                 self.deep.running = None
 
-    async def _wait_for_budget(self, audit_id: str, use_reserve: bool, retry_in: float | None = None) -> None:
+    async def _wait_for_budget(self, audit_id: str, use_reserve: bool, retry_in: float | None = None,
+                               priority: int = 0) -> None:
         """Keep the audit at the head of the deep queue until a judge model has budget."""
         self.deep.waiting_budget = True
         db.update(audit_id, phase_deep="waiting_budget")
-        self.deep.put(audit_id, use_reserve, front=True)
+        self.deep.put(audit_id, (use_reserve, priority), front=True)
         await asyncio.sleep(min(retry_in or BUDGET_RECHECK_S, BUDGET_RECHECK_S))
         self.deep.waiting_budget = not deep_budget_ok(use_reserve)
 
-    async def _deep(self, audit_id: str, use_reserve: bool) -> None:
+    async def _deep(self, audit_id: str, use_reserve: bool, priority: int = 0) -> None:
         row = db.get(audit_id)
         if row is None or not row["result"]:
             return
@@ -217,7 +232,7 @@ class AuditQueues:
         except BudgetExhausted as exc:
             steps.note("deep.waiting_budget", f"{exc}; waiting instead of using a weaker model")
             db.update(audit_id, steps=steps.to_list())
-            await self._wait_for_budget(audit_id, use_reserve, exc.retry_in_s)
+            await self._wait_for_budget(audit_id, use_reserve, exc.retry_in_s, priority)
             return
         except Exception as exc:
             # The quick result stays available; the audit is just not deepened.
@@ -226,6 +241,9 @@ class AuditQueues:
             return
         self.ctx_cache.pop(audit_id, None)
         db.bump("deep_completed")
+        result = history.attach_progress(audit_id, row.get("repo_key"), row.get("run_kind", "real"),
+                                         row.get("created_at", ""), result)
+        history.record(audit_id, row, result, deep=True)
         db.update(audit_id, status="complete", phase_deep="done", steps=result.get("steps", steps.to_list()),
                   result=result, **({} if cacheable(result) else {"head_sha": None}))
 

@@ -15,8 +15,11 @@ def test_quoting_a_fact_is_not_reusing_a_joke():
     new = "Somebody check the tape: 0 commits inside the hackathon window and 29 before kickoff."
     report = {"checks": [{"id": "demo_video", "status": "fail", "data": {"duration_status": "too_long"}}]}
     assert R.roast_problems(new, facts, [old], report) == []
-    joke = "Folks, what a quiet stadium tonight, 29 times over."
-    assert R.roast_problems(joke, facts, [old], {"checks": []})
+    short = "Folks, what a quiet stadium tonight, 29 times over."   # 6 shared words: allowed now
+    assert R.roast_problems(short, facts, [old], {"checks": []}) == []
+    old_long = "Folks, what a quiet stadium tonight, the fans have all gone home early."
+    joke = "29 commits, and what a quiet stadium tonight, the fans have all gone home early."
+    assert R.roast_problems(joke, facts, [old_long], {"checks": []})
 
 
 @pytest.mark.parametrize("raw,cat", [("cli", "usefulness"), ("Integrations", "tools"), ("LLM support", "agent"),

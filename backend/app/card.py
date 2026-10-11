@@ -43,7 +43,8 @@ def _fit_roast(draw: ImageDraw.ImageDraw, text: str, box_w: int, box_h: int) -> 
     return lines[:max_lines - 1] + [lines[max_lines - 1].rstrip(".,; ") + "…"], f
 
 
-def render_card(*, repo: str, score: int | None, roast: str, site: str, source: str = "llm") -> bytes:
+def render_card(*, repo: str, score: int | None, roast: str, site: str, source: str = "llm",
+                delta: int | None = None) -> bytes:
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
 
@@ -64,6 +65,10 @@ def render_card(*, repo: str, score: int | None, roast: str, site: str, source: 
     sw = d.textlength(s, font=big)
     d.text((216 - sw / 2, 170), s, font=big, fill=col, stroke_width=3, stroke_fill=col)
     d.text((216 - d.textlength("/ 100", font=_font(36)) / 2, 360), "/ 100", font=_font(36), fill=MUTED)
+    if delta and delta > 0:  # progress since the last check, only when it went up
+        up = f"+{delta} since last check"
+        d.text((216 - d.textlength(up, font=_font(26)) / 2, 466), up, font=_font(26), fill=GOOD,
+               stroke_width=1, stroke_fill=GOOD)
 
     # roast
     lines, f = _fit_roast(d, f"“{roast.strip()}”", W - 420 - 56, 330)

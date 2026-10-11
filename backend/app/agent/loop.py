@@ -367,13 +367,13 @@ async def _rewrite_roast(llm: LLM, purpose: str, style: str, fact_lines: str, re
     return out.roast if out else None
 
 
-def _recent_roasts() -> list[str]:
+def _recent_roasts(repo_key: str = "") -> list[str]:
     from app import replay
     if replay.mode() == "replay":
         return []  # a replayed roast would otherwise "repeat" itself
     try:
         from app import db
-        return db.recent_roasts(roast_rules.RECENT_ROASTS)
+        return db.recent_roasts(roast_rules.RECENT_ROASTS, exclude_repo=repo_key)
     except Exception:
         return []  # roast memory is a nicety; never fail an audit over it
 
@@ -399,7 +399,7 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
     style = roast_rules.style_for(repo_name)
     facts = roast_rules.build_facts(report, claim_results)
     own = (report.get("verdict") or {}).get("roast")
-    recent = [r for r in _recent_roasts() if r != own]
+    recent = [r for r in _recent_roasts(repo_name.lower()) if r != own]
     status_word = {"pass": "pass", "fail": "fail", "warn": "partial", "unverified": "UNKNOWN"}
     results = {
         "repo": repo_name,

@@ -41,6 +41,7 @@ DEFAULT_TPM = 8000
 DEFAULT_TPD = int(config.env("GROQ_TPD", "200000"))
 QUICK_RESERVE = 3500       # tokens per model kept free for quick audits while one runs
 RESERVE_PCT = float(config.env("BUDGET_RESERVE_PCT", "25"))  # of each model's daily tokens, admin-only
+PUBLIC_DAILY_TOKENS = int(config.env("PUBLIC_DAILY_TOKENS", "350000") or 0)  # all public traffic, per UTC day
 CHARS_PER_TOKEN = 3.5      # measured ~4 on these models; a little conservative avoids 429s
 
 
@@ -116,8 +117,13 @@ class ModelQuota:
 
 class QuotaPool:
     def __init__(self, models: list[str] | None = None, clock=time.monotonic,
-                 reserve_pct: float | None = None):
+                 reserve_pct: float | None = None, public_cap: int | None = None):
         self.clock = clock
+        # All public (non-reserve) traffic shares one daily token cap across models.
+        self.public_cap = PUBLIC_DAILY_TOKENS if public_cap is None else public_cap
+        self.public_used = 0
+        self.public_day = ""
+        self.persist_public = None  # callable(day, tokens) -> None; set by app.budget
         self.quotas: dict[str, ModelQuota] = {}
         self.order: list[str] = []
         self.quick_active = 0
@@ -144,6 +150,15 @@ class QuotaPool:
             except Exception:
                 pass  # budget bookkeeping must never break an audit
 
+    def _roll_public(self) -> None:
+        today = datetime.now(timezone.utc).date().isoformat()
+        if self.public_day != today:
+            self.public_day, self.public_used = today, 0
+
+    def public_tokens_ok(self, est: int) -> bool:
+        self._roll_public()
+        return not self.public_cap or self.public_used + est <= self.public_cap
+
     def public_limit(self, q: ModelQuota) -> float:
         return q.tpd_limit * (1 - self.reserve_pct / 100)
 
@@ -152,6 +167,8 @@ class QuotaPool:
         q, now = self._q(model), self.clock()
         self._roll_day(q)
         if q.disabled or q.daily_blocked_until > now:
+            return False
+        if not use_reserve and not self.public_tokens_ok(est):
             return False
         limit = q.tpd_limit if use_reserve else self.public_limit(q)
         if q.tpd_used + est > limit:
@@ -166,7 +183,9 @@ class QuotaPool:
 
     def budget(self, models: list[str] | None = None, use_reserve: bool = False, est: int = 3000) -> dict:
         ms = models or self.order
+        self._roll_public()
         return {"public_available": any(self.daily_ok(m, est, use_reserve) for m in ms),
+                "public_tokens": {"used": self.public_used, "cap": self.public_cap},
                 "models": {m: {"used": self._q(m).tpd_used, "limit": self._q(m).tpd_limit,
                                "public_limit": int(self.public_limit(self._q(m))),
                                "ok": self.daily_ok(m, est, use_reserve)} for m in ms}}
@@ -228,13 +247,21 @@ class QuotaPool:
             return None, float("inf"), "; ".join(reasons) or "no models"
         return None, max(0.2, min(finite) - now), "; ".join(reasons)
 
-    def record(self, model: str, tokens: int) -> None:
+    def record(self, model: str, tokens: int, public: bool = True) -> None:
         q = self._q(model)
         self._roll_day(q)
         q.calls += 1
         q.tokens += tokens
         q.tpd_used += tokens
         self._save(q)
+        if public:
+            self._roll_public()
+            self.public_used += tokens
+            if self.persist_public:
+                try:
+                    self.persist_public(self.public_day, tokens)
+                except Exception:
+                    pass
 
     def cooldown(self, model: str, seconds: float, rate_limited: bool = True) -> None:
         q = self._q(model)
@@ -499,7 +526,7 @@ class LLM:
                     if replay.mode() == "record":
                         replay.record(purpose, resp.choices[0].message, resp.usage)
                     tokens = getattr(resp.usage, "total_tokens", 0) or 0
-                    self.pool.record(model, tokens)
+                    self.pool.record(model, tokens, public=not self.use_reserve)
                     s.detail = f"{model} ok"
                     s.data["tokens"] = tokens
                     s.data["latency_ms"] = int((time.perf_counter() - started) * 1000)
