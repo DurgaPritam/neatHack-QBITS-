@@ -16,7 +16,8 @@ GET  /api/admin/removals             -> hidden audits          (X-Admin-Token)
 POST /api/admin/audits/{id}/restore  -> undo a removal         (X-Admin-Token)
 
 Abuse protection (app.limits): per-IP limits on new audits and deep checks, a max deep-queue
-length, and a per-repo cooldown that hands back the recent audit instead of running a new one.
+length, and a per-repo cooldown that hands back the recent audit of the same commit instead of
+running a new one.
 
 Status: queued -> quick_ready -> complete | failed. Deep phase: available -> queued ->
 (waiting_budget) -> running -> done | failed | skipped.
@@ -154,11 +155,6 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
     repo_key = ref.full_name.lower()
     admin = is_admin(x_admin_token)
 
-    if not admin and limits.REPO_COOLDOWN_S > 0:
-        recent = db.recent_for_repo(repo_key, limits.REPO_COOLDOWN_S)
-        if recent:  # per-repo cooldown: hand back the recent audit, no new work
-            return {"id": recent["id"], "status": recent["status"], "cached": True, "cooldown": True}
-
     head_sha = await resolve_head_sha(req.repo_url)
     audit_id = uuid.uuid4().hex[:12]
 
@@ -174,6 +170,13 @@ async def create_audit(req: AuditRequest, request: Request, x_admin_token: str |
         running = db.find_in_progress(repo_key, head_sha)
         if running:  # same commit already being audited: follow that one
             return {"id": running["id"], "status": running["status"], "cached": False, "deduplicated": True}
+
+    if not admin and limits.REPO_COOLDOWN_S > 0:
+        recent = db.recent_for_repo(repo_key, limits.REPO_COOLDOWN_S)
+        # Per-repo cooldown: same commit (or unknown) -> hand back the recent audit, no new work.
+        # A new push always gets a fresh audit (the per-IP limit still applies).
+        if recent and (head_sha is None or recent.get("commit_sha") in (None, head_sha)):
+            return {"id": recent["id"], "status": recent["status"], "cached": True, "cooldown": True}
 
     if not admin:
         too_many(limits.AUDITS, client_ip(request),

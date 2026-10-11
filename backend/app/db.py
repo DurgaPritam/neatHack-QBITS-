@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS audits (
     id          TEXT PRIMARY KEY,
     repo_url    TEXT NOT NULL,
     repo_key    TEXT,              -- owner/name, lower-case
-    head_sha    TEXT,              -- latest commit SHA when the audit was requested
+    head_sha    TEXT,              -- latest commit SHA when the audit was requested (cleared if not cacheable)
+    commit_sha  TEXT,              -- same, never cleared: the per-repo cooldown compares it
     status      TEXT NOT NULL,     -- queued | quick_ready | complete | failed
     phase_quick TEXT DEFAULT 'queued',   -- queued | running | done | failed
     phase_deep  TEXT DEFAULT 'waiting',  -- waiting | available | queued | waiting_budget | running | done | failed | skipped
@@ -77,7 +78,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     have = {r[1] for r in conn.execute("PRAGMA table_info(audits)")}
     for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'"),
                      ("is_example", "INTEGER DEFAULT 0"), ("hidden", "INTEGER DEFAULT 0"),
-                     ("hidden_at", "TEXT"), ("hidden_reason", "TEXT")):
+                     ("hidden_at", "TEXT"), ("hidden_reason", "TEXT"), ("commit_sha", "TEXT")):
         if col not in have:
             conn.execute(f"ALTER TABLE audits ADD COLUMN {col} {ddl}")
     conn.execute("UPDATE audits SET status = 'complete' WHERE status = 'done'")  # M2 naming
@@ -92,7 +93,7 @@ def _db() -> sqlite3.Connection:
 def create(audit_id: str, repo_url: str, repo_key: str | None, head_sha: str | None,
            run_kind: str, status: str = "queued", **extra) -> None:
     now = _now()
-    row = {"id": audit_id, "repo_url": repo_url, "repo_key": repo_key, "head_sha": head_sha,
+    row = {"id": audit_id, "repo_url": repo_url, "repo_key": repo_key, "head_sha": head_sha, "commit_sha": head_sha,
            "status": status, "run_kind": run_kind, "created_at": now, "updated_at": now}
     row.update({k: json.dumps(v) if k in ("steps", "result") else v for k, v in extra.items()})
     cols = ", ".join(row)
@@ -146,7 +147,8 @@ def find_in_progress(repo_key: str, head_sha: str) -> dict | None:
 
 
 def recent_for_repo(repo_key: str, within_s: int) -> dict | None:
-    """Per-repo cooldown: the latest visible, not-failed audit of this repo from the last `within_s`."""
+    """Per-repo cooldown: the latest visible, not-failed audit of this repo from the last `within_s`
+    (the caller only reuses it when the repo has no newer commit)."""
     since = (datetime.now(timezone.utc) - timedelta(seconds=within_s)).isoformat(timespec="seconds")
     with _lock:
         r = _db().execute(

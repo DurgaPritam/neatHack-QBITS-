@@ -267,6 +267,13 @@ def test_repo_cooldown_reuses_recent_audit(client, monkeypatch):
     assert again == {"id": first["id"], "status": "quick_ready", "cached": True, "cooldown": True}
     assert len(client.calls["quick"]) == 1
 
+    async def pushed(repo_url):
+        return "c0ffee"  # the team pushed a fix: re-auditing must not return the stale result
+    monkeypatch.setattr(main, "resolve_head_sha", pushed)
+    monkeypatch.setattr(limits.AUDITS, "limit", 5)
+    fresh = post(client, "https://github.com/acme/flaky").json()
+    assert fresh["id"] != first["id"] and fresh["cached"] is False
+
 
 def test_deep_limits_and_queue_full(client, monkeypatch):
     ids = [post(client, f"https://github.com/acme/d{i}").json()["id"] for i in range(4)]

@@ -114,7 +114,7 @@ Requests with the admin token skip the per-IP limits and may use the reserved LL
 | `RATE_AUDITS_PER_10MIN` | 5 | new audits per IP (cooldown and cache hits don't count) |
 | `RATE_DEEP_PER_HOUR` | 3 | deep checks per IP |
 | `DEEP_QUEUE_MAX` | 10 | beyond this the user sees "queue full, try again in a few minutes" |
-| `REPO_COOLDOWN_S` | 600 | the same repo within 10 min gets the recent audit back |
+| `REPO_COOLDOWN_S` | 600 | the same repo and commit within 10 min gets the recent audit back (a new push always gets a fresh audit) |
 
 ## Troubleshooting
 
