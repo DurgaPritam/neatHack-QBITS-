@@ -707,7 +707,7 @@
       "kind": "github",
       "status": 200,
       "ok": true,
-      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465824799-12a2371b-8be2-4219-9b48-90503eb43c69.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20261010%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261010T084947Z&X-Amz-Expires=300&X-Amz-Signature=0b6e324b895957877d1f9ef5e3516f8cbbf464edb3d3080db625681fd7cd8c97&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng",
+      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465824799-12a2371b-8be2-4219-9b48-90503eb43c69.png?response-content-type=image%2Fpng",
       "error": null
     },
     {
@@ -715,7 +715,7 @@
       "kind": "github",
       "status": 200,
       "ok": true,
-      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465825499-052f2ed3-c664-4a4f-8ec2-074349dcaa3f.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20261010%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261010T084947Z&X-Amz-Expires=300&X-Amz-Signature=32d4fc84ea470c483f5b2dce4ffcab91b9d2262ed351f8341a714a73f7014e5c&X-Amz-SignedHeaders=host&response-content-type=image%2Fpng",
+      "final_url": "https://github-production-user-asset-6210df.s3.amazonaws.com/181020547/465825499-052f2ed3-c664-4a4f-8ec2-074349dcaa3f.png?response-content-type=image%2Fpng",
       "error": null
     },
     {
