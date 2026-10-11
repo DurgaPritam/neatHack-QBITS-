@@ -459,7 +459,13 @@ async def write_verdict(llm: LLM, score: dict, report: dict, claim_results: list
     # Code decides which fixes exist and their order (points gained); the LLM only words them.
     worded = {f.check_id: f.fix for f in verdict.fixes}
     checks_by_id = {c["id"]: c for c in report.get("checks", [])}
-    fixes = [_fix_row(c, fix_text(c, worded.get(c["check_id"]), checks_by_id)) for c in candidates]
+    fixes, used = [], set()
+    for c in candidates:
+        text = fix_text(c, worded.get(c["check_id"]), checks_by_id)
+        if text in used:  # the LLM words fixes by check_id; claims rows exist once per category
+            text = fix_text(c, None, checks_by_id) + f" ({c['title']}: {c['detail']})"
+        used.add(text)
+        fixes.append(_fix_row(c, text))
     return {"roast": verdict.roast, "fixes": fixes, "best_thing": verdict.best_thing, "style": style,
             # the LLM wrote the verdict, but a roast that failed the fact check was replaced
             "roast_source": "template" if templated else "llm"}, "llm"

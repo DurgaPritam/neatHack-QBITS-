@@ -28,6 +28,8 @@ ITEMS: dict[str, list[tuple[str, float]]] = {
     "usefulness": [("readme_exists", 0.3), ("dead_links", 0.2), ("est:usefulness", 0.5)],
 }
 ELIGIBILITY = ("repo_public", "prompt_injection")
+CLAIM_LABELS = {"agent": "agent", "tools": "neatlogs, Entire, cfo.ai", "demo_video": "demo",
+                "building_in_public": "building in public", "usefulness": "usefulness"}
 
 
 def estimate_credit(est: dict | None, injection_detected: bool) -> tuple[float, str]:
@@ -85,7 +87,7 @@ def compute_score(checks: list[dict], claims: list[dict] | None = None,
                 credit = sum(vals) / len(vals)
                 counts = {s: sum(1 for c in cat_claims if status_by_claim.get(c["id"], "unverified") == s)
                           for s in CLAIM_CREDIT}
-                row.update(title="README claims backed by evidence", status="claims",
+                row.update(title=f"README claims backed by evidence ({CLAIM_LABELS.get(cat, cat)})", status="claims",
                            detail=", ".join(f"{n} {s}" for s, n in counts.items() if n))
             else:
                 chk = by_id.get(item_id)

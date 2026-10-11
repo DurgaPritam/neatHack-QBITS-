@@ -65,3 +65,12 @@ def test_not_scored_check_gives_its_weight_to_the_category():
     row = next(r for r in tools["items"] if r["id"] == "entire_checkpoints")
     assert row["not_scored"] and row["max_points"] == 0
     assert all(f["check_id"] != "entire_checkpoints" for f in s["fix_candidates"])
+
+
+def test_claim_rows_are_told_apart_per_category():
+    from app.scoring import compute_score
+    claims = [{"id": "c1", "category": "agent"}, {"id": "c2", "category": "tools"}]
+    out = compute_score([], claims, [{"claim_id": "c1", "status": "unverified"},
+                                     {"claim_id": "c2", "status": "unverified"}])
+    titles = [f["title"] for f in out["fix_candidates"] if f["check_id"] == "claims"]
+    assert len(titles) == 2 and len(set(titles)) == 2
