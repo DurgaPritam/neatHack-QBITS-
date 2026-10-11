@@ -13,6 +13,7 @@ summary, evals/results/<date>.json, only has anonymised ids, verdicts and label 
 import argparse
 import asyncio
 import json
+import re
 import sys
 import time
 import uuid
@@ -22,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-from evals.labels import EVAL_CHECKS, parse_sheet, truth_for, write_sheet
+from evals.labels import EVAL_CHECKS, NOT_A_CLAIM, parse_sheet, provenance, truth_for, write_sheet
 
 HERE = Path(__file__).resolve().parent
 RUNS = HERE / "private" / "runs"
@@ -68,6 +69,21 @@ async def audit_one(entry: dict, deep: bool, pool_ok) -> dict:
             "tokens": (report.get("usage") or {}).get("total_tokens", 0)}
 
 
+def _words(text: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+def _similar(a: str, b: str) -> bool:
+    wa, wb = _words(a), _words(b)
+    return bool(wa and wb) and len(wa & wb) / min(len(wa), len(wb)) >= 0.6
+
+
+def _best_match(quote: str, run_claims: list[dict]) -> dict | None:
+    scored = [(len(_words(quote) & _words(c.get("quote") or c["claim"])), c) for c in run_claims
+              if _similar(quote, c.get("quote") or "") or _similar(quote, c["claim"])]
+    return max(scored, key=lambda x: x[0])[1] if scored else None
+
+
 def score_run(runs: list[dict]) -> dict:
     """Compare each run's verdicts with the label sheets."""
     per_check: dict[str, Counter] = {cid: Counter() for cid in EVAL_CHECKS}
@@ -76,11 +92,13 @@ def score_run(runs: list[dict]) -> dict:
     repos = []
     for r in runs:
         sheet = HERE / "labels" / f"{r['id']}.md"
-        labels = parse_sheet(sheet.read_text()) if sheet.exists() else {"checks": {}, "claims": {}}
+        text = sheet.read_text() if sheet.exists() else ""
+        labels = parse_sheet(text) if text else {"checks": {}, "claims": {}}
         checks = {c["id"]: c for c in r["report"].get("checks", [])}
         row = {"id": r["id"], "phase": r["phase"], "audit_id": r["audit_id"],
                "score": (r["report"].get("score") or {}).get("score"), "tokens": r["tokens"],
-               "seconds": r["seconds"], "checks": {}}
+               "seconds": r["seconds"], "checks": {}, "labels": provenance(text) if text else None,
+               "unlabelled_lines": text.count("label: ?")}
         for cid in EVAL_CHECKS:
             c = checks.get(cid)
             if not c:
@@ -103,15 +121,28 @@ def score_run(runs: list[dict]) -> dict:
                 if outcome not in ("correct", "unknown"):
                     errors[(cid, outcome)] += 1
             row["checks"][cid] = {"verdict": got, "outcome": outcome}
-        for cl in (r["report"].get("agent") or {}).get("claims", []):
-            # claims are re-extracted every run: match the labelled one by its README quote
-            lab = next((v for v in labels["claims"].values() if v["label"] and v["quote"]
-                        and v["quote"][:60] == (cl.get("quote") or cl["claim"])[:60]), None)
-            if not lab:
-                claims["unlabelled"] += 1
+        # Claims are re-extracted every run: match each labelled claim to this run's by its wording.
+        run_claims = (r["report"].get("agent") or {}).get("claims", [])
+        for lab in labels["claims"].values():
+            if not lab["label"] or not lab["quote"]:
                 continue
-            truth = truth_for(lab)
-            claims["agree" if truth and cl["status"] == truth else "disagree" if truth else "unknown"] += 1
+            truth = truth_for(lab, claim=True)
+            match = _best_match(lab["quote"], run_claims)
+            if truth == NOT_A_CLAIM:
+                outcome = "agree" if match is None else "disagree"   # fixed when it's no longer extracted
+            elif match is None:
+                outcome = "not_extracted"
+            elif truth is None:
+                outcome = "unknown"
+            else:
+                outcome = "agree" if match["status"] == truth else \
+                    ("false_fail" if truth == "verified" else "false_pass")
+            claims[outcome] += 1
+            if outcome in ("false_fail", "false_pass", "disagree"):
+                errors[("claims", outcome if outcome != "disagree" else "non_claim_extracted")] += 1
+        labelled_quotes = [l["quote"] for l in labels["claims"].values() if l["quote"]]
+        claims["unlabelled"] += sum(1 for c in run_claims
+                                    if not any(_similar(q, c.get("quote") or c["claim"]) for q in labelled_quotes))
         repos.append(row)
 
     def acc(c: Counter) -> float | None:
@@ -119,13 +150,14 @@ def score_run(runs: list[dict]) -> dict:
         return round(100 * c["correct"] / n, 1) if n else None
 
     total = sum(per_check.values(), Counter())
-    labelled_claims = claims["agree"] + claims["disagree"]
+    labelled_claims = claims["agree"] + claims["disagree"] + claims["false_fail"] + claims["false_pass"]
     return {
         "repos": repos,
         "per_check": {cid: {"accuracy": acc(c), **dict(c)} for cid, c in per_check.items()},
         "overall": {"accuracy": acc(total), "false_fails": total["false_fail"], "false_passes": total["false_pass"],
                     "other_wrong": total["wrong"] + total["changed"], "labelled": sum(total.values())},
-        "claims": {"agreement": round(100 * claims["agree"] / labelled_claims, 1) if labelled_claims else None,
+        "claims": {"accuracy": round(100 * claims["agree"] / labelled_claims, 1) if labelled_claims else None,
+                   "false_fails": claims["false_fail"], "false_passes": claims["false_pass"] + claims["disagree"],
                    **dict(claims)},
         "top_errors": [{"check": c, "kind": k, "count": n} for (c, k), n in errors.most_common(5)],
     }
@@ -135,7 +167,8 @@ def print_summary(summary: dict) -> None:
     o = summary["overall"]
     print(f"\nOverall accuracy: {o['accuracy']}% over {o['labelled']} labelled checks · "
           f"false fails {o['false_fails']} · false passes {o['false_passes']} · other wrong {o['other_wrong']}")
-    print(f"Claim agreement: {summary['claims']['agreement']}% ({summary['claims']})")
+    c = summary["claims"]
+    print(f"Claims: accuracy {c['accuracy']}% · false fails {c['false_fails']} · false passes {c['false_passes']} ({c})")
     print("\nPer check:")
     for cid, s in summary["per_check"].items():
         print(f"  {cid:20} {s}")
@@ -145,7 +178,8 @@ def print_summary(summary: dict) -> None:
     print("\nRepos:")
     for r in summary["repos"]:
         verdicts = " ".join(f"{k.split('_')[0]}={v['verdict']}" for k, v in r["checks"].items())
-        print(f"  {r['id']:20} {r['phase']:5} score {r['score']} · {r['tokens']} tok · {r['seconds']}s · {verdicts}")
+        print(f"  {r['id']:20} {r['phase']:5} score {r['score']} · {r['tokens']} tok · {r['seconds']}s · "
+              f"unlabelled lines {r['unlabelled_lines']} · labels: {r['labels'] or '-'}")
 
 
 def save(runs: list[dict], date: str, label: str) -> Path:

@@ -148,6 +148,36 @@ as Repo A-E), quick + deep phase each, admin reserve, 181k tokens in total. Resu
 `backend/evals/results/2026-10-11-baseline.json` (audit ids double as neatlogs session ids, tagged
 `test`). Accuracy is reported once the label sheets are marked.
 
+### First labelled repo: langchain-ai/open_deep_research (labels AI-assisted, spot-checked by the team)
+The 9 rubric checks were all correct. The claim judge was too strict: 4 false fails out of 8 claims,
+and a shell command extracted as a "claim" (a false pass). Fixes, each traced to a labelled error:
+
+1. **Goalpost-moving:** a claim is verified when evidence supports *its own words*; the judge may not
+   demand details it doesn't state ("100 PhD-level tasks").
+2. **Config files:** presearch always shows config/settings hits first (`configuration.py`, `*.toml`,
+   `*.yaml`, enums); a default value, enum option or config class is direct evidence for "by default
+   uses X" / "supports X".
+3. **Claim extraction:** shell commands, install steps and code are skipped (prompt + a code filter).
+   Found while re-running: the extractor padded claims with details from the next README sentence
+   ("…which has 100 PhD-level tasks"), so a paraphrase may not add numbers its quote lacks, and a
+   quote stitched across sentences with "…" keeps only its first sentence.
+4. **No README as proof** in verdict text (prompt + a sanitizer that drops such sentences).
+5. **No stray evidence bullets** like "cost" on the cfo.ai check.
+
+| Run (audit id = neatlogs session) | Fixes in place | Rubric checks | Claims correct | Claim false fails | Claim false passes |
+|---|---|---|---|---|---|
+| Baseline `d9ee0299389d` | none | 9/9 | 3/8 (37.5%) | 4 | 1 |
+| After 1 `e166d6c4a643` | 1–5 (prompts, config presearch, command filter) | 9/9 | 6/6 (100%) | 0 | 0 |
+| After 2 `55cddb3e68c6` | same | 9/9 | 7/8 (87.5%) | 1 | 0 |
+| After 3 `da5768158590` | + config hits for every claim | 9/9 | 5/6 (83.3%) | 1 | 0 |
+| After 4 `c31e614f93da` | + no numbers the quote lacks | 9/9 | 4/5 (80%) | 1 | 0 |
+| After 5 `26d849e7c7aa` | + stitched quotes cut | 9/9 | 5/5 (100%) | 0 | 0 |
+
+Caveats, stated plainly: one labelled repo (8 claims), so these are small numbers. Claims are
+re-extracted every run, so 0-3 labelled claims per run weren't extracted again and aren't scored. The
+remaining false fails in runs 2-4 were all the padded "Deep Research Bench" claim, the error that the
+last two fixes target. A further confirmation run was blocked by the day's Groq budget and is next.
+
 ## Entire
 - Enabled 2026-10-11 for Claude Code, ref-based storage (`refs/entire/checkpoints/<shard>/<id>`),
   synced to `origin`.

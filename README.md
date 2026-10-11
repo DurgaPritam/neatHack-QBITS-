@@ -153,6 +153,23 @@ Before → after on openai/swarm: first result in 52s before the two-speed redes
 | Quick phase capped at one LLM call (openai/swarm) | 4,094 tokens | 2,154 tokens, 5.5 s |
 | Production, this repo (`29def6e19f64`) | — | quick 2,173 tokens / 5.3 s; deep 17,232 tokens / 40.5 s; 6 of 6 claims verified |
 
+### Eval: claim-judging accuracy (M5)
+
+`cd backend && python -m evals.run` audits a labelled eval set (our repo, three big public repos and
+five neatHack submissions anonymised as Repo A-E) and scores every verdict against hand labels
+(AI-assisted, spot-checked by the team). On the first labelled repo, langchain-ai/open_deep_research,
+the 9 rubric checks were all right, but the claim judge was too strict. After five fixes (no
+goalpost-moving, config files as evidence, commands aren't claims, no README as proof, faithful
+claim text):
+
+| | Rubric checks | Claims correct | Claim false fails | Claim false passes |
+|---|---|---|---|---|
+| Before (`d9ee0299389d`) | 9/9 | 3/8 (37.5%) | 4 | 1 |
+| After, latest run (`26d849e7c7aa`) | 9/9 | 5/5 (100%) | 0 | 0 |
+| After, all 5 runs | 9/9 each | 80–100% | 0–1 | 0 |
+
+One labelled repo so far, so these are small numbers; every run is in [EVIDENCE.md](EVIDENCE.md).
+
 ### Failure and recovery in production (audit `29def6e19f64`)
 
 During the deep check of this repo, the claim-judging call `llm.verify` on `qwen/qwen3.8-27b`

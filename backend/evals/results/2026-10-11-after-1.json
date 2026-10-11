@@ -1,0 +1,109 @@
+{
+ "repos": [
+  {
+   "id": "open-deep-research",
+   "phase": "deep",
+   "audit_id": "e166d6c4a643",
+   "score": 27,
+   "tokens": 22880,
+   "seconds": 62.4,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "correct"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "correct"
+    }
+   },
+   "labels": "AI-assisted, spot-checked by the team (against src/open_deep_research/configuration.py)",
+   "unlabelled_lines": 0
+  }
+ ],
+ "per_check": {
+  "commits_in_window": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "neatlogs_sdk": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "neatlogs_traces": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "entire_checkpoints": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "cfo_ai_plan": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "demo_video": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "public_posts": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "before_after": {
+   "accuracy": 100.0,
+   "correct": 1
+  },
+  "failure_recovery": {
+   "accuracy": 100.0,
+   "correct": 1
+  }
+ },
+ "overall": {
+  "accuracy": 100.0,
+  "false_fails": 0,
+  "false_passes": 0,
+  "other_wrong": 0,
+  "labelled": 9
+ },
+ "claims": {
+  "accuracy": 100.0,
+  "false_fails": 0,
+  "false_passes": 0,
+  "agree": 6,
+  "not_extracted": 2,
+  "unlabelled": 2
+ },
+ "top_errors": [],
+ "date": "2026-10-11",
+ "tag": "after-1",
+ "repos_run": 1
+}

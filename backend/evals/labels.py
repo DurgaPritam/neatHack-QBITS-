@@ -73,8 +73,11 @@ def write_sheet(path: Path, entry: dict, url: str, report: dict, run_info: dict)
         f"Repo: <{url}> · audit `{run_info.get('audit_id')}` · phase: {run_info.get('phase')} · "
         f"run {run_info.get('date')}",
         "",
+        "Labels: ? (who labelled, e.g. \"by hand\" or \"AI-assisted, spot-checked by the team\")",
+        "",
         "Mark each `label:` line as `ok` or `wrong` (optionally `wrong pass` / `wrong fail` with the right "
-        "verdict, and `-- a note`). A wrong **fail** is a false fail: we penalised something that is there.",
+        "verdict, and `-- a note`). A wrong **fail** is a false fail: we penalised something that is there. "
+        "For a claim, `wrong fail` = it should be verified; note `not a claim` for commands or code.",
         "",
     ]
     for cid, title in EVAL_CHECKS.items():
@@ -117,11 +120,32 @@ def parse_sheet(text: str) -> dict:
     return out
 
 
-def truth_for(labelled: dict) -> str | None:
-    """The right verdict, as far as the label tells us."""
+NOT_A_CLAIM = "not_a_claim"
+
+
+def truth_for(labelled: dict, claim: bool = False) -> str | None:
+    """The right verdict, as far as the label tells us.
+
+    `wrong pass` / `wrong fail` name the verdict that is right for a check. For a claim, people
+    write the error instead: `wrong fail` = PreJudge failed to verify something true (should be
+    verified), `wrong pass` = PreJudge verified something it shouldn't. A note saying it is "not a
+    claim" (a command, a code line) means it shouldn't have been extracted at all.
+    """
     if labelled["label"] == "ok":
         return labelled["verdict"]
+    if claim:
+        if re.search(r"not a claim|shell command|is a command", labelled.get("note") or "", re.I):
+            return NOT_A_CLAIM
+        named = {"fail": "verified", "pass": "unverified"}.get(labelled["truth"] or "", labelled["truth"])
+        if named in CLAIM_STATUSES:
+            return named
+        return {"unverified": "verified", "contradicted": "verified", "verified": "unverified"}.get(labelled["verdict"])
     if labelled["truth"]:
         return labelled["truth"]
-    flip = {"fail": "pass", "pass": "fail", "verified": "contradicted", "contradicted": "verified"}
+    flip = {"fail": "pass", "pass": "fail"}
     return flip.get(labelled["verdict"])  # wrong on warn/unverified without a stated truth: unknown
+
+
+def provenance(text: str) -> str | None:
+    m = re.search(r"^Labels: (?!\?)(.+)$", text, re.M)  # "Labels: ?" is the unfilled placeholder
+    return m.group(1).strip() if m else None

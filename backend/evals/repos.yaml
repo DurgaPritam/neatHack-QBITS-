@@ -5,7 +5,8 @@ repos:
   - {id: own,                kind: own,     name: DurgaPritam/neatHack-QBITS-, url: https://github.com/DurgaPritam/neatHack-QBITS-}
   - {id: swarm,              kind: public,  name: openai/swarm, url: https://github.com/openai/swarm}
   - {id: smolagents,         kind: public,  name: huggingface/smolagents, url: https://github.com/huggingface/smolagents}
-  - {id: open-deep-research, kind: public,  name: langchain-ai/open_deep_research, url: https://github.com/langchain-ai/open_deep_research}
+  - {id: open-deep-research, kind: public,  name: langchain-ai/open_deep_research, url: https://github.com/langchain-ai/open_deep_research,
+     labels: "AI-assisted, spot-checked by the team"}
   - {id: repo-a, kind: neathack, name: Repo A}   # provided by the team
   - {id: repo-b, kind: neathack, name: Repo B}   # provided by the team
   - {id: repo-c, kind: neathack, name: Repo C}   # provided by the team

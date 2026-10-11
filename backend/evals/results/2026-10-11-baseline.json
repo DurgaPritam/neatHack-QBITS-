@@ -1,6 +1,54 @@
 {
  "repos": [
   {
+   "id": "open-deep-research",
+   "phase": "deep",
+   "audit_id": "d9ee0299389d",
+   "score": 20,
+   "tokens": 17214,
+   "seconds": 88.4,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "correct"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "correct"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "correct"
+    }
+   },
+   "labels": "AI-assisted, spot-checked by the team (against src/open_deep_research/configuration.py)",
+   "unlabelled_lines": 0
+  },
+  {
    "id": "own",
    "phase": "deep",
    "audit_id": "92e2d687028e",
@@ -44,145 +92,9 @@
      "verdict": "pass",
      "outcome": "unlabelled"
     }
-   }
-  },
-  {
-   "id": "swarm",
-   "phase": "deep",
-   "audit_id": "84fa4f9fefd5",
-   "score": 29,
-   "tokens": 19647,
-   "seconds": 70.2,
-   "checks": {
-    "commits_in_window": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_sdk": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_traces": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "entire_checkpoints": {
-     "verdict": "unverified",
-     "outcome": "unlabelled"
-    },
-    "cfo_ai_plan": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "demo_video": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "public_posts": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "before_after": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "failure_recovery": {
-     "verdict": "warn",
-     "outcome": "unlabelled"
-    }
-   }
-  },
-  {
-   "id": "smolagents",
-   "phase": "deep",
-   "audit_id": "ad158891743b",
-   "score": 29,
-   "tokens": 20923,
-   "seconds": 106.3,
-   "checks": {
-    "commits_in_window": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_sdk": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_traces": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "entire_checkpoints": {
-     "verdict": "unverified",
-     "outcome": "unlabelled"
-    },
-    "cfo_ai_plan": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "demo_video": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "public_posts": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "before_after": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "failure_recovery": {
-     "verdict": "warn",
-     "outcome": "unlabelled"
-    }
-   }
-  },
-  {
-   "id": "open-deep-research",
-   "phase": "deep",
-   "audit_id": "d9ee0299389d",
-   "score": 20,
-   "tokens": 17214,
-   "seconds": 88.4,
-   "checks": {
-    "commits_in_window": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_sdk": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "neatlogs_traces": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "entire_checkpoints": {
-     "verdict": "unverified",
-     "outcome": "unlabelled"
-    },
-    "cfo_ai_plan": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "demo_video": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "public_posts": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "before_after": {
-     "verdict": "fail",
-     "outcome": "unlabelled"
-    },
-    "failure_recovery": {
-     "verdict": "warn",
-     "outcome": "unlabelled"
-    }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
   },
   {
    "id": "repo-a",
@@ -228,7 +140,9 @@
      "verdict": "pass",
      "outcome": "unlabelled"
     }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
   },
   {
    "id": "repo-b",
@@ -274,7 +188,9 @@
      "verdict": "warn",
      "outcome": "unlabelled"
     }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
   },
   {
    "id": "repo-c",
@@ -320,7 +236,9 @@
      "verdict": "pass",
      "outcome": "unlabelled"
     }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
   },
   {
    "id": "repo-d",
@@ -366,7 +284,9 @@
      "verdict": "pass",
      "outcome": "unlabelled"
     }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
   },
   {
    "id": "repo-e",
@@ -412,50 +332,173 @@
      "verdict": "fail",
      "outcome": "unlabelled"
     }
-   }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
+  },
+  {
+   "id": "smolagents",
+   "phase": "deep",
+   "audit_id": "ad158891743b",
+   "score": 29,
+   "tokens": 20923,
+   "seconds": 106.3,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   },
+   "labels": null,
+   "unlabelled_lines": 17
+  },
+  {
+   "id": "swarm",
+   "phase": "deep",
+   "audit_id": "84fa4f9fefd5",
+   "score": 29,
+   "tokens": 19647,
+   "seconds": 70.2,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   },
+   "labels": null,
+   "unlabelled_lines": 15
   }
  ],
  "per_check": {
   "commits_in_window": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "neatlogs_sdk": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "neatlogs_traces": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "entire_checkpoints": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "cfo_ai_plan": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "demo_video": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "public_posts": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "before_after": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   },
   "failure_recovery": {
-   "accuracy": null
+   "accuracy": 100.0,
+   "correct": 1
   }
  },
  "overall": {
-  "accuracy": null,
+  "accuracy": 100.0,
   "false_fails": 0,
   "false_passes": 0,
   "other_wrong": 0,
-  "labelled": 0
+  "labelled": 9
  },
  "claims": {
-  "agreement": null,
-  "unlabelled": 70
+  "accuracy": 37.5,
+  "false_fails": 4,
+  "false_passes": 1,
+  "agree": 3,
+  "false_fail": 4,
+  "disagree": 1,
+  "unlabelled": 0
  },
- "top_errors": [],
+ "top_errors": [
+  {
+   "check": "claims",
+   "kind": "false_fail",
+   "count": 4
+  },
+  {
+   "check": "claims",
+   "kind": "non_claim_extracted",
+   "count": 1
+  }
+ ],
  "date": "2026-10-11",
  "tag": "baseline",
  "repos_run": 9
