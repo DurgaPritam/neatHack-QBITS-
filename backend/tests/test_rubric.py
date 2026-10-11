@@ -52,9 +52,13 @@ def test_neatlogs_login_wall_is_found_not_missing():
               "final_url": "https://app.neatlogs.com/auth?intent=signin&callbackUrl=%2Ftraces%2Fabc"}
     c = rubric.check_neatlogs_traces([walled])
     assert c["status"] == "warn" and "not publicly viewable" in c["detail"] and c["data"]["advice"]
-    c = rubric.check_neatlogs_traces([walled], "![neatlogs trace](docs/trace.png)")
+    c = rubric.check_neatlogs_traces([walled], "![neatlogs trace](docs/trace.png)", ["docs/trace.png"])
     assert c["status"] == "pass"
-    assert rubric.check_neatlogs_traces([], "<img src='img/neatlogs-run.png'>")["status"] == "pass"
+    assert rubric.check_neatlogs_traces([], "<img src='./img/neatlogs-run.png'>", ["img/neatlogs-run.png"])["status"] == "pass"
+    # an image that isn't in the repo (or a dead image URL) proves nothing
+    assert rubric.check_neatlogs_traces([walled], "![neatlogs trace](evidence/missing.png)", [])["status"] == "warn"
+    dead_img = {**link("https://i.imgur.com/trace.png", ok=False)}
+    assert rubric.check_neatlogs_traces([dead_img], "![trace](https://i.imgur.com/trace.png)")["status"] == "fail"
     assert rubric.check_neatlogs_traces([], "")["status"] == "fail"
 
 

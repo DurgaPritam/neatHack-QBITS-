@@ -154,12 +154,21 @@ _TRACE_WORDS = re.compile(r"neatlogs|trace", re.I)
 _LOGIN_PATH = re.compile(r"^/(auth|login|signin|sign-in)\b", re.I)
 
 
-def trace_screenshots(readme: str) -> list[str]:
-    """README-embedded images whose alt text or path mentions neatlogs/trace."""
+def trace_screenshots(readme: str, tree_paths: list[str] | None = None, links: list[dict] | None = None) -> list[str]:
+    """README-embedded images whose alt text or path mentions neatlogs/trace and that actually
+    exist: a relative path must be a file in the repo, a URL must not be a dead link."""
+    files = {p.lower() for p in tree_paths or []}
+    dead = {l["url"] for l in links or [] if l["ok"] is False}
     out = []
     for m in _IMAGE.finditer(readme or ""):
         alt, src = m.group(1) or "", m.group(2) or m.group(3) or ""
-        if _TRACE_WORDS.search(alt) or _TRACE_WORDS.search(src):
+        if not (_TRACE_WORDS.search(alt) or _TRACE_WORDS.search(src)):
+            continue
+        if src.startswith(("http://", "https://")):
+            ok = src not in dead
+        else:
+            ok = src.split("#")[0].split("?")[0].lstrip("./").lower() in files
+        if ok:
             out.append(src)
     return out[:5]
 
@@ -171,10 +180,10 @@ def needs_login(link: dict) -> bool:
             or link.get("status") == 401)
 
 
-def check_neatlogs_traces(links: list[dict], readme: str = "") -> dict:
+def check_neatlogs_traces(links: list[dict], readme: str = "", tree_paths: list[str] | None = None) -> dict:
     title = "neatlogs trace links"
     traces = [l for l in links if l["kind"] == "neatlogs_trace"]
-    shots = trace_screenshots(readme)
+    shots = trace_screenshots(readme, tree_paths, links)
     if not traces:
         if shots:
             return _check("neatlogs_traces", "tools", title, "pass",
