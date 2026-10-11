@@ -308,3 +308,14 @@ def test_progress_skips_degraded_runs(repo):
     out = history.attach_progress("new000000000", "team/p", "real", "9999",
                                   {"phase": "complete", "mode": "full", "score": {"score": 66}, "checks": []})
     assert out["progress"]["text"] == "-2 since your last check (68 → 66)"
+
+
+def test_backfill_builds_projects_from_existing_audits(repo):
+    db._db().execute("DELETE FROM projects")
+    for i, (status, score) in enumerate([("quick_ready", 40), ("complete", 55)]):
+        db.create(f"bf{i:010d}", "https://github.com/team/bf", "team/bf", f"s{i}", "real", status=status,
+                  result={"score": {"score": score}, "checks": checks()})
+    assert history.backfill() >= 2
+    p = db.get_project("team/bf")
+    assert p["audit_count"] == 2 and p["deep_count"] == 1 and p["best_score"] == 55 and p["is_hackathon_repo"] == 1
+    assert history.backfill() == 0  # only once

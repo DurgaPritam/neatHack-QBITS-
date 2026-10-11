@@ -55,6 +55,7 @@ async def lifespan(_: FastAPI):
     db.connect()
     db.mark_interrupted()
     db.seed_examples()
+    history.backfill()
     budget.attach(POOL)
     queues.start()
     yield

@@ -161,3 +161,22 @@ def percentiles(repo_key: str | None, result: dict | None, cohort: Cohort | None
         checks.append({"check_id": cid, "pct": pct, "passed": passed, "text": text})
     return {"cohort_size": len(others), "beats_pct": beats,
             "text": f"Your score beats {beats}% of neatHack repos we've checked", "checks": checks}
+
+
+def backfill() -> int:
+    """Build projects rows from audits saved before the table existed (once: only while it's empty)."""
+    if db.all_projects(limit=1):
+        return 0
+    with db._lock:
+        rows = db._db().execute(
+            "SELECT * FROM audits WHERE is_example = 0 AND cached_from IS NULL "
+            "AND status IN ('complete', 'quick_ready') ORDER BY created_at, rowid").fetchall()
+    n = 0
+    for r in rows:
+        row = db._row(r)
+        result = row["result"] or {}
+        record(row["id"], row, result, deep=False)
+        if row["status"] == "complete":
+            record(row["id"], row, result, deep=True)
+        n += 1
+    return n
