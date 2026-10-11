@@ -1,0 +1,3 @@
+# Other teams' repos stay out of git: their URLs, raw runs and label sheets (which link to them).
+private/
+labels/repo-*.md
