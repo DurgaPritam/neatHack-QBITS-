@@ -8,8 +8,8 @@ covers **Oct 2026 – Sep 2028 (24 months), in USD**. Free pilots run in Q4 2026
 Built with cfo.ai: [shared model](https://cfo.ai/s/xBCsLLiMtconXUBf) · raw notes:
 [cfo-ai-notes-raw.md](cfo-ai-notes-raw.md)
 
-> **Assumption to confirm:** starting cash is a **$2,000 placeholder**. The plan holds as long as
-> we start with at least about $250 (lowest cash in Main is $1,748).
+> **Starting cash: $500** (final). Main never runs out: its lowest point is **$248 in Jan 2027**,
+> the month before it turns profitable for good, so there is little slack until then.
 
 ## Customers and pricing
 
@@ -49,12 +49,14 @@ starts (Jun 2027), and about $11,660 by Sep 2028, of which payroll is 84%.
 | | **Main** | Upside | Downside |
 |---|---|---|---|
 | Profitable every month from | **Feb 2027** | Jan 2027 | never |
-| Lowest cash | **$1,748** (Jan 2027) | $1,798 (Dec 2026) | below zero from Jun 2027 |
+| Lowest cash | **$248** (Jan 2027) | $1,798 (Dec 2026) | below zero from Jun 2027 |
 | Runway | **never runs out, no raise needed** | never runs out | runs out Jun 2027 |
-| Gross margin, Sep 2028 | **97%** | 97% | 96% |
+| Gross margin, Sep 2028 | **96.6%** | 97% | 96% |
 | Monthly revenue, Sep 2028 | **$24,651** (about $296k/yr) | $61,683 (about $740k/yr) | $5,918 (about $71k/yr) |
-| Cash, Sep 2028 | **$89,522** | $370,775 | −$77,217 |
+| Cash, Sep 2028 | **$88,022** | $370,775 | −$77,217 |
 
+- Main uses the final $500 starting cash. The Upside and Downside figures are from the earlier run
+  with $2,000 starting cash.
 - **Upside:** higher prices, faster sales, lower churn.
 - **Downside:** lower prices, slower sales, higher churn, and the paid launch slipping to Apr 2027.
 - A $150k pre-seed raise is modelled as a separate, optional scenario. Main doesn't need it.
@@ -67,11 +69,11 @@ starts (Jun 2027), and about $11,660 by Sep 2028, of which payroll is 84%.
 | Revenue streams | licenses | + $49 flat events, 500 free audits | **+ size-based events, 5,000 free audits** |
 | Funding | $150k raise, May 2027 | bootstrapped | **bootstrapped** |
 | Profitable every month from | Nov 2027 | Nov 2027 | **Feb 2027** |
-| Lowest cash | $322 | −$482 | **$1,748** |
+| Lowest cash | $322 | −$482 | **$248** (Jan 2027) |
 | Runway | OK only because of the raise | runs out Jan–Mar 2027 | **never runs out** |
-| Gross margin, Sep 2028 | 85% | 83% | **97%** |
+| Gross margin, Sep 2028 | 85% | 83% | **96.6%** |
 | Monthly revenue, Sep 2028 | $22,992 | $23,905 | **$24,651** |
-| Cash, Sep 2028 | $193,878 (incl. raise) | $43,824 | **$89,522** |
+| Cash, Sep 2028 | $193,878 (incl. raise) | $43,824 | **$88,022** |
 
 **v1 → v2: add the event plan and free tier, drop the raise.**
 Without the raise, two assumptions opened a cash gap at launch: the $0.40 AI guess and a $300 flat

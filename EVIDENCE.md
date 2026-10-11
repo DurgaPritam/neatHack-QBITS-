@@ -166,11 +166,11 @@ Other production checks the same day:
 | AI cost per audit | $0.40 (estimate) | $0.40 (placeholder split) | **$0.0095 (measured)** |
 | Funding | $150k raise May 2027 | bootstrapped | bootstrapped |
 | Profitable every month from | Nov 2027 | Nov 2027 | **Feb 2027** |
-| Lowest cash | $322 | −$482 | **$1,748** |
+| Lowest cash | $322 | −$482 | **$248** (Jan 2027) |
 | Runway | OK only because of the raise | runs out Jan–Mar 2027 | **never runs out** |
-| Gross margin, Sep 2028 | 85% | 83% | **97%** |
+| Gross margin, Sep 2028 | 85% | 83% | **96.6%** |
 | Monthly revenue, Sep 2028 | $22,992 | $23,905 | **$24,651** |
-| Cash, Sep 2028 | $193,878 (incl. raise) | $43,824 | **$89,522** |
+| Cash, Sep 2028 | $193,878 (incl. raise) | $43,824 | **$88,022** |
 
 - **v1 → v2:** added size-agnostic $49 events and a 500-audit free tier, removed the raise to
   test bootstrapping. That exposed a cash gap at launch: the $0.40 AI guess and a $300 hosting
@@ -179,7 +179,8 @@ Other production checks the same day:
   $0.005 quick and $0.02 deep, $0.0095 blended, about 42× below the guess; hosting is $20/mo.
   That moved break-even 9 months earlier. Size-based event pricing also raised revenue per event
   by about 80%.
-- Starting cash in the model is a $2,000 placeholder (the plan needs at least about $250).
+- **Final v3 starting cash is $500** (it replaced the $2,000 placeholder). Main still never runs out:
+  lowest cash is $248 in Jan 2027, profitable every month from Feb 2027, $88,022 by Sep 2028.
 
 ## Building in public (#neatHack)
 - <post links>

@@ -109,9 +109,10 @@ summary in [docs/business-plan.md](docs/business-plan.md).
 - **Costs:** AI costs $0.0095 per audit, blended (measured in our traces: $0.005 quick, $0.02
   deep), and hosting is $20/month.
 - **Revenue:** paid sales start Jan 2027. In the Main scenario that reaches $24,651/month by Sep
-  2028 at a 97% gross margin.
-- **Runway:** bootstrapped. The Main scenario is profitable every month from Feb 2027 and never
-  runs out of cash (its lowest point is $1,748).
+  2028 at a 96.6% gross margin.
+- **Runway:** bootstrapped from $500 of starting cash. The Main scenario is profitable every month
+  from Feb 2027 and never runs out of cash: its lowest point is $248 (Jan 2027), and it holds
+  $88,022 by Sep 2028.
 
 The model changed our decisions. Replacing a $0.40-per-audit AI guess with the measured cost moved
 break-even 9 months earlier (v2 → v3).
