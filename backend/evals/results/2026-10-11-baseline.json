@@ -1,0 +1,462 @@
+{
+ "repos": [
+  {
+   "id": "own",
+   "phase": "deep",
+   "audit_id": "92e2d687028e",
+   "score": 66,
+   "tokens": 17568,
+   "seconds": 49.3,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "swarm",
+   "phase": "deep",
+   "audit_id": "84fa4f9fefd5",
+   "score": 29,
+   "tokens": 19647,
+   "seconds": 70.2,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "smolagents",
+   "phase": "deep",
+   "audit_id": "ad158891743b",
+   "score": 29,
+   "tokens": 20923,
+   "seconds": 106.3,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "open-deep-research",
+   "phase": "deep",
+   "audit_id": "d9ee0299389d",
+   "score": 20,
+   "tokens": 17214,
+   "seconds": 88.4,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "repo-a",
+   "phase": "deep",
+   "audit_id": "474806e79e8e",
+   "score": 40,
+   "tokens": 24199,
+   "seconds": 83.3,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "repo-b",
+   "phase": "deep",
+   "audit_id": "0e7e08442ae5",
+   "score": 33,
+   "tokens": 19720,
+   "seconds": 87.0,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "repo-c",
+   "phase": "deep",
+   "audit_id": "f73fc1c06949",
+   "score": 50,
+   "tokens": 18376,
+   "seconds": 59.8,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "repo-d",
+   "phase": "deep",
+   "audit_id": "d8a063fd4f17",
+   "score": 79,
+   "tokens": 19197,
+   "seconds": 71.5,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    }
+   }
+  },
+  {
+   "id": "repo-e",
+   "phase": "deep",
+   "audit_id": "b5f2dbe2b0ea",
+   "score": 42,
+   "tokens": 26228,
+   "seconds": 89.9,
+   "checks": {
+    "commits_in_window": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_sdk": {
+     "verdict": "pass",
+     "outcome": "unlabelled"
+    },
+    "neatlogs_traces": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "entire_checkpoints": {
+     "verdict": "unverified",
+     "outcome": "unlabelled"
+    },
+    "cfo_ai_plan": {
+     "verdict": "warn",
+     "outcome": "unlabelled"
+    },
+    "demo_video": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "public_posts": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "before_after": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    },
+    "failure_recovery": {
+     "verdict": "fail",
+     "outcome": "unlabelled"
+    }
+   }
+  }
+ ],
+ "per_check": {
+  "commits_in_window": {
+   "accuracy": null
+  },
+  "neatlogs_sdk": {
+   "accuracy": null
+  },
+  "neatlogs_traces": {
+   "accuracy": null
+  },
+  "entire_checkpoints": {
+   "accuracy": null
+  },
+  "cfo_ai_plan": {
+   "accuracy": null
+  },
+  "demo_video": {
+   "accuracy": null
+  },
+  "public_posts": {
+   "accuracy": null
+  },
+  "before_after": {
+   "accuracy": null
+  },
+  "failure_recovery": {
+   "accuracy": null
+  }
+ },
+ "overall": {
+  "accuracy": null,
+  "false_fails": 0,
+  "false_passes": 0,
+  "other_wrong": 0,
+  "labelled": 0
+ },
+ "claims": {
+  "agreement": null,
+  "unlabelled": 70
+ },
+ "top_errors": [],
+ "date": "2026-10-11",
+ "tag": "baseline",
+ "repos_run": 9
+}
