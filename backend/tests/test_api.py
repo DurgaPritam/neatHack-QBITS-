@@ -4,7 +4,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from app import db, jobs, main
+from app import db, jobs, limits, main
 
 
 class Gate:
@@ -49,6 +49,14 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(jobs, "_run_deep", fake_deep)
     monkeypatch.setattr(jobs, "_rebuild_ctx", fake_rebuild)
     monkeypatch.setattr(main, "resolve_head_sha", fake_sha)
+    # abuse limits get their own tests; elsewhere they'd only get in the way
+    limits.reset_all()
+    for lane in (main.queues.quick, main.queues.deep):  # module-level queues outlive a TestClient
+        lane.pending.clear()
+        lane.running = None
+    monkeypatch.setattr(limits, "REPO_COOLDOWN_S", 0)
+    monkeypatch.setattr(limits.AUDITS, "limit", 1000)
+    monkeypatch.setattr(limits.DEEP, "limit", 1000)
     with TestClient(main.app) as c:
         c.calls, c.gate = calls, gate
         yield c
@@ -235,3 +243,96 @@ def test_bad_input_and_404_and_cors(client):
     r = client.options("/api/audits", headers={"Origin": "http://localhost:5173",
                                                "Access-Control-Request-Method": "POST"})
     assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
+ADMIN = {"X-Admin-Token": "test-admin-token"}
+
+
+def test_ip_rate_limit_on_new_audits(client, monkeypatch):
+    monkeypatch.setattr(limits.AUDITS, "limit", 2)
+    assert post(client, "https://github.com/acme/a1").status_code == 202
+    assert post(client, "https://github.com/acme/a2").status_code == 202
+    r = post(client, "https://github.com/acme/a3")
+    assert r.status_code == 429 and "2 new audits per 10 minutes" in r.json()["detail"]
+    assert int(r.headers["retry-after"]) > 0
+    assert post(client, "https://github.com/acme/a4", headers=ADMIN).status_code == 202  # admin exempt
+
+
+def test_repo_cooldown_reuses_recent_audit(client, monkeypatch):
+    monkeypatch.setattr(limits, "REPO_COOLDOWN_S", 600)
+    monkeypatch.setattr(limits.AUDITS, "limit", 1)
+    first = post(client, "https://github.com/acme/flaky").json()   # template result: not sha-cached
+    wait_for(client, first["id"], ("quick_ready",))
+    again = post(client, "https://github.com/ACME/flaky").json()
+    assert again == {"id": first["id"], "status": "quick_ready", "cached": True, "cooldown": True}
+    assert len(client.calls["quick"]) == 1
+
+
+def test_deep_limits_and_queue_full(client, monkeypatch):
+    ids = [post(client, f"https://github.com/acme/d{i}").json()["id"] for i in range(4)]
+    for i in ids:
+        wait_for(client, i, ("quick_ready",))
+    client.gate.open = False                       # hold the deep lane so the queue fills
+    monkeypatch.setattr(limits, "DEEP_QUEUE_MAX", 2)
+    assert client.post(f"/api/audits/{ids[0]}/deep").status_code == 202
+    assert client.post(f"/api/audits/{ids[1]}/deep").status_code == 202
+    assert client.post(f"/api/audits/{ids[1]}/deep").status_code == 202   # re-asking is free
+    full = client.post(f"/api/audits/{ids[2]}/deep")
+    assert full.status_code == 503 and "queue is full" in full.json()["detail"]
+    monkeypatch.setattr(limits, "DEEP_QUEUE_MAX", 100)
+    monkeypatch.setattr(limits.DEEP, "limit", 2)
+    limits.DEEP.reset()
+    assert client.post(f"/api/audits/{ids[2]}/deep").status_code == 202
+    assert client.post(f"/api/audits/{ids[3]}/deep").status_code == 202
+    extra = post(client, "https://github.com/acme/d9").json()["id"]
+    wait_for(client, extra, ("quick_ready",))
+    r = client.post(f"/api/audits/{extra}/deep")
+    assert r.status_code == 429 and "deep checks for this hour" in r.json()["detail"]
+    client.gate.open = True
+
+
+def test_removal_hides_and_admin_restores(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    assert client.post(f"/api/audits/{aid}/removal", json={"reason": "mine, please remove"}).json()["hidden"]
+    for path in (f"/api/audits/{aid}", f"/api/audits/{aid}/card.png", f"/r/{aid}"):
+        assert client.get(path).status_code == 410, path
+    assert client.get(f"/api/audits/{aid}", headers=ADMIN).json()["hidden"] is True
+    assert client.get("/api/admin/removals").status_code == 401
+    removed = client.get("/api/admin/removals", headers=ADMIN).json()
+    assert removed[0]["id"] == aid and removed[0]["hidden_reason"] == "mine, please remove"
+    assert client.post(f"/api/admin/audits/{aid}/restore", headers=ADMIN).json() == {"ok": True, "hidden": False}
+    assert client.get(f"/api/audits/{aid}").status_code == 200
+    assert client.post("/api/audits/nope/removal").status_code == 404
+
+
+def test_admin_feedback_export_and_metrics(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    client.post(f"/api/audits/{aid}/feedback", json={"check_id": "demo_video", "note": "=HYPERLINK(1)"})
+    assert client.get("/api/admin/feedback").status_code == 401
+    assert client.get("/api/admin/feedback", headers={"X-Admin-Token": "wrong"}).status_code == 401
+    rows = client.get("/api/admin/feedback", headers=ADMIN).json()
+    assert rows[0]["check_id"] == "demo_video" and rows[0]["repo_url"].endswith("acme/demo")
+    csv_r = client.get("/api/admin/feedback?format=csv", headers=ADMIN)
+    assert csv_r.headers["content-type"].startswith("text/csv") and "'=HYPERLINK(1)" in csv_r.text
+    client.get(f"/api/audits/{aid}/card.png")
+    for name in ("card_download", "share_x", "share_x"):
+        assert client.post("/api/events", json={"name": name}).status_code == 204
+    assert client.post("/api/events", json={"name": "page_view"}).status_code == 422
+    client.post(f"/api/audits/{aid}/deep")
+    wait_for(client, aid, ("complete",))
+    m = client.get("/api/admin/metrics", headers=ADMIN).json()
+    t = m["totals"]
+    assert (t["audits"], t["card_download"], t["share_x"], t["card_png"]) == (1, 1, 2, 1)
+    assert t["deep_requested"] == 1 and t["deep_completed"] == 1 and m["days"][0]["day"]
+
+
+def test_results_are_noindex(client):
+    aid = post(client, "https://github.com/acme/demo").json()["id"]
+    wait_for(client, aid, ("quick_ready",))
+    page = client.get(f"/r/{aid}", follow_redirects=False)
+    assert '<meta name="robots" content="noindex, nofollow">' in page.text
+    assert page.headers["x-robots-tag"] == "noindex, nofollow"
+    assert client.get(f"/api/audits/{aid}").headers["x-robots-tag"] == "noindex, nofollow"
+    assert "x-robots-tag" not in client.get("/api/stats").headers

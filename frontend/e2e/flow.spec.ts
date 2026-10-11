@@ -183,3 +183,21 @@ test('share page has Open Graph card and redirects to the audit', async ({ page,
   await expect(page).toHaveURL(/\/a\/6dbfbb5d1c76$/)
   await expect(page.getByTestId('score')).toBeVisible()
 })
+
+test('request removal hides the audit, its card and share page', async ({ page, request }) => {
+  // the not-found audit from above is a real audit row we can safely remove
+  const { id } = await (await request.post('/api/audits', {
+    data: { repo_url: 'https://github.com/DurgaPritam/no-such-repo-prejudge-e2e' },
+  })).json()
+  await page.goto(`/a/${id}`)
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, nofollow')
+  await page.getByTestId('request-removal').click()
+  await page.getByLabel('Reason for removal (optional)').fill('e2e test')
+  await page.getByRole('button', { name: 'Remove it' }).click()
+  await expect(page.getByTestId('audit-removed')).toBeVisible()
+  await shot(page, 'removed')
+  await page.reload()
+  await expect(page.getByTestId('audit-removed')).toBeVisible()
+  expect((await request.get(`/api/audits/${id}/card.png`)).status()).toBe(410)
+  expect((await request.get(`/r/${id}`, { maxRedirects: 0 })).status()).toBe(410)
+})

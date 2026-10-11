@@ -2,7 +2,7 @@
 import json
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app import config
@@ -35,6 +35,12 @@ CREATE TABLE IF NOT EXISTS feedback (
     is_wrong   INTEGER NOT NULL,
     note       TEXT,
     created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS counters (   -- plain daily counts; no cookies, no per-user data
+    day   TEXT NOT NULL,                  -- YYYY-MM-DD (UTC)
+    name  TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, name)
 );
 CREATE TABLE IF NOT EXISTS roasts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +76,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     """Add columns introduced after a db file was created (no data loss)."""
     have = {r[1] for r in conn.execute("PRAGMA table_info(audits)")}
     for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'"),
-                     ("is_example", "INTEGER DEFAULT 0")):
+                     ("is_example", "INTEGER DEFAULT 0"), ("hidden", "INTEGER DEFAULT 0"),
+                     ("hidden_at", "TEXT"), ("hidden_reason", "TEXT")):
         if col not in have:
             conn.execute(f"ALTER TABLE audits ADD COLUMN {col} {ddl}")
     conn.execute("UPDATE audits SET status = 'complete' WHERE status = 'done'")  # M2 naming
@@ -124,7 +131,7 @@ def find_cached(repo_key: str, head_sha: str) -> dict | None:
     with _lock:
         r = _db().execute(
             "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status IN ('complete', 'quick_ready') "
-            "AND cached_from IS NULL ORDER BY status = 'complete' DESC, created_at DESC LIMIT 1",
+            "AND cached_from IS NULL AND hidden = 0 ORDER BY status = 'complete' DESC, created_at DESC LIMIT 1",
             (repo_key, head_sha)).fetchone()
     return _row(r)
 
@@ -136,6 +143,66 @@ def find_in_progress(repo_key: str, head_sha: str) -> dict | None:
             "SELECT * FROM audits WHERE repo_key = ? AND head_sha = ? AND status = 'queued' "
             "AND cached_from IS NULL ORDER BY created_at DESC LIMIT 1", (repo_key, head_sha)).fetchone()
     return _row(r)
+
+
+def recent_for_repo(repo_key: str, within_s: int) -> dict | None:
+    """Per-repo cooldown: the latest visible, not-failed audit of this repo from the last `within_s`."""
+    since = (datetime.now(timezone.utc) - timedelta(seconds=within_s)).isoformat(timespec="seconds")
+    with _lock:
+        r = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND created_at >= ? AND status != 'failed' AND hidden = 0 "
+            "AND is_example = 0 ORDER BY created_at DESC LIMIT 1", (repo_key, since)).fetchone()
+    return _row(r)
+
+
+def set_hidden(audit_id: str, hidden: bool, reason: str = "") -> None:
+    """Removal request: hide from public view (the row is kept so an admin can restore it)."""
+    with _lock:
+        _db().execute("UPDATE audits SET hidden = ?, hidden_at = ?, hidden_reason = ? WHERE id = ?",
+                      (int(hidden), _now() if hidden else None, reason[:300] if hidden else None, audit_id))
+        _db().commit()
+
+
+def hidden_audits(limit: int = 200) -> list[dict]:
+    with _lock:
+        rows = _db().execute("SELECT id, repo_url, hidden_at, hidden_reason FROM audits WHERE hidden = 1 "
+                             "ORDER BY hidden_at DESC LIMIT ?", (limit,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def bump(name: str, n: int = 1) -> None:
+    day = datetime.now(timezone.utc).date().isoformat()
+    with _lock:
+        _db().execute("INSERT INTO counters (day, name, count) VALUES (?, ?, ?) "
+                      "ON CONFLICT (day, name) DO UPDATE SET count = count + excluded.count", (day, name, n))
+        _db().commit()
+
+
+def all_feedback() -> list[dict]:
+    with _lock:
+        rows = _db().execute(
+            "SELECT f.id, f.audit_id, a.repo_url, f.check_id, f.is_wrong, f.note, f.created_at "
+            "FROM feedback f LEFT JOIN audits a ON a.id = f.audit_id ORDER BY f.id").fetchall()
+    return [dict(r) for r in rows]
+
+
+def metrics() -> dict:
+    """Per-day counts (UTC). Audits come from the audits table (real runs only); everything
+    else from counters. Cached copies are counted separately from audits that did work."""
+    days: dict[str, dict] = {}
+    with _lock:
+        for day, new, cached, completed in _db().execute(
+                "SELECT substr(created_at, 1, 10), SUM(cached_from IS NULL), SUM(cached_from IS NOT NULL), "
+                "SUM(status = 'complete') FROM audits WHERE run_kind = 'real' AND is_example = 0 "
+                "GROUP BY 1").fetchall():
+            days.setdefault(day, {}).update(audits=new or 0, audits_cached=cached or 0, complete=completed or 0)
+        for day, name, count in _db().execute("SELECT day, name, count FROM counters").fetchall():
+            days.setdefault(day, {})[name] = count
+        hidden = _db().execute("SELECT COUNT(*) FROM audits WHERE hidden = 1").fetchone()[0]
+    rows = [{"day": d, **v} for d, v in sorted(days.items())]
+    keys = sorted({k for r in rows for k in r if k != "day"})
+    totals = {k: sum(r.get(k, 0) for r in rows) for k in keys}
+    return {"days": rows, "totals": totals, "hidden_audits": hidden}
 
 
 def mark_interrupted() -> int:
@@ -182,7 +249,7 @@ def seed_examples(folder: Path | None = None) -> int:
 
 def examples(limit: int = 3) -> list[dict]:
     with _lock:
-        rows = _db().execute("SELECT * FROM audits WHERE is_example = 1 ORDER BY created_at, id LIMIT ?",
+        rows = _db().execute("SELECT * FROM audits WHERE is_example = 1 AND hidden = 0 ORDER BY created_at, id LIMIT ?",
                              (limit,)).fetchall()
     return [_row(r) for r in rows]
 

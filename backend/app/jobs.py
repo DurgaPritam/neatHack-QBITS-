@@ -225,6 +225,7 @@ class AuditQueues:
             db.update(audit_id, phase_deep="failed", error=f"deep: {type(exc).__name__}", steps=steps.to_list())
             return
         self.ctx_cache.pop(audit_id, None)
+        db.bump("deep_completed")
         db.update(audit_id, status="complete", phase_deep="done", steps=result.get("steps", steps.to_list()),
                   result=result, **({} if cacheable(result) else {"head_sha": None}))
 

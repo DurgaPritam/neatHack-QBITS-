@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
+import RemovalLink from '../components/RemovalLink'
 import Result from '../components/Result'
 import RoastCard from '../components/RoastCard'
 import StepLog from '../components/StepLog'
@@ -19,6 +20,7 @@ export default function AuditPage() {
   const [audit, setAudit] = useState<Audit | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [removed, setRemoved] = useState(false)
   const [offline, setOffline] = useState(false)
   const [tick, setTick] = useState(0)
   const timer = useRef<number | undefined>(undefined)
@@ -31,6 +33,7 @@ export default function AuditPage() {
       return a
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) setNotFound(true)
+      else if (e instanceof ApiError && e.status === 410) setRemoved(true)
       else setOffline(true)
       return null
     }
@@ -42,18 +45,37 @@ export default function AuditPage() {
     const loop = async () => {
       const a = await poll()
       if (!alive) return
-      if (isActive(a) && !notFound) timer.current = window.setTimeout(loop, POLL_MS)
+      if (isActive(a) && !notFound && !removed) timer.current = window.setTimeout(loop, POLL_MS)
     }
     loop()
     return () => {
       alive = false
       window.clearTimeout(timer.current)
     }
-  }, [poll, tick, notFound])
+  }, [poll, tick, notFound, removed])
+
+  // Results pages stay out of search engines (Caddy also sends X-Robots-Tag for /a/*).
+  useEffect(() => {
+    const meta = document.createElement('meta')
+    meta.name = 'robots'
+    meta.content = 'noindex, nofollow'
+    document.head.appendChild(meta)
+    return () => meta.remove()
+  }, [])
 
   useEffect(() => {
     api.stats().then(setStats).catch(() => {})
   }, [tick])
+
+  if (removed)
+    return (
+      <main className="page narrow" data-testid="audit-removed">
+        <h1 className="headline">This audit was removed.</h1>
+        <p className="lede">
+          It's hidden from public view at the owner's request. <Link to="/">Audit a repo</Link>.
+        </p>
+      </main>
+    )
 
   if (notFound)
     return (
@@ -110,6 +132,7 @@ export default function AuditPage() {
       )}
 
       {audit && <StepLog steps={audit.steps} live={live || ACTIVE_DEEP.includes(audit.phases.deep)} />}
+      {audit && <RemovalLink auditId={audit.id} onRemoved={() => setRemoved(true)} />}
       {!audit && !offline && <StepLog steps={[]} live />}
     </main>
   )

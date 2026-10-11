@@ -1,6 +1,6 @@
 import { toPng } from 'html-to-image'
 import { useRef, useState } from 'react'
-import { shareUrl } from '../api'
+import { countEvent, shareUrl } from '../api'
 import { scoreTone } from '../labels'
 
 interface Props {
@@ -29,6 +29,7 @@ export default function RoastCard({ auditId, repo, score, roast, template }: Pro
       a.href = url
       a.download = `prejudge-${repo.replace('/', '-')}.png`
       a.click()
+      countEvent('card_download')
     } catch {
       setError("Couldn't make the image. Try again?")
     } finally {
@@ -71,7 +72,8 @@ export default function RoastCard({ auditId, repo, score, roast, template }: Pro
         <button className="big-button" onClick={download} disabled={busy}>
           {busy ? 'Rendering…' : 'Download PNG'}
         </button>
-        <a className="big-button x-button" href={xHref} target="_blank" rel="noopener noreferrer">
+        <a className="big-button x-button" href={xHref} target="_blank" rel="noopener noreferrer"
+           onClick={() => countEvent('share_x')}>
           Share on X
         </a>
       </div>

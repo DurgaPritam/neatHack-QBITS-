@@ -182,8 +182,27 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ check_id, is_wrong: true, note }),
     }),
+  requestRemoval: (id: string, reason: string) =>
+    request<{ ok: boolean; hidden: boolean }>(`/api/audits/${encodeURIComponent(id)}/removal`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
   stats: () => request<Stats>('/api/stats'),
   examples: () => request<Example[]>('/api/examples'),
+}
+
+// A bare per-day counter (no cookies, nothing about the viewer). Never blocks or throws.
+export function countEvent(name: 'card_download' | 'share_x'): void {
+  try {
+    fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {
+    /* counting is best-effort */
+  }
 }
 
 const GITHUB_URL = /^(https?:\/\/)?(www\.)?github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+\/?(\.git)?$|^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/
