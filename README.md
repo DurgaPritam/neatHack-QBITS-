@@ -68,9 +68,9 @@ checked again.
 
 **Running on the Groq free tier** (`backend/app/llm.py`): it rotates across models and schedules
 calls from the rate-limit headers. On a failure, `_classify()` sorts the error (for example
-`rate_limited` for a 429), and `_on_failure()` backs off for as long as `_retry_after()` reads from
-the `retry-after` header. The call then moves to the next model, recorded as an
-`llm.<purpose>.fallback` step. Deep checks wait for budget rather than drop to a weaker model. Failures are
+`rate_limited` for a 429), and `_on_failure()` puts that model on a cooldown for as long as the
+`retry-after` header says (read by `_retry_after()`). The call then moves to the next model,
+recorded as an `llm.<purpose>.fallback` step. Other errors get exponential backoff with jitter. Deep checks wait for budget rather than drop to a weaker model. Failures are
 recorded as steps, and the user always gets at least a partial report. Per-IP limits, a deep-queue
 cap and a per-repo cooldown protect the shared budget (`backend/app/limits.py`).
 
