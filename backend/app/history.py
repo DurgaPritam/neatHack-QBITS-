@@ -41,9 +41,21 @@ def _statuses(result: dict | None) -> dict[str, tuple[str, str]]:
     return {c["id"]: (c["status"], c["title"]) for c in (result or {}).get("checks", [])}
 
 
+def _comparable_score(previous: dict, deep: bool) -> int | None:
+    """The previous audit's score from the same phase: deep scores run higher than quick ones.
+    Older complete audits didn't keep their quick score, so they can't be compared to a quick one."""
+    r = previous.get("result") or {}
+    if deep:
+        return _score(r) if previous.get("status") == "complete" else None
+    if previous.get("status") == "complete":
+        return r.get("quick_score")
+    return _score(r)
+
+
 def progress(previous: dict, result: dict) -> dict | None:
-    """Score delta and fixed/regressed checks between two audits of the same repo."""
-    old, new = _score(previous.get("result")), _score(result)
+    """Score delta and fixed/regressed checks between two audits of the same repo (same phase)."""
+    deep = result.get("phase") == "complete" or result.get("mode") == "full"
+    old, new = _comparable_score(previous, deep), _score(result)
     if old is None or new is None:
         return None
     before, after = _statuses(previous.get("result")), _statuses(result)
@@ -65,8 +77,9 @@ def attach_progress(audit_id: str, repo_key: str | None, run_kind: str, created_
     if not repo_key:
         return result
     try:
-        prev = db.previous_audit(repo_key, created_at, audit_id, run_kind)
-        p = progress(prev, result) if prev else None
+        # the most recent earlier audit with a score from the same phase
+        p = next((x for x in (progress(prev, result) for prev in
+                              db.previous_audits(repo_key, created_at, audit_id, run_kind)) if x), None)
     except Exception:
         p = None
     if p:

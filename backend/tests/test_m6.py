@@ -263,3 +263,16 @@ def test_admin_overview_requires_token_and_has_everything(repo):
         assert key in o
     assert o["deep"]["daily_cap"] == limits.DEEP_DAILY_CAP and o["projects"][0]["repo_key"] == "team/app"
     assert "public_tokens" in o["budget"]
+
+
+def test_progress_compares_quick_with_quick_and_deep_with_deep():
+    deep_prev = {"id": "p", "created_at": "t", "status": "complete",
+                 "result": {"score": {"score": 68}, "quick_score": 61, "checks": []}}
+    quick_now = {"phase": "quick", "score": {"score": 64}, "checks": []}
+    assert history.progress(deep_prev, quick_now)["text"] == "+3 since your last check (61 → 64)"
+    deep_now = {"phase": "complete", "mode": "full", "score": {"score": 70}, "checks": []}
+    assert history.progress(deep_prev, deep_now)["text"] == "+2 since your last check (68 → 70)"
+    old_row = {**deep_prev, "result": {"score": {"score": 68}, "checks": []}}  # before quick_score existed
+    assert history.progress(old_row, quick_now) is None
+    quick_prev = {"id": "q", "created_at": "t", "status": "quick_ready", "result": {"score": {"score": 50}}}
+    assert history.progress(quick_prev, deep_now) is None  # no earlier deep check to compare with

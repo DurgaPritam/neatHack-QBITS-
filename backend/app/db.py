@@ -180,19 +180,15 @@ def find_deep_result(repo_key: str, commit_sha: str, checks_version: str) -> dic
     return None
 
 
-def previous_audit(repo_key: str, before: str, exclude_id: str, run_kind: str) -> dict | None:
-    """The latest earlier scored audit of this repo (for "+22 since your last check")."""
+def previous_audits(repo_key: str, before: str, exclude_id: str, run_kind: str) -> list[dict]:
+    """Earlier audits of this repo, newest first (for "+22 since your last check")."""
     with _lock:
         rows = _db().execute(
             "SELECT * FROM audits WHERE repo_key = ? AND id != ? AND created_at <= ? AND run_kind = ? "
             "AND status IN ('complete', 'quick_ready') AND hidden = 0 AND is_example = 0 "
             "AND cached_from IS NULL AND rowid < (SELECT COALESCE(MAX(rowid), 1e18) FROM audits WHERE id = ?) "
-            "ORDER BY created_at DESC, rowid DESC LIMIT 5", (repo_key, exclude_id, before, run_kind, exclude_id)).fetchall()
-    for r in rows:
-        row = _row(r)
-        if ((row["result"] or {}).get("score") or {}).get("score") is not None:
-            return row
-    return None
+            "ORDER BY created_at DESC, rowid DESC LIMIT 10", (repo_key, exclude_id, before, run_kind, exclude_id)).fetchall()
+    return [_row(r) for r in rows]
 
 
 def find_in_progress(repo_key: str, head_sha: str) -> dict | None:

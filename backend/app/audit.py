@@ -277,6 +277,8 @@ async def run_deep_audit(report: dict, ctx: dict, *, log: StepLog | None = None,
     phases = {**report.get("phases", {}), "deep": deep}
     quick = phases.get("quick") or {"ms": 0, "usage": {"total_tokens": 0, "calls": 0}}
     checks = agent.pop("checks", None) or report.get("checks", [])
+    # keep the quick score: progress compares quick with quick and deep with deep
+    report.setdefault("quick_score", (report.get("score") or {}).get("score"))
     report.update(
         mode="full", phase="complete", checks=checks, summary=rubric.summarize(checks),
         score=agent.pop("score"), verdict=agent.pop("verdict"), agent=agent, phases=phases,
