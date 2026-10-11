@@ -110,7 +110,18 @@ returned the stale result (cooldown now compares commits), any neatlogs.com link
 trace, and the before/after check missed numbers in a table.
 
 ## Entire
-- Checkpoint link + ID: <paste>
+- Enabled 2026-10-11 for Claude Code, ref-based storage (`refs/entire/checkpoints/<shard>/<id>`),
+  synced to `origin`.
+- First checkpoint: ID `01M4NAH03T910P25SNH7F47SQC`, trailer on commit `72021ab`:
+  https://entire.io/gh/DurgaPritam/neatHack-QBITS-/commit/72021ab9bde0ea44f40c07637befa7d5228c1180
+- Imported history: 2 earlier Claude Code sessions (15 turns) with `entire import claude-code
+  --session ...`. Before importing, the transcripts were scanned for the repo's secrets. One
+  session held API keys pasted in a prompt, so a local (gitignored) Entire redaction pack was
+  added first. All checkpoint blobs were then rescanned before pushing: 0 secret matches.
+- Pre-publication scan: every blob in the git history plus all Entire checkpoint data, checked
+  against the exact `.env` values and common key patterns. 0 real secrets. The only hits were an
+  empty `GITHUB_TOKEN=` line in `.env.example` and GitHub's own expired S3 presigned image URL in a
+  recorded audit fixture.
 
 ## cfo.ai
 - Shared model (final, v3): https://cfo.ai/s/xBCsLLiMtconXUBf

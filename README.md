@@ -84,8 +84,13 @@ the process. The before/after numbers below come from these traces, and the M2 b
 calls showed up there too.
 
 ### Entire
-> ⏳ **To fill in once Entire is enabled in this repo:** checkpoint link
-> entire.io/gh/DurgaPritam/neatHack-QBITS-/commit/FULL_SHA and the checkpoint ID.
+Entire is enabled in this repo for Claude Code, and checkpoints are pushed to GitHub as
+`refs/entire/checkpoints/...`.
+
+- **Checkpoint ID:** `01M4NAH03T910P25SNH7F47SQC` (the `Entire-Checkpoint` trailer on commit `72021ab`)
+- **Checkpoint link:** https://entire.io/gh/DurgaPritam/neatHack-QBITS-/commit/72021ab9bde0ea44f40c07637befa7d5228c1180
+- Earlier Claude Code sessions (before Entire was enabled) were imported with `entire import
+  claude-code` after a secret scan, so the whole build history is searchable.
 
 We set this repo up following the [neatHack Entire guide](https://hack.entire.io/neathacks-2026/).
 PreJudge also checks Entire for other teams: it reads the `Entire-Checkpoint` commit trailers and
