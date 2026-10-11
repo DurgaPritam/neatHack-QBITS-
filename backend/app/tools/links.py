@@ -22,6 +22,20 @@ _MD_LINK = re.compile(r"\[[^\]]*\]\((https?://[^)\s]+)\)")
 _HTML_LINK = re.compile(r"""(?:href|src)=["'](https?://[^"']+)["']""", re.I)
 _BARE = re.compile(r"(?<![(\"'=])\bhttps?://[^\s<>()\"'`\]]+")
 
+_SIGNED = re.compile(r"(?i)^(x-amz-|x-goog-)|^(signature|sig|expires|key-pair-id|policy|token)$")
+
+
+def strip_signature(url: str) -> str:
+    """Drop signed-URL query parameters (S3 / GCS / CloudFront) before a redirect target is
+    stored: they are short-lived credentials, useless after a few minutes, and secret scanners
+    flag them. The neatlogs login-wall check only needs the path and callbackUrl."""
+    parts = urlparse(url)
+    if not parts.query:
+        return url
+    kept = [q for q in parts.query.split("&") if not _SIGNED.search(q.split("=", 1)[0])]
+    return parts._replace(query="&".join(kept)).geturl()
+
+
 # Ordered: first match wins.
 _KINDS: list[tuple[str, re.Pattern]] = [
     ("neatlogs_trace", re.compile(r"(^|\.)neatlogs\.com$")),
@@ -105,7 +119,7 @@ async def _check_one(http: httpx.AsyncClient, url: str) -> dict:
                 current = urljoin(current, r.headers["location"])
                 continue
             result["status"] = r.status_code
-            result["final_url"] = current
+            result["final_url"] = strip_signature(current)
             result["ok"] = r.status_code < 400
             if r.status_code in _BOT_BLOCK_CODES:
                 result["ok"] = None  # unknown: site blocks bots

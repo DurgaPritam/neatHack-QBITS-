@@ -64,3 +64,13 @@ def test_local_urls_unknown_but_unresolvable_dead():
     local, gone = _a.run(check_links(["http://127.0.0.1:2024/docs", "https://no-such-host.invalid/x"]))
     assert local["ok"] is None and local["error"] == "local_address"
     assert gone["ok"] is False and gone["error"] == "unresolvable"
+
+
+def test_signed_redirect_urls_are_stored_without_credentials():
+    from app.tools.links import strip_signature
+    s3 = ("https://github-production-user-asset-6210df.s3.amazonaws.com/1/a.png?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+          "&X-Amz-Credential=ID%2F20261010%2Fus-east-1&X-Amz-Signature=abc&response-content-type=image%2Fpng")
+    assert strip_signature(s3) == ("https://github-production-user-asset-6210df.s3.amazonaws.com/1/a.png"
+                                   "?response-content-type=image%2Fpng")
+    walled = "https://app.neatlogs.com/auth?intent=signin&callbackUrl=%2Ftraces%2Fabc"
+    assert strip_signature(walled) == walled
