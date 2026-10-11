@@ -170,7 +170,11 @@ def main(argv: list[str]) -> None:
     ap.add_argument("--sheets", action="store_true", help="write label sheets for repos without one")
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--tag", default="run", help="name for this run, e.g. baseline or after-fix-1")
+    ap.add_argument("--replay", action="store_true", help="recorded LLM answers (free smoke run, not an eval)")
     args = ap.parse_args(argv)
+    # An eval measures the real model: never inherit LLM_MODE=replay from a developer's .env.
+    import os
+    os.environ["LLM_MODE"] = "replay" if args.replay else "live"
 
     from app import budget, db, tracing
     from app.llm import POOL, configured_models, judge_models
