@@ -109,6 +109,32 @@ The self-audit also found three PreJudge bugs, now fixed: a re-audit within 10 m
 returned the stale result (cooldown now compares commits), any neatlogs.com link counted as a
 trace, and the before/after check missed numbers in a table.
 
+### Self-audit after the pre-launch fixes (2026-10-11, audit `3b8b2d19878f`, commit `88b0282`)
+
+| | Before (`5d7a44233910`) | After (`3b8b2d19878f`) |
+|---|---|---|
+| Quick score | 61 | 62 (2,217 tokens, 6.6 s) |
+| Deep score | 64 | 64 (16,738 tokens, 39.4 s) |
+| Failure + recovery | unverified, half credit | **pass**: run in EVIDENCE.md:81, backed by retry/fallback code and a verified claim |
+| Entire checkpoints | none found (not scored) | **pass**: 10 commits with `Entire-Checkpoint` trailers, 25 refs pushed, README ID matches |
+| Claims verified | 5 of 8 | 4 of 7 |
+
+Fixes still open: demo video (+20), #neatHack post links (+3), public neatlogs trace screenshots
+(+2.7), one dead link (+2: the entire.io checkpoint page, which 404s until the repo is onboarded on
+entire.io), README claims evidence (+2.9). The deep phase recovered from an invalid JSON answer in
+`verify` (condensed final answer, recorded as `verify.invalid_json`) and the quick roast was rejected
+by the fact check once (`quick_verdict.roast_rejected`).
+
+Other production checks the same day:
+- **Demo video length via the YouTube Data API:** re-audit `6c596bffbbb7` of
+  langchain-ai/open_deep_research reads **12:46** (`source: youtube_api`) and fails it as over 3:00.
+  Before, YouTube blocked yt-dlp on EC2 and the length was unknown.
+- **Stored raw errors cleaned:** `python -m app.migrate_friendly --apply` backed up the DB, then
+  rewrote 8 fields of audit `fc5068d87579` that still held raw yt-dlp text. 0 raw messages remain.
+- **Tracing in tests:** the "failed to export spans" warning came from the neatlogs SDK starting
+  its own exporter from `NEATLOGS_API_KEY` in `os.environ` (loaded by dotenv) during tests. Fixed:
+  spans only after `init_tracing()`, keys blanked in `conftest.py`, and a test checks that no exporter starts.
+
 ## Entire
 - Enabled 2026-10-11 for Claude Code, ref-based storage (`refs/entire/checkpoints/<shard>/<id>`),
   synced to `origin`.
