@@ -186,6 +186,37 @@ class GitHubClient:
             raise GitHubError("http_error", f"HTTP {r.status_code} for {path}", r.status_code)
         return r.content[:MAX_FILE_BYTES].decode("utf-8", errors="replace")
 
+    async def get_push_events(self, ref: RepoRef, pages: int = 3) -> list[dict]:
+        """Public events (GitHub keeps ~90 days, up to 300 events, and may drop some)."""
+        out: list[dict] = []
+        for page in range(1, pages + 1):
+            batch = (await self._get(f"{API}/repos/{ref.full_name}/events",
+                                     params={"per_page": 100, "page": page})).json()
+            if not isinstance(batch, list):
+                break
+            out += [{"type": e.get("type"), "created_at": e.get("created_at"),
+                     "payload": {"head": (e.get("payload") or {}).get("head"),
+                                 "before": (e.get("payload") or {}).get("before"),
+                                 "commits": [{"sha": c.get("sha")} for c in (e.get("payload") or {}).get("commits") or []]}}
+                    for e in batch if isinstance(e, dict)]
+            if len(batch) < 100:
+                break
+        return out
+
+    async def get_commit_additions(self, ref: RepoRef, sha: str) -> int:
+        data = (await self._get(f"{API}/repos/{ref.full_name}/commits/{sha}")).json()
+        return int(((data or {}).get("stats") or {}).get("additions") or 0)
+
+    async def get_raw_bytes(self, ref: RepoRef, path: str, branch: str, max_bytes: int = 5_000_000) -> bytes:
+        """A repo file's bytes via raw.githubusercontent.com (e.g. a README screenshot), capped."""
+        try:
+            r = await self._http.get(f"{RAW}/{ref.full_name}/{branch}/{path}")
+        except httpx.HTTPError as exc:
+            raise GitHubError("network", f"{type(exc).__name__} fetching {path}") from exc
+        if r.status_code >= 400:
+            raise GitHubError("not_found" if r.status_code == 404 else "http_error", f"HTTP {r.status_code}", r.status_code)
+        return r.content[:max_bytes]
+
     @span("TOOL", "github.download_tarball")
     async def download_tarball(self, ref: RepoRef, branch: str,
                                max_bytes: int = MAX_TARBALL_BYTES) -> bytes:

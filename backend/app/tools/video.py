@@ -139,9 +139,11 @@ async def _youtube_api(video_id: str, transport=None) -> dict:
         return {"code": "not_found", "raw": "YouTube Data API: no such public video"}
     seconds = parse_iso_duration((items[0].get("contentDetails") or {}).get("duration", ""))
     title = ((items[0].get("snippet") or {}).get("title") or "")[:120] or None
+    published = (items[0].get("snippet") or {}).get("publishedAt")   # for the integrity check, never guessed
     if not seconds:
-        return {"code": "no_duration", "raw": "YouTube Data API: no duration (live?)", "title": title}
-    return {"duration_s": seconds, "title": title}
+        return {"code": "no_duration", "raw": "YouTube Data API: no duration (live?)", "title": title,
+                "published_at": published}
+    return {"duration_s": seconds, "title": title, "published_at": published}
 
 
 @span("TOOL", "video.duration")
@@ -149,7 +151,7 @@ async def get_duration(url: str, extractor=_extract, transport=None) -> dict:
     """-> {url, duration_s, duration, status: known|unknown, reason_code, reason, source, title}.
     `reason` is always safe to show to users. Never raises."""
     out = {"url": url, "duration_s": None, "duration": None, "status": "unknown",
-           "reason_code": None, "reason": None, "source": None, "title": None}
+           "reason_code": None, "reason": None, "source": None, "title": None, "published_at": None}
     raws: list[str] = []
 
     def known(seconds, source, title=None):
@@ -171,6 +173,7 @@ async def get_duration(url: str, extractor=_extract, transport=None) -> dict:
     vid = youtube_id(url)
     if vid and config.env("YOUTUBE_API_KEY"):
         api = await _youtube_api(vid, transport)
+        out["published_at"] = api.get("published_at")   # only from the API: never guessed
         if "duration_s" in api:
             return known(api["duration_s"], "youtube_api", api.get("title"))
         raws.append(api["raw"])

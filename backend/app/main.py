@@ -45,7 +45,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import ari, budget, config, costs, db, extras, history, kit, limits, replay, sponsors, transparency
+from app import ari, budget, config, costs, db, extras, history, integrity, kit, limits, replay, sponsors, transparency
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import LLM, POOL, configured_models
@@ -296,7 +296,7 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "steps": row["steps"] if admin else public_steps(row["steps"]),  # raw errors: admins only
-        "result": row["result"],
+        "result": _public_result(row["result"]),
         "percentiles": _percentiles(row),
         "showcase": bool(row.get("showcase")),
         "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel"),
@@ -305,6 +305,15 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "glass_box": _glass_box(row),
         "error": row["error"],
     }
+
+
+def _public_result(result: dict | None) -> dict | None:
+    """The README fingerprint is for the admin near-duplicate list only; integrity hides behind its flag."""
+    if not result or "integrity" not in result:
+        return result
+    if not integrity.enabled():
+        return {k: v for k, v in result.items() if k != "integrity"}
+    return {**result, "integrity": {k: v for k, v in result["integrity"].items() if k != "fingerprint"}}
 
 
 def _sponsors(row: dict) -> list[dict] | None:

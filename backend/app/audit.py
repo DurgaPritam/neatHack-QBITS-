@@ -4,9 +4,10 @@ Every external call is a recorded step. Failures never abort the audit; they are
 logged and, where possible, a fallback is tried so a partial report still comes back.
 """
 import asyncio
+import re
 from datetime import datetime, timezone
 
-from app import config, replay
+from app import config, integrity, replay
 from app.steps import StepLog
 from app.tools import rubric
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
@@ -53,6 +54,7 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
     links: list[dict] = []
     videos_meta: list[dict] = []
     entire_refs: dict | None = None
+    raw: dict | None = None            # integrity inputs (push events, commit sizes, evidence images)
 
     async with GitHubClient(token=token, transport=transport) as gh:
         report["github_authenticated"] = gh.authenticated
@@ -149,6 +151,13 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             else:
                 log.skip("links.check", "no README text")
 
+        if integrity.enabled() and readme is not None and repo_error is None:
+            with log.step("integrity.collect") as s:
+                raw = await _collect_integrity(gh, ref, branch, readme, tree_paths, commits, commits_truncated)
+                s.detail = (f"{'no' if raw['events'] is None else len(raw['events'])} push events, "
+                            f"{'no' if raw['stats'] is None else len(raw['stats'])} commit sizes, "
+                            f"{len(raw['images'] or [])} evidence images")
+
         report["github_rate_limit_remaining"] = gh.rate_limit_remaining
 
     readme_text = readme or ""
@@ -174,6 +183,15 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
             rubric.check_dead_links(links),
         ]
 
+    if raw is not None:
+        full = (repo or {}).get("full_name") or ref.full_name
+        report["integrity"] = integrity.evaluate(
+            readme=readme_text, urls=[l["url"] for l in links] or extract_links(readme_text), full_name=full,
+            created_at=(repo or {}).get("created_at"), commits=commits, ref_ids=(entire_refs or {}).get("ids"),
+            refs_more=bool((entire_refs or {}).get("more")), videos=videos_meta, events=raw["events"],
+            stats=raw["stats"], images=raw["images"])
+        report["integrity"]["fingerprint"] = integrity.fingerprint(readme_text)   # admin-only; stripped from the API
+
     report.update({
         "repo": repo,
         "partial": any(s.status != "ok" for s in log.steps),
@@ -186,6 +204,59 @@ async def run_deterministic_audit(repo_url: str, token: str | None = None,
         "dependency_files": list(dep_files),
     })
     return report
+
+
+_EVIDENCE_IMG = re.compile(r"neatlogs|trace|evidence|screenshot|checkpoint|entire|cfo", re.I)
+MAX_SIZE_COMMITS = 150     # line counts per commit (code-dump check); more commits = couldn't check
+MAX_IMAGES = 8
+
+
+async def _collect_integrity(gh, ref, branch, readme, tree_paths, commits, truncated) -> dict:
+    """Read-only extras for the integrity checks. Each part that fails becomes None ("couldn't check")."""
+    sem = asyncio.Semaphore(10)
+
+    async def events():
+        try:
+            return await gh.get_push_events(ref)
+        except GitHubError:
+            return None
+
+    async def sizes():
+        if not commits or truncated or len(commits) > MAX_SIZE_COMMITS:
+            return None
+
+        async def one(c):
+            async with sem:
+                return {"sha": c["sha"], "additions": await gh.get_commit_additions(ref, c["sha"]),
+                        "date": c.get("committed_at") or c.get("authored_at")}
+        try:
+            return list(await asyncio.gather(*(one(c) for c in commits)))
+        except GitHubError:
+            return None
+
+    async def images():
+        files = {p.lower(): p for p in tree_paths}
+        out = []
+        for m in rubric._IMAGE.finditer(readme or ""):
+            alt, src = m.group(1) or "", m.group(2) or m.group(3) or ""
+            if not (_EVIDENCE_IMG.search(alt) or _EVIDENCE_IMG.search(src)) or len(out) >= MAX_IMAGES:
+                continue
+            if src.startswith(("http://", "https://")):
+                out.append({"src": src, "exists": True, "bytes": None})   # external: not downloaded (SSRF)
+                continue
+            path = files.get(src.split("#")[0].split("?")[0].lstrip("./").lower())
+            if not path:
+                out.append({"src": src, "exists": False, "bytes": None})
+                continue
+            try:
+                data = await gh.get_raw_bytes(ref, path, branch)
+            except GitHubError:
+                data = None
+            out.append({"src": src, "exists": True, "bytes": data})
+        return out
+
+    ev, st, im = await asyncio.gather(events(), sizes(), images())
+    return {"events": ev, "stats": st, "images": im}
 
 
 def _repo_name(repo_url: str) -> str | None:
