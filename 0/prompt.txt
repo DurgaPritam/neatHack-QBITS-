@@ -1,0 +1,51 @@
+how many unique repos have been roasted till now its showing 47 and also can we see the database of who did
+
+---
+
+REDACTED this is the admin token its pressent in the env file as well use it and tell me
+
+---
+
+<pasted_content id="8f34">
+Submission is tonight (window 7:00–11:55 PM IST). Work in this order and deploy after each part.
+
+PART 1 — Security (first)
+- I pasted the local ADMIN_TOKEN into this session. Generate new ADMIN_TOKEN values for
+  backend/.env and backend/.env.production (don't print them; tell me where they are), redeploy,
+  and add the old token value to the local Entire redaction rules. Scan all pending
+  checkpoints for the old token before I push.
+
+PART 2 — Honest counter
+- Change the public counter to "N roasts · M repos" (unique repos), excluding test runs,
+  examples and removed audits.
+
+PART 3 — Fix the moving screen
+- Reproduce the layout shift on the home page and audit page (desktop and mobile widths),
+  measure cumulative layout shift, and fix the causes: e.g. counter digits changing width
+  (tabular numbers, fixed min-width), font swap (font-display + fallback metrics),
+  cards changing height (fixed min-height, line clamp), polling re-renders, any horizontal
+  overflow. Target CLS under 0.1. Show me before/after numbers.
+
+PART 4 — "Fresh off the grill"
+- Make it a live feed of the 3–6 most recent completed roasts, but ONLY for audits whose
+  team opted in via a "Show my roast on the homepage" checkbox on the result page (default off).
+  If fewer than 3 opted in, fill with the built-in examples. Refresh every 30s without layout shift.
+  Never show non-opted-in repos.
+
+PART 5 — Features for tonight
+1. Submission post generator: on the result page, a "Draft my submission post" box that fills
+   the official format (Team, Name, Project, Repo, Demo, #neatHack) from the audit, with blanks
+   for missing items and a copy button. Under 280 characters where possible; warn if over.
+2. README badge: GET /badge/{owner}/{repo}.svg showing the latest score, plus a copy-paste
+   Markdown snippet on the result page that links back to the result.
+3. "Fix it for me" evidence section: a copy-paste Markdown "Evidence" section built from
+   what PreJudge found (trace links, checkpoint ID, cfo.ai link, demo link + length,
+   before/after, posts), with clearly marked TODOs for missing items.
+4. Deadline countdown on the home page until 2026-10-12 23:55 IST, then "Submissions closed".
+5. Confirm score progress (+N since last check) and percentiles are live; if not, finish them.
+
+Then run our own self-audit in production, show me the score and remaining fixes, and
+the CLS numbers. Tests for everything, commit after each part (no Co-Authored-By lines),
+check that nothing committed names other teams' repos or contains secrets, and tell me
+when it's safe to push.
+</pasted_content id="8f34">
