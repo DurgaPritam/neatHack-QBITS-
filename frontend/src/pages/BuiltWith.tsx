@@ -52,6 +52,8 @@ export default function BuiltWithPage() {
       </section>
       {down && <p className="inline-error">Couldn't load the build story.</p>}
 
+      {/* the tables appear whole once the story has loaded, instead of growing and pushing each other */}
+      {s && (<>
       <section className="panel">
         <h2 className="panel-title">Before → after</h2>
         <div className="table-scroll">
@@ -96,6 +98,7 @@ export default function BuiltWithPage() {
         </ol>
         <p className="muted small">{s ? `Generated from pushed commits at ${s.generated_at.replace('T', ' ').replace('Z', ' UTC')}.` : ' '}</p>
       </section>
+      </>)}
     </main>
   )
 }
