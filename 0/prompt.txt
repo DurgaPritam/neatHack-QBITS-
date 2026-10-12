@@ -1,0 +1,15 @@
+using whatever we built now for the demo give me and killer transcript unique and covers all the stuff we built and actually shows we are doing this for a good cause as well also once done you tell for each scene what to show on the website github readme etc etc be clear and follow the guidelines
+
+---
+
+<pasted_content id="8f34">
+New demo video (replaces the old one): https://www.youtube.com/watch?v=m2MebedTm4k
+Submission closes at 23:55 IST tonight. Do this fast, no new features:
+
+1. Check it with the YouTube Data API: exact length (must be ≤ 3:00) and publish date
+   (must be after the hackathon start). Tell me both.
+2. README.md: replace the demo placeholder near the top with this link and "Demo: <m:ss>".
+   Add it to EVIDENCE.md section 5 with the length. Remove any mention of the old link
+   (uyVdaHSgqd0) if it was added.
+3. Final secret and privacy scan of the full git history, committed
+</pasted_content id="8f34">
