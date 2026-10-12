@@ -314,3 +314,8 @@ button { font: inherit; }
 .ari-panel { margin-top: 18px; }
 .ari-box { height: 360px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .ari-text { flex: 1; resize: none; }
+
+.stat-value-small { font-size: 20px; }
+.commit-ref { display: block; white-space: nowrap; }
+.checkpoint-list { margin: 8px 0 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 14px;
+  max-height: 420px; overflow: auto; overflow-wrap: anywhere; }

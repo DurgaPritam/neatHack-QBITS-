@@ -9,6 +9,7 @@ BACK="$FRONT/../backend"
 PORT_API=${PORT_API:-8010}
 PORT_WEB=${PORT_WEB:-5173}
 TMP=$(mktemp -d)
+python3 "$FRONT/../scripts/built_with.py" >/dev/null   # /built-with reads public/built-with.json
 mkdir -p "${E2E_SHOTS:-e2e-shots}"
 
 cleanup() { kill "$API_PID" "$WEB_PID" 2>/dev/null || true; rm -rf "$TMP"; }

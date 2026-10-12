@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Transparency } from '../api'
+import { BUILT_WITH } from '../labels'
 
 const usd = (n: number | null | undefined) => (n == null ? '–' : `$${n.toFixed(4)}`)
 const num = (n: number | null | undefined) => (n == null ? '–' : Math.round(n).toLocaleString())
@@ -72,6 +73,7 @@ export default function TransparencyPage() {
           <li>
             <strong>Entire:</strong> how PreJudge was built, checkpoint by checkpoint, on{' '}
             <a href={s?.links.entire ?? 'https://entire.io/gh/DurgaPritam/neatHack-QBITS-'} target="_blank" rel="noopener noreferrer">our Entire project page</a>.
+            {BUILT_WITH && <>See also <Link to="/built-with">Built with</Link>.</>}
           </li>
         </ul>
         <p className="muted small">{s ? `Updated ${s.generated_at.replace('T', ' ').replace('Z', ' UTC')} · refreshed every 5 minutes` : ' '}</p>

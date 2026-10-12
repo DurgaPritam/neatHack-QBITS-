@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError, looksLikeRepo, type Example, type Stats } from '../api'
-import { scoreTone } from '../labels'
+import { BUILT_WITH, scoreTone } from '../labels'
 import BudgetBanner from '../components/BudgetBanner'
 
 export default function Home() {
@@ -118,6 +118,7 @@ export default function Home() {
         Reads your repo through the GitHub API only. Never runs your code. No accounts.
         <span className="footer-links">
           <Link to="/transparency">Transparency</Link>
+          {BUILT_WITH && <> · <Link to="/built-with">Built with</Link></>}
         </span>
       </footer>
     </main>

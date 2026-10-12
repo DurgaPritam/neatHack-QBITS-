@@ -96,3 +96,6 @@ export function xLength(text: string): number {
   return text.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length
 }
 
+
+// Build-time flag for the static /built-with page (set VITE_FEATURE_BUILT_WITH=0 to leave it out).
+export const BUILT_WITH = import.meta.env.VITE_FEATURE_BUILT_WITH !== '0'

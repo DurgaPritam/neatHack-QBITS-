@@ -42,6 +42,10 @@ if [ "${SKIP_TESTS:-0}" != "1" ]; then
   (cd "$ROOT/backend" && .venv/bin/python -m pytest -q 2>&1 | tail -1)
 fi
 
+step "build story for /built-with (pushed commits + Entire checkpoints + EVIDENCE.md)"
+git -C "$ROOT" fetch -q origin main 2>/dev/null || true
+python3 "$ROOT/scripts/built_with.py"
+
 step "building the frontend (on this Mac)"
 (cd "$ROOT/frontend" && npm run build --silent >/dev/null && ls dist/index.html >/dev/null)
 

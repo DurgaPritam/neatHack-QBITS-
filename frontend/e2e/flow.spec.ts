@@ -398,3 +398,18 @@ test('cfo.ai prompt for Ari: README numbers, [___] blanks, export reminder, copy
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Hi Ari')
   expect(await layoutShift(page)).toBeLessThan(0.1)
 })
+
+test('built-with page: commits, Entire checkpoints with entire.io links, improvements linked to commits', async ({ page }) => {
+  await watchLayoutShift(page)
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Built with' }).click()
+  await expect(page).toHaveURL(/\/built-with$/)
+  await expect(page.getByTestId('checkpoints').locator('li').first()).toBeVisible()
+  await expect(page.getByTestId('checkpoints').locator('a').first()).toHaveAttribute('href', /^https:\/\/entire\.io\/gh\/DurgaPritam\/neatHack-QBITS-\/commit\/[0-9a-f]{40}$/)
+  const rows = page.getByTestId('improvements').locator('tbody tr')
+  await expect(rows.first()).toBeVisible()
+  await expect(rows.first().locator('a').first()).toHaveAttribute('href', /github\.com\/DurgaPritam\/neatHack-QBITS-\/commit\//)
+  await expect(page.getByTestId('built-with')).toContainText('Layout shift')
+  await page.waitForTimeout(800)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})
