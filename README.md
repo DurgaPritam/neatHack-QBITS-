@@ -20,27 +20,38 @@ preview).
   say, covering architecture, neatlogs (runtime + reasoning), Entire (implementation), cfo.ai and
   the before/after result. Missing evidence is always a TODO (code decides, not the model), links
   that aren't in the audit are removed, and it falls back to a template when the AI budget is out.
+  Code: [`backend/app/extras.py`](backend/app/extras.py) (`demo_script`), [`DemoScript.tsx`](frontend/src/components/DemoScript.tsx),
+  tests [`test_extras.py`](backend/tests/test_extras.py).
 - **Judge panel** under the score: an Observability, a Dev-workflow and a Business judge (generic
   personas, never real people), each with one sentence of praise and one specific fix from the audit.
+  Code: [`backend/app/extras.py`](backend/app/extras.py) (`judge_panel`), [`JudgePanel.tsx`](frontend/src/components/JudgePanel.tsx).
 - **MCP server** ([mcp/](mcp/README.md)): `audit_repo`, `deep_check`, `get_result` and `next_fix`
   for Claude Code, Cursor or any MCP client, over our public API and its rate limits.
 - **GitHub Action** ([docs/github-action.md](docs/github-action.md)): score and top fixes in the job
-  summary on every push; never blocks a build. Running on this repo.
+  summary on every push; never blocks a build. Running on this repo: the workflow
+  [`.github/workflows/prejudge.yml`](.github/workflows/prejudge.yml) writes the score, categories and top 3 fixes to
+  `$GITHUB_STEP_SUMMARY`; tested in [`test_github_action.py`](backend/tests/test_github_action.py); see a
+  [run's summary](https://github.com/DurgaPritam/neatHack-QBITS-/actions/workflows/prejudge.yml).
 - **Sponsor Depth Scorecard** on every result: neatlogs, Entire and cfo.ai each get a level from 1
   (mentioned) to 4 (used to improve the project), computed from the checks only, with the reason
-  and one next step. When unsure it shows the lower level.
+  and one next step. When unsure it shows the lower level. Code: `scorecard()` in
+  [`backend/app/sponsors.py`](backend/app/sponsors.py), returned as `sponsors` by `GET /api/audits/{id}`, shown by
+  [`SponsorScorecard.tsx`](frontend/src/components/SponsorScorecard.tsx); tests [`test_sponsors.py`](backend/tests/test_sponsors.py).
 - **Glass box**, "How this verdict was made": every agent step with its time, tokens and cost (at
   Groq list price), plus retries, fallbacks and quota waits. Built from our stored step log, the
-  same steps neatlogs traces; no prompts, keys, IPs or raw errors.
+  same steps neatlogs traces; no prompts, keys, IPs or raw errors. Code: `glass_box()` in
+  [`backend/app/costs.py`](backend/app/costs.py), returned as `glass_box` by `GET /api/audits/{id}`, shown by
+  [`GlassBox.tsx`](frontend/src/components/GlassBox.tsx); tests [`test_glass_box.py`](backend/tests/test_glass_box.py).
 - **[/transparency](https://3-82-224-157.sslip.io/transparency)**: live aggregate numbers (audits,
   repos, tokens, cost and time per quick and deep audit, fallback rate, tokens saved by reuse)
-  against our [cfo.ai plan](https://cfo.ai/s/xBCsLLiMtconXUBf)'s $0.0095 per audit.
+  against our [cfo.ai plan](https://cfo.ai/s/xBCsLLiMtconXUBf)'s $0.0095 per audit. Code:
+  [`backend/app/transparency.py`](backend/app/transparency.py), [`Transparency.tsx`](frontend/src/pages/Transparency.tsx).
 - **"Write my cfo.ai prompt"**: a ready-to-paste prompt for Ari with the pricing, cost and usage
   numbers from your README, `[___]` for the rest (the model can't add numbers), and a reminder to
-  export and link the plan.
+  export and link the plan. Code: [`backend/app/ari.py`](backend/app/ari.py), [`AriPrompt.tsx`](frontend/src/components/AriPrompt.tsx).
 - **[/built-with](https://3-82-224-157.sslip.io/built-with)**: our build story from git and Entire:
   commits, every checkpoint linked on entire.io, and the before/after improvements linked to their
-  commits and checkpoints.
+  commits and checkpoints. Code: [`scripts/built_with.py`](scripts/built_with.py), [`BuiltWith.tsx`](frontend/src/pages/BuiltWith.tsx).
 - **Integrity checks** (separate section, never part of the score): does the evidence match what
   we can observe? X and Discord post dates decoded from their IDs, the demo video's publish date
   (YouTube Data API), entire.io/GitHub links that point to another repo, quoted checkpoint IDs vs
@@ -48,7 +59,8 @@ preview).
   existed, reused or placeholder screenshots, and before/after % / × math. Each says ok, "needs a
   human look" or "couldn't check", with the reason, the evidence and how to clear it if it's innocent
   (a rebase, a template). Near-duplicate READMEs across repos are listed on /admin only. Eval:
-  9/9 faked fixtures flagged, 9/9 innocent look-alikes cleared; this repo: 10/10 ok.
+  9/9 faked fixtures flagged, 9/9 innocent look-alikes cleared; this repo: 10/10 ok. Code:
+  [`backend/app/integrity.py`](backend/app/integrity.py), eval [`backend/evals/integrity.py`](backend/evals/integrity.py).
 - Also today: no more layout shift (live audit CLS 0.90 → 0), opt-in "Fresh off the grill" feed,
   submission post draft, README badge and a copy-paste Evidence section.
 
