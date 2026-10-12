@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
 import DemoScript from '../components/DemoScript'
+import GlassBox from '../components/GlassBox'
 import History from '../components/History'
 import RemovalLink from '../components/RemovalLink'
 import ShowcaseToggle from '../components/ShowcaseToggle'
@@ -171,6 +172,7 @@ export default function AuditPage() {
         </>
       )}
 
+      {audit?.glass_box && report && <GlassBox box={audit.glass_box} auditId={audit.id} />}
       {audit && (report || audit.status === 'failed') && (
         <StepLog key="log" steps={audit.steps} live={live || ACTIVE_DEEP.includes(audit.phases.deep)} />
       )}

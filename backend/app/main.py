@@ -44,7 +44,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, db, extras, history, kit, limits, replay, sponsors
+from app import budget, config, costs, db, extras, history, kit, limits, replay, sponsors
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import LLM, POOL, configured_models
@@ -300,6 +300,7 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "showcase": bool(row.get("showcase")),
         "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel")},
         "sponsors": _sponsors(row),
+        "glass_box": _glass_box(row),
         "error": row["error"],
     }
 
@@ -313,6 +314,17 @@ def _sponsors(row: dict) -> list[dict] | None:
         return sponsors.scorecard(r)
     except Exception:
         return None  # a nicety; never break the result page
+
+
+def _glass_box(row: dict) -> dict | None:
+    """'How this verdict was made' (FEATURE_GLASS_BOX): steps, tokens, cost, retries; whitelisted fields only."""
+    r = row.get("result")
+    if not r or not extras.enabled("glass_box"):
+        return None
+    try:
+        return costs.glass_box(row["steps"], r.get("usage"), r.get("timing_ms"))
+    except Exception:
+        return None
 
 
 def _percentiles(row: dict) -> dict | None:

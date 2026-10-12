@@ -285,3 +285,16 @@ button { font: inherit; }
 .pip-on { background: var(--good); }
 .sponsor-level { font-size: 14px; color: var(--gold); font-weight: 700; }
 .sponsor-why, .sponsor-next { margin: 0; overflow-wrap: anywhere; }
+
+.glass-panel { margin-top: 18px; }
+.glass-summary { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; cursor: pointer; list-style-position: outside; }
+.glass-title { margin: 0; display: inline; }
+.glass-totals { font-variant-numeric: tabular-nums; }
+.glass-badge { margin-left: auto; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--cool); color: var(--cool); }
+.glass-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.glass-table th, .glass-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.glass-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.glass-kind { margin-left: 8px; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: var(--line); }
+.glass-kind-fallback, .glass-kind-retry { background: rgba(255, 210, 63, .15); color: var(--warn); }
+.glass-kind-failed { background: rgba(255, 77, 46, .15); color: var(--bad); }
+.glass-note { overflow-wrap: anywhere; }

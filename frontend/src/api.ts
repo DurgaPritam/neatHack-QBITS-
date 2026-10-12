@@ -146,6 +146,7 @@ export interface Audit {
   showcase?: boolean
   features?: { demo_script?: boolean; judge_panel?: boolean }
   sponsors?: SponsorRow[] | null
+  glass_box?: GlassBox | null
   error: string | null
 }
 
@@ -153,6 +154,27 @@ export interface Kit {
   post: { text: string; length: number; limit: number; over: boolean; blanks: number }
   evidence_md: string
   badge: { url: string; markdown: string }
+}
+
+export interface GlassStep {
+  name: string
+  status: string
+  ms: number
+  tokens: number
+  model: string | null
+  cost_usd: number
+  kind: 'retry' | 'fallback' | 'wait' | 'failed' | null
+  wait_s?: number | null
+  to_model?: string | null
+  note?: string | null
+}
+
+export interface GlassBox {
+  steps: GlassStep[]
+  phases: Record<string, { tokens: number; calls: number; failed_calls: number; cost_usd: number; ms: number | null }>
+  totals: { tokens: number; cost_usd: number; ms: number; retries: number; fallbacks: number; quota_waits: number }
+  pricing: string
+  traced_with: string
 }
 
 export interface SponsorRow {

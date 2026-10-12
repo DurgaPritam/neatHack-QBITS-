@@ -107,7 +107,7 @@ test('new audit: live log, quick result, deep check with queue, deep badge', asy
   await page.getByRole('button', { name: 'Show the full result' }).click()
   await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete')
   await expect(page.locator('.claims .claim').first()).toBeVisible()
-  await expect(page.getByText('Pulling claims out of the README')).toBeVisible()
+  await expect(page.locator('.steplog').getByText('Pulling claims out of the README')).toBeVisible()
   await expect(page.getByTestId('deep-done')).toContainText('Deep check complete')  // the panel stays put
   expect(await layoutShift(page)).toBeLessThan(0.1)       // the page doesn't jump as results arrive
   await shot(page, 'new-deep-done')
@@ -354,4 +354,19 @@ test('sponsor depth scorecard on every result page', async ({ page }) => {
   await expect(page.getByTestId('sponsors').getByRole('meter').first()).toHaveAttribute('aria-valuenow', /^[0-4]$/)
   await page.waitForTimeout(800)
   expect(await layoutShift(page)).toBeLessThan(0.1)
+})
+
+test('glass box: how this verdict was made, collapsed until opened', async ({ page }) => {
+  await watchLayoutShift(page)
+  await page.goto('/a/4d5dbd1bf972')
+  const box = page.getByTestId('glass-box')
+  await expect(box).toBeVisible()
+  await expect(box).toContainText('Traced with neatlogs')
+  await expect(page.getByTestId('glass-totals')).toContainText(/tokens · \$0\.\d{4} · \d+ retr(y|ies) · \d+ fallbacks?/)
+  await page.waitForTimeout(500)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+  await box.locator('summary').click()
+  await expect(box.locator('tbody tr').first()).toBeVisible()
+  await expect(box).toContainText('fallback')
+  await expect(box).not.toContainText('Error code')
 })
