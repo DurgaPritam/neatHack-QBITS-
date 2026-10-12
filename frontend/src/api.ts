@@ -82,7 +82,24 @@ export interface Claim {
   reason: string
 }
 
+export interface IntegritySignal {
+  id: string
+  title: string
+  status: 'ok' | 'look' | 'unknown'
+  checked: string
+  reason: string
+  evidence: string[]
+  fix: string
+}
+
+export interface Integrity {
+  signals: IntegritySignal[]
+  counts: { ok: number; look: number; unknown: number }
+  scored: false
+}
+
 export interface Report {
+  integrity?: Integrity
   audit_id: string
   repo_url: string
   repo: { full_name: string; default_branch: string; stars?: number } | null

@@ -319,3 +319,16 @@ button { font: inherit; }
 .commit-ref { display: block; white-space: nowrap; }
 .checkpoint-list { margin: 8px 0 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 14px;
   max-height: 420px; overflow: auto; overflow-wrap: anywhere; }
+
+.integrity-panel { margin-top: 14px; }
+.integrity-sub { margin: -6px 0 12px; }
+.integrity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.integrity-item { border-left: 4px solid var(--good); padding: 8px 12px; background: #111018; border-radius: 8px; }
+.integrity-look { border-left-color: var(--warn); }
+.integrity-unknown { border-left-color: var(--line); }
+.integrity-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.integrity-icon { width: 18px; }
+.integrity-badge-look { border-color: var(--warn); color: var(--warn); }
+.integrity-badge-unknown { color: var(--muted); }
+.integrity-reason, .integrity-checked, .integrity-fix { margin: 4px 0 0; overflow-wrap: anywhere; }
+.integrity-fix { color: var(--cool); }

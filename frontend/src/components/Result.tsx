@@ -2,6 +2,7 @@ import type { Audit, Check, Claim, Report } from '../api'
 import { evidenceLink } from '../evidence'
 import { CATEGORY_LABELS, CHECK_STATUS, CLAIM_STATUS, scoreTone } from '../labels'
 import FeedbackButton from './FeedbackButton'
+import IntegrityChecks from './IntegrityChecks'
 import JudgePanel from './JudgePanel'
 import SponsorScorecard from './SponsorScorecard'
 
@@ -236,6 +237,7 @@ export default function Result({ audit }: { audit: Audit }) {
       <Fixes report={report} />
       {report.agent && <Claims claims={report.agent.claims} report={report} auditId={audit.id} />}
       <Checks checks={report.checks} report={report} auditId={audit.id} />
+      {report.integrity && <IntegrityChecks data={report.integrity} />}
     </>
   )
 }

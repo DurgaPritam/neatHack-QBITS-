@@ -413,3 +413,17 @@ test('built-with page: commits, Entire checkpoints with entire.io links, improve
   await page.waitForTimeout(800)
   expect(await layoutShift(page)).toBeLessThan(0.1)
 })
+
+test('integrity checks: separate section, 10 signals, neutral wording, not scored', async ({ page }) => {
+  await watchLayoutShift(page)
+  await page.goto('/')
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/pallets/click')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  const box = page.getByTestId('integrity')
+  await expect(box).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByTestId('integrity-signal')).toHaveCount(10)
+  await expect(page.getByTestId('integrity-counts')).toContainText('Not part of the score')
+  const text = (await box.innerText()).toLowerCase()
+  for (const word of ['fake', 'cheat', 'fraud']) expect(text).not.toContain(word)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})
