@@ -358,6 +358,20 @@ def test_public_counter_excludes_builtin_examples(client):
     assert client.get("/api/stats").json()["total_audits"] == 1
 
 
+def test_counter_is_roasts_and_unique_repos(client):
+    for url in ("https://github.com/acme/demo", "https://github.com/acme/demo", "https://github.com/acme/other"):
+        wait_for(client, post(client, url).json()["id"], ("quick_ready",))
+    t = post(client, "https://github.com/acme/third", body={"run_kind": "test"}).json()["id"]
+    wait_for(client, t, ("quick_ready",))
+    s = client.get("/api/stats").json()
+    assert s["total_audits"] == 3 and s["unique_repos"] == 2          # test runs and examples excluded
+    from app import db
+    other = [a for a in db.recent_audits(50) if a["repo_key"] == "acme/other"][0]["id"]
+    db.set_hidden(other, True, "removed by owner")
+    s = client.get("/api/stats").json()
+    assert s["total_audits"] == 2 and s["unique_repos"] == 1          # removed audits excluded
+
+
 def test_raw_step_errors_only_for_admins(client):
     aid = post(client, "https://github.com/acme/demo").json()["id"]
     wait_for(client, aid, ("quick_ready",))

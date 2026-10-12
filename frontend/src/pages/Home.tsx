@@ -82,7 +82,9 @@ export default function Home() {
             <span className="muted">Can't reach the server right now.</span>
           ) : stats ? (
             <>
-              <strong>{stats.total_audits.toLocaleString()}</strong> repos roasted
+              <strong>{stats.total_audits.toLocaleString()}</strong> {stats.total_audits === 1 ? 'roast' : 'roasts'}
+              {' · '}
+              <strong>{(stats.unique_repos ?? 0).toLocaleString()}</strong> {stats.unique_repos === 1 ? 'repo' : 'repos'}
             </>
           ) : (
             <span className="muted">&nbsp;</span>

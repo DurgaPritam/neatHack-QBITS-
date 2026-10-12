@@ -148,6 +148,7 @@ export interface Audit {
 
 export interface Stats {
   total_audits: number
+  unique_repos: number
   completed_audits: number
   budget_state: 'normal' | 'busy' | 'cooling'
   deep_queue: number

@@ -404,8 +404,12 @@ def stats() -> dict:
     with _lock:
         total, real, done = _db().execute(
             "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'complete' AND run_kind = 'real') "
-            "FROM audits WHERE is_example = 0").fetchone()  # built-in examples aren't visitors' audits
-    return {"total_audits": real or 0, "completed_audits": done or 0, "including_test_runs": total or 0}
+            "FROM audits WHERE is_example = 0 AND hidden = 0").fetchone()  # built-in examples aren't visitors' audits
+        repos = _db().execute(
+            "SELECT COUNT(DISTINCT repo_key) FROM audits "
+            "WHERE is_example = 0 AND hidden = 0 AND run_kind = 'real' AND repo_key IS NOT NULL").fetchone()[0]
+    return {"total_audits": real or 0, "unique_repos": repos or 0, "completed_audits": done or 0,
+            "including_test_runs": total or 0}
 
 
 def add_roast(repo_key: str | None, style: str, roast: str) -> None:

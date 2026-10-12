@@ -10,7 +10,7 @@ async function shot(page: Page, name: string) {
 test('home: headline, live counter, three saved examples', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Get roasted before the judges do' })).toBeVisible()
-  await expect(page.getByTestId('counter')).toContainText(/\d+ repos roasted/)
+  await expect(page.getByTestId('counter')).toContainText(/\d+ roasts? · \d+ repos?/)
   await expect(page.getByTestId('example')).toHaveCount(3)
   await shot(page, 'home-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
@@ -160,7 +160,7 @@ test('home when the API is down', async ({ page }) => {
 test('busy and cooling banners', async ({ page }) => {
   for (const [state, text] of [['busy', 'Busy right now'], ['cooling', 'The roast oven is cooling']] as const) {
     await page.route('**/api/stats', (route) =>
-      route.fulfill({ json: { total_audits: 3, completed_audits: 3, budget_state: state, deep_queue: 6, deep_wait_s: 420, llm_mode: 'replay' } }))
+      route.fulfill({ json: { total_audits: 3, unique_repos: 2, completed_audits: 3, budget_state: state, deep_queue: 6, deep_wait_s: 420, llm_mode: 'replay' } }))
     await page.goto('/')
     await expect(page.getByTestId('budget-banner')).toContainText(text)
     await page.unroute('**/api/stats')
