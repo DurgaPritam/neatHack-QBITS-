@@ -88,7 +88,8 @@ Earlier, before deployment, all three development models hit Groq's daily token 
 fell back to fact-only template verdicts in 4–9 s, with each failure recorded as a step
 (`rate_limited_tpd`, [§9](#throughput-on-the-groq-free-tier-measured-2026-10-10)).
 
-📸 **TODO:** neatlogs screenshot of the `29def6e19f64` trace (see [evidence/README.md](evidence/README.md)).
+![neatlogs trace: failed steps flagged, agent recovered](evidence/neatlogs-failure-recovery.jpeg)
+*neatlogs trace of a deep audit (Oct 12, 11:40 IST, 19 steps, 42.9 s): `github.download_tarball`, a `qwen/qwen3.8-27b` call and `agent.search_repo` failed and are flagged "Execution Failed"; the agent fell back to `openai/gpt-oss-120b` and other tools and finished.*
 
 ### Milestones
 | Milestone | What shipped | Commits |
@@ -123,9 +124,16 @@ fell back to fact-only template verdicts in 4–9 s, with each failure recorded 
     [trace 1](https://app.neatlogs.com/traces/1458d983f3b529fecc4f3802366a96dc?orgId=c6ad6e53-b608-4914-80dd-1431f37951b6&projectId=91fff568-d321-45b8-83de-035100300128) ·
     [trace 2](https://app.neatlogs.com/traces/b044efa9359e61ecef04ed7f61e9e216?orgId=c6ad6e53-b608-4914-80dd-1431f37951b6&projectId=91fff568-d321-45b8-83de-035100300128) ·
     [trace 3](https://app.neatlogs.com/traces/c659bf9a4d3ef652dbc334dba40df89c?orgId=c6ad6e53-b608-4914-80dd-1431f37951b6&projectId=91fff568-d321-45b8-83de-035100300128)
-  - **TODO:** total traces captured (read from the neatlogs dashboard).
-  - 📸 **TODO:** trace screenshots in `evidence/`. None are committed yet; the three needed are
-    listed in [evidence/README.md](evidence/README.md).
+  - **5,536 traces captured** by Oct 12, 21:35 IST (neatlogs traces list, below).
+  - Screenshots (the trace links need a login):
+
+    ![neatlogs traces list: 5,536 traces](evidence/neatlogs-traces-list.jpeg)
+    *The neatlogs traces list for PreJudge: 5,536 traces captured by Oct 12, 21:35 IST (repo URLs in, verdicts out).*
+
+    ![neatlogs trace: 13-step deep audit span tree](evidence/neatlogs-span-tree.jpeg)
+    *One full deep audit in neatlogs (13 steps, 29.3 s): tarball download, claim extraction, claim verification and verdict, with the model, tokens and cost of every LLM call.*
+
+    The failure-and-recovery trace is in [Failure and recovery runs](#failure-and-recovery-runs).
 - **Reasoning:** the traces showed where the tokens and time went, and each fix targeted what they
   showed:
 

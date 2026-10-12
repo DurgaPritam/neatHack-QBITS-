@@ -234,6 +234,11 @@ During the deep check of this repo, the claim-judging call `llm.verify` on `qwen
 claims verified. The failed call is a recorded step on the public result page
 https://3-82-224-157.sslip.io/a/29def6e19f64 and in the neatlogs trace for session `29def6e19f64`.
 
+The same pattern on Oct 12, as neatlogs shows it:
+
+![neatlogs trace: failed steps flagged, agent recovered](evidence/neatlogs-failure-recovery.jpeg)
+*neatlogs trace of a deep audit (Oct 12, 11:40 IST, 19 steps, 42.9 s): `github.download_tarball`, a `qwen/qwen3.8-27b` call and `agent.search_repo` failed and are flagged "Execution Failed"; the agent fell back to `openai/gpt-oss-120b` and other tools and finished.*
+
 ### neatlogs traces
 
 Trace links (these need a neatlogs login, so screenshots follow):
@@ -241,16 +246,11 @@ Trace links (these need a neatlogs login, so screenshots follow):
 [trace 2](https://app.neatlogs.com/traces/b044efa9359e61ecef04ed7f61e9e216?orgId=c6ad6e53-b608-4914-80dd-1431f37951b6&projectId=91fff568-d321-45b8-83de-035100300128) ·
 [trace 3](https://app.neatlogs.com/traces/c659bf9a4d3ef652dbc334dba40df89c?orgId=c6ad6e53-b608-4914-80dd-1431f37951b6&projectId=91fff568-d321-45b8-83de-035100300128)
 
-> 📸 **SCREENSHOT TODO:** `evidence/neatlogs-failure-recovery-29def6e19f64.png`: the trace of
-> audit `29def6e19f64` showing the 429 on qwen and the fallback to gpt-oss-120b.
->
-> 📸 **SCREENSHOT TODO:** `evidence/neatlogs-trace-before-after.png`: an M2 trace next to an
-> M2.5 trace (tokens and duration).
->
-> 📸 **SCREENSHOT TODO:** `evidence/neatlogs-sessions-overview.png`: the session list with the
-> `prod` tag.
->
-> See [evidence/README.md](evidence/README.md) for how to embed them.
+![neatlogs traces list: 5,536 traces](evidence/neatlogs-traces-list.jpeg)
+*The neatlogs traces list for PreJudge: 5,536 traces captured by Oct 12, 21:35 IST (repo URLs in, verdicts out).*
+
+![neatlogs trace: 13-step deep audit span tree](evidence/neatlogs-span-tree.jpeg)
+*One full deep audit in neatlogs (13 steps, 29.3 s): tarball download, claim extraction, claim verification and verdict, with the model, tokens and cost of every LLM call.*
 
 ## Building in public
 
