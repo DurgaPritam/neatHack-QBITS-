@@ -1,0 +1,80 @@
+<pasted_content id="a983">
+Remove two things from the public home page:
+1. The "N roasts · M repos" counter.
+2. The "Submissions close in ..." countdown.
+
+Keep the underlying stats in /api/admin/metrics and the /admin page (we still use them
+as evidence), but remove or stop calling anything on the public page that only existed
+for these two elements. Make sure removing them causes no layout shift (CLS stays 0 on
+desktop and mobile) and the spacing still looks balanced. Update the e2e tests, run all
+tests, deploy, commit (no Co-Authored-By lines), and tell me when it's safe to push.
+</pasted_content id="a983">
+
+---
+
+<pasted_content id="a983">
+Rebuild EVIDENCE.md as our complete, judge-ready evidence page. Go through the full
+history to do it: git log (all commits), Entire checkpoints, the existing EVIDENCE.md,
+README.md, docs/business-plan.md, evals/results/, and production stats from the admin
+metrics. Don't invent anything: every number must come from the repo, git history,
+eval results or production data, and every claim needs a link (commit, checkpoint,
+file, trace reference or post). Mark anything missing as "TODO" instead of guessing.
+
+Structure it by the official judging criteria, in this order:
+
+1. Summary (top): what PreJudge is, the live link https://3-82-224-157.sslip.io,
+   team QBITS (Durga Pritam Suggisetti and Soujanya Chatti), and a 5-line "best evidence"
+   list linking to the strongest items below.
+
+2. The agent (30%): how it works (quick + deep phase, tools, deterministic scoring,
+   never runs code, prompt-injection protection); the failure-and-recovery runs
+   (production 429 → fallback, invalid JSON repair), with audit/trace references and
+   screenshot links; the milestone timeline M1 → M6 with the commit for each.
+
+3. Use of neatlogs, Entire and cfo.ai (25%), one section each, covering what the rules ask:
+   architecture, implementation, runtime, reasoning and result.
+   - neatlogs: how tracing is set up, trace screenshots in evidence/, total traces captured,
+     the before/after tables (tokens 40k → 10k, time 106s → 40s, model switch, pre-search),
+     the "Execution Failed" detection catching a real failure, and the glass box /
+     transparency features if live.
+   - Entire: enabled, onboarded on entire.io, checkpoint count, the checkpoint link + ID in
+     the README, history import with redaction, and how PreJudge verifies other teams'
+     checkpoints.
+   - cfo.ai: model link https://cfo.ai/s/xBCsLLiMtconXUBf, the v1 → v2 → v3 table, how
+     neatlogs-measured cost ($0.0095 vs the $0.40 guess) changed the plan, the pricing
+     decision it led to, and the transparency page's plan-vs-actual if live.
+
+4. Before/after improvements: one consolidated table of every measured improvement with
+   links: token and time cuts, verified-claim counts, claim accuracy 37.5% → 80–100%
+   (labels AI-assisted, spot-checked by the team), layout shift fixes (CLS numbers),
+   self-audit score progression (40 → 46 → 61 → 64 → 68 → latest), bugs our own audit found.
+
+5. Demo video (20%): TODO: link and length (I'll add it).
+
+6. Building in public (15%):
+   - Launch thread: https://x.com/PritamLite/status/2109287438342582620
+   - Feature update: https://x.com/PritamLite/status/2109658774336409974
+   - Discord #show-and-tell posts: TODO (I'll add links)
+   - Usage so far from production: total roasts, unique repos, deep checks, card downloads,
+     share clicks. Describe other teams only anonymously (e.g. "one team went from a low
+     score to 92"). Never name other teams' repos.
+
+7. Usefulness and originality (10%): who it helps (every team before the deadline,
+   organizers as a pre-check), the features built for tonight (submission post draft,
+   README badge, evidence section, score progress, demo script, judge panel, MCP server,
+   GitHub Action, sponsor scorecard, Ari prompt helper — only list what's actually live,
+   mark the rest as "in progress"), and the bigger goal of fair, evidence-based judging.
+
+8. Security and privacy: secrets never committed (scans), key rotation, redacted
+   checkpoints, no personal data stored, removal option, other teams anonymised, opt-in
+   homepage feed.
+
+Also:
+- Update the README summary so it links to each EVIDENCE.md section and stays consistent.
+- Check every link in EVIDENCE.md and README.md works (no dead links).
+- Run our production self-audit afterwards and show me the score and remaining fixes.
+- Commit (no Co-Authored-By lines), scan for secrets and other teams' names, and tell me
+  when it's safe to push.
+</pasted_content id="a983">
+
+see our github for new changes
