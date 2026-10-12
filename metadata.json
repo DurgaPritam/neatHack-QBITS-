@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R299D8QE2ZYRDNT1SW1REH",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "frontend/e2e/cls.mjs",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/components/DeepCheck.tsx",
+    "frontend/src/components/StepLog.tsx",
+    "frontend/src/index.css",
+    "frontend/src/pages/Audit.tsx",
+    "frontend/src/pages/Home.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 48,
+    "cache_creation_tokens": 42294,
+    "cache_read_tokens": 2480357,
+    "output_tokens": 23928,
+    "api_call_count": 24
+  }
+}

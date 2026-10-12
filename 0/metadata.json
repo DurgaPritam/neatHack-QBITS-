@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R299D8QE2ZYRDNT1SW1REH",
+  "session_id": "d2edd35e-4e8d-4a1d-8879-cf122952a488",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-12T12:44:33.155835Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "frontend/e2e/cls.mjs",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/components/DeepCheck.tsx",
+    "frontend/src/components/StepLog.tsx",
+    "frontend/src/index.css",
+    "frontend/src/pages/Audit.tsx",
+    "frontend/src/pages/Home.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "1a3e867a12d5",
+  "checkpoint_transcript_start": 2603,
+  "transcript_lines_at_start": 2603,
+  "compact_transcript_start": 374,
+  "token_usage": {
+    "input_tokens": 48,
+    "cache_creation_tokens": 42294,
+    "cache_read_tokens": 2480357,
+    "output_tokens": 23928,
+    "api_call_count": 24
+  },
+  "session_metrics": {
+    "turn_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-12T12:44:33.044243Z",
+    "agent_lines": 206,
+    "agent_removed": 35,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 206,
+    "total_lines_changed": 241,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
