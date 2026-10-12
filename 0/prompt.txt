@@ -1,0 +1,49 @@
+<pasted_content id="8f34">
+Add an "Integrity checks" feature: detect evidence that doesn't match reality.
+Rules: behind env flag FEATURE_INTEGRITY (default on), tests for every signal including
+false-positive cases, deploy only if all tests pass, rollback ready, CLS stays under 0.1,
+commit after each piece (no Co-Authored-By lines). Stop starting new work at 10:30 PM IST.
+
+Principles (important):
+- Integrity signals NEVER change the score tonight. Show them in a separate
+  "Integrity checks" section on the result page.
+- Neutral wording only: "needs a human look", "couldn't confirm", with the exact reason and
+  evidence link. Never say "fake", "cheating" or "fraud".
+- Each signal: ok / needs a look / couldn't check, plus what we checked and how to fix it
+  if it's innocent (e.g. "if you rebased, mention it in the README").
+- Anything comparing repos with each other appears only on the admin page, never publicly.
+
+Signals to implement:
+1. X post dates: decode the timestamp from x.com/twitter.com status IDs
+   ((id >> 22) + 1288834974657 ms). Flag posts dated before the hackathon start or after close.
+2. Discord message links: decode the timestamp from the message ID
+   ((id >> 22) + 1420070400000 ms). Same window check.
+3. Demo video date: YouTube Data API snippet.publishedAt; flag videos published before the
+   hackathon start. (Unknown if the API is unavailable — never guess.)
+4. Links point to this repo: entire.io/gh/<owner>/<repo>/... and GitHub commit/blob links
+   in the README must match the audited owner/repo; flag ones pointing to another repo.
+5. Entire checkpoints are real: every checkpoint ID mentioned in the README exists as a ref,
+   and its commit is dated inside the window.
+6. Commit dates vs push times: compare commit dates with push times from GitHub's public
+   events API (it only covers ~90 days and may be incomplete — treat gaps as "couldn't check").
+   Flag commits dated inside the window that were pushed before it started.
+7. Code dump: flag a single commit inside the window that adds most of the codebase
+   (e.g. >70% of lines), with advice: "if you started from a template, say so in the README".
+8. Dates before the repo existed: flag commits dated before the repo's created_at.
+9. Placeholder screenshots: evidence images must exist, be a real image of reasonable size,
+   and not reuse the same file (same hash) as "different" trace screenshots.
+10. Before/after math: parse before/after tables; check stated percentages and multipliers
+   match the numbers (allow rounding); flag mismatches.
+11. Admin only: near-duplicate README detection across audited repos (text fingerprint
+   similarity), listed on /admin with both repos, never shown publicly.
+
+Also:
+- Add these signals to the Sponsor Depth Scorecard logic where relevant (e.g. an Entire link
+  to another repo can't count toward Entire's level).
+- Add eval cases with deliberately faked fixtures (backdated commit, wrong-repo entire link,
+  pre-hackathon video, reused screenshot, wrong percentage) plus innocent look-alikes
+  (rebased branch, template start mentioned in README) and show the results.
+- Run it on our own repo in production: we must come out clean. If we don't, show me why.
+- Add an "Integrity checks" row to README "New tonight" and EVIDENCE.md.
+Scan for secrets and other teams' names before telling me it's safe to push.
+</pasted_content id="8f34">
