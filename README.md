@@ -20,6 +20,8 @@ preview).
   say, covering architecture, neatlogs (runtime + reasoning), Entire (implementation), cfo.ai and
   the before/after result. Missing evidence is always a TODO (code decides, not the model), links
   that aren't in the audit are removed, and it falls back to a template when the AI budget is out.
+  The 7 scenes and their times (0:00–3:00) are the `SCENES` list in
+  [`backend/app/extras.py#L92-L100`](backend/app/extras.py#L92-L100); a test checks they add up to 180 s.
   Code: [`backend/app/extras.py`](backend/app/extras.py) (`demo_script`), [`DemoScript.tsx`](frontend/src/components/DemoScript.tsx),
   tests [`test_extras.py`](backend/tests/test_extras.py).
 - **Judge panel** under the score: an Observability, a Dev-workflow and a Business judge (generic
