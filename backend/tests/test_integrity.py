@@ -151,3 +151,9 @@ def test_admin_readme_duplicates_never_public(client):  # noqa: F811
     public = client.get("/api/audits/fp0000000000").json()
     assert "fingerprint" not in public["result"]["integrity"]
     assert client.get("/api/admin/overview").status_code == 401
+
+
+def test_eval_faked_fixtures_flagged_innocent_cleared():
+    from evals import integrity as E
+    r = E.run()
+    assert r["faked_caught"] == r["faked"] >= 8 and r["innocent_cleared"] == r["innocent"] >= 8

@@ -1,0 +1,171 @@
+{
+ "date": "2026-10-12",
+ "cases": [
+  {
+   "case": "Backdated commit: dated in the window, pushed before it started",
+   "kind": "faked",
+   "signal": "push_times",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "commit aaaaaaa is dated 2026-10-11T10:00:00Z but was pushed 2026-10-05 09:00 UTC, before the hackathon started"
+  },
+  {
+   "case": "Rebased branch: old author dates, committed and pushed in the window",
+   "kind": "innocent",
+   "signal": "push_times",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "Every matched commit was pushed after the hackathon started."
+  },
+  {
+   "case": "Events API gap: no push events returned",
+   "kind": "innocent",
+   "signal": "push_times",
+   "expected": "unknown",
+   "got": "unknown",
+   "pass": true,
+   "reason": "No push events matched the commits, so we couldn't compare."
+  },
+  {
+   "case": "Entire link to another team's repo",
+   "kind": "faked",
+   "signal": "links_this_repo",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "1 point to a different repo than team/app."
+  },
+  {
+   "case": "Entire + GitHub links to this repo (different case)",
+   "kind": "innocent",
+   "signal": "links_this_repo",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "All point to team/app."
+  },
+  {
+   "case": "Demo video published before the hackathon",
+   "kind": "faked",
+   "signal": "video_date",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "published 2026-08-30 12:00 UTC, before the hackathon started"
+  },
+  {
+   "case": "Demo video date unavailable (API quota)",
+   "kind": "innocent",
+   "signal": "video_date",
+   "expected": "unknown",
+   "got": "unknown",
+   "pass": true,
+   "reason": "The YouTube Data API didn't give a publish date (quota, private video or API off), so we couldn't confirm it."
+  },
+  {
+   "case": "Same screenshot reused as two different traces",
+   "kind": "faked",
+   "signal": "screenshots",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "the same image is used as 2 different screenshots: docs/run1.png, docs/run2.png"
+  },
+  {
+   "case": "Two distinct real screenshots",
+   "kind": "innocent",
+   "signal": "screenshots",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "Every evidence image exists, is a real image and is distinct."
+  },
+  {
+   "case": "Wrong percentage: 40,000 -> 30,000 called '75% fewer'",
+   "kind": "faked",
+   "signal": "before_after_math",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "Tokens: 40000 \u2192 30000 is 25%, the table says 75%"
+  },
+  {
+   "case": "Rounded percentage: 106 s -> 36.7 s called '65% faster'",
+   "kind": "innocent",
+   "signal": "before_after_math",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "Every stated % or \u00d7 matches its before and after numbers."
+  },
+  {
+   "case": "Code dump: one commit adds 90% of the code",
+   "kind": "faked",
+   "signal": "code_dump",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "One commit (big0000, 2026-10-10 08:00 UTC) adds 18,000 lines, 90% of everything added."
+  },
+  {
+   "case": "Template start mentioned in the README",
+   "kind": "innocent",
+   "signal": "code_dump",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "Commit big0000 adds 90% of the lines, and the README says the project started from a template or existing code."
+  },
+  {
+   "case": "X post from before the hackathon",
+   "kind": "faked",
+   "signal": "x_post_dates",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "2026-10-01 10:00 UTC (before the start)"
+  },
+  {
+   "case": "X post inside the window",
+   "kind": "innocent",
+   "signal": "x_post_dates",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "All 1 are dated inside the hackathon window."
+  },
+  {
+   "case": "Quoted checkpoint ID that isn't in the repo",
+   "kind": "faked",
+   "signal": "checkpoints_real",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "1 quoted ID(s) aren't in this repo's pushed checkpoint refs or commit trailers: 01ZZZZZZZZZZZZZZZZZZZZZZZZ"
+  },
+  {
+   "case": "Commits dated before the repo was created",
+   "kind": "faked",
+   "signal": "before_created",
+   "expected": "look",
+   "got": "look",
+   "pass": true,
+   "reason": "1 commit(s) are dated after the hackathon started but before this repo was created, e.g. aaaaaaa (2026-10-11T10:00:00Z)."
+  },
+  {
+   "case": "History moved from an older repo (said in the README)",
+   "kind": "innocent",
+   "signal": "before_created",
+   "expected": "ok",
+   "got": "ok",
+   "pass": true,
+   "reason": "Some commits predate the repo, and the README says the history was moved from another repo."
+  }
+ ],
+ "faked_caught": 9,
+ "faked": 9,
+ "innocent_cleared": 9,
+ "innocent": 9
+}
