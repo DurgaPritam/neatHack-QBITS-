@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4RAA36EBF1T3KH24YS9Z4FJ",
+  "session_id": "2d7bca16-c661-4fb3-9477-4d10cf325467",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-12T15:04:47.13607Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "4b201fced41f",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 534,
+    "cache_creation_tokens": 1195985,
+    "cache_read_tokens": 87850097,
+    "output_tokens": 414961,
+    "api_call_count": 267
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 110,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "backend/app/sponsors.py": 110
+      }
+    }
+  ]
+}
