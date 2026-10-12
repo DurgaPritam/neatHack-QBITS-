@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4RDC3E7DSHJ47VX9FRYMSRY",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "backend/evals/integrity.py",
+    "backend/evals/results/2026-10-12-integrity.json",
+    "backend/tests/test_integrity.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4,
+    "cache_creation_tokens": 5850,
+    "cache_read_tokens": 863830,
+    "output_tokens": 4637,
+    "api_call_count": 2
+  }
+}

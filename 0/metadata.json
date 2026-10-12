@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4RDC3E7DSHJ47VX9FRYMSRY",
+  "session_id": "d2edd35e-4e8d-4a1d-8879-cf122952a488",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-12T15:58:19.799504Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "backend/evals/integrity.py",
+    "backend/evals/results/2026-10-12-integrity.json",
+    "backend/tests/test_integrity.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "0cd58474b0a2",
+  "checkpoint_transcript_start": 4242,
+  "transcript_lines_at_start": 4242,
+  "compact_transcript_start": 618,
+  "token_usage": {
+    "input_tokens": 4,
+    "cache_creation_tokens": 5850,
+    "cache_read_tokens": 863830,
+    "output_tokens": 4637,
+    "api_call_count": 2
+  },
+  "session_metrics": {
+    "turn_count": 35
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-12T15:58:19.635667Z",
+    "agent_lines": 284,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 284,
+    "total_lines_changed": 284,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
