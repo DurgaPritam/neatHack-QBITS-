@@ -72,6 +72,7 @@ rsync -az --delete -e "$RSYNC_SSH" \
   --exclude '__pycache__' --exclude '.env*' --exclude '*.db' \
   "$ROOT/backend/app" "$ROOT/backend/fixtures" "$ROOT/backend/requirements.txt" \
   "$ROOT/backend/Dockerfile" "$ROOT/backend/.dockerignore" "$HOST:$REMOTE_DIR/backend/"
+CADDY_BEFORE=$("${SSH[@]}" "sha256sum $REMOTE_DIR/Caddyfile 2>/dev/null | cut -c1-64" || true)
 rsync -az -e "$RSYNC_SSH" "$ROOT/deploy/docker-compose.yml" "$ROOT/deploy/Caddyfile" "$HOST:$REMOTE_DIR/"
 # --delay-updates: new hashed assets land before index.html points at them
 rsync -az --delete --delay-updates -e "$RSYNC_SSH" "$ROOT/frontend/dist/" "$HOST:$REMOTE_DIR/site/"
@@ -81,6 +82,13 @@ scp -q -i "$KEY" "$MERGED" "$HOST:$REMOTE_DIR/.env"
 step "docker compose up -d --build"
 "${SSH[@]}" "cd $REMOTE_DIR && sudo docker compose up -d --build --remove-orphans 2>&1 | grep -v '^ *#' | tail -15 \
   && sudo docker image prune -f >/dev/null && sudo docker compose ps --format 'table {{.Service}}\t{{.Status}}'"
+
+# rsync swaps the Caddyfile for a new file, but a single-file bind mount keeps showing the old one:
+# restart Caddy when the routing changed (about a second of downtime).
+if [ "$CADDY_BEFORE" != "$(shasum -a 256 "$ROOT/deploy/Caddyfile" | cut -c1-64)" ]; then
+  step "Caddyfile changed: restarting caddy"
+  "${SSH[@]}" "cd $REMOTE_DIR && sudo docker compose restart caddy 2>&1 | tail -1"
+fi
 
 step "waiting for https://$DOMAIN/api/health"
 for _ in $(seq 1 40); do
