@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4RD87CNF84A8B0K42N141HZ",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "backend/app/db.py",
+    "backend/app/main.py",
+    "backend/app/sponsors.py",
+    "backend/tests/test_integrity.py",
+    "backend/tests/test_sponsors.py",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/api.ts",
+    "frontend/src/pages/Admin.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 5134,
+    "cache_read_tokens": 1710046,
+    "output_tokens": 5115,
+    "api_call_count": 4
+  }
+}
