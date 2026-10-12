@@ -44,7 +44,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, db, extras, history, kit, limits, replay
+from app import budget, config, db, extras, history, kit, limits, replay, sponsors
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import LLM, POOL, configured_models
@@ -299,8 +299,20 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "percentiles": _percentiles(row),
         "showcase": bool(row.get("showcase")),
         "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel")},
+        "sponsors": _sponsors(row),
         "error": row["error"],
     }
+
+
+def _sponsors(row: dict) -> list[dict] | None:
+    """Sponsor Depth Scorecard (FEATURE_SPONSOR_SCORECARD), computed from the checks on every read."""
+    r = row.get("result")
+    if not r or not extras.enabled("sponsor_scorecard") or (r.get("score") or {}).get("gated"):
+        return None
+    try:
+        return sponsors.scorecard(r)
+    except Exception:
+        return None  # a nicety; never break the result page
 
 
 def _percentiles(row: dict) -> dict | None:

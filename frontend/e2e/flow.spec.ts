@@ -341,3 +341,17 @@ test('judge panel under the score + demo script on request (template in replay m
   expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^\[0:00–0:20\]/)
   expect(await layoutShift(page)).toBeLessThan(0.1)
 })
+
+test('sponsor depth scorecard on every result page', async ({ page }) => {
+  await watchLayoutShift(page)
+  await page.goto('/a/4d5dbd1bf972')                                 // openai/swarm: no sponsor tools at all
+  const rows = page.getByTestId('sponsor')
+  await expect(rows).toHaveCount(3)
+  await expect(rows.nth(0)).toContainText('neatlogs')
+  await expect(rows.nth(1)).toContainText('Entire')
+  await expect(rows.nth(2)).toContainText('cfo.ai')
+  await expect(rows.nth(0)).toContainText('Next:')
+  await expect(page.getByTestId('sponsors').getByRole('meter').first()).toHaveAttribute('aria-valuenow', /^[0-4]$/)
+  await page.waitForTimeout(800)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})

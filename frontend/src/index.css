@@ -273,3 +273,15 @@ button { font: inherit; }
   background: #111018; border-radius: 8px; font-size: 14px; line-height: 1.45; }
 .demo-todo { border-left-color: var(--warn); }
 .demo-time { font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 800; }
+
+.sponsor-panel { margin-top: 14px; }
+.sponsor-key { margin: -6px 0 12px; }
+.sponsor-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.sponsor-row { display: flex; flex-direction: column; gap: 4px; }
+.sponsor-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.sponsor-tool { min-width: 76px; }
+.sponsor-pips { display: inline-flex; gap: 4px; }
+.pip { width: 22px; height: 8px; border-radius: 4px; background: var(--line); }
+.pip-on { background: var(--good); }
+.sponsor-level { font-size: 14px; color: var(--gold); font-weight: 700; }
+.sponsor-why, .sponsor-next { margin: 0; overflow-wrap: anywhere; }

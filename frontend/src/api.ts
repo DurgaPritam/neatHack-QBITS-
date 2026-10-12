@@ -145,6 +145,7 @@ export interface Audit {
   percentiles?: Percentiles | null
   showcase?: boolean
   features?: { demo_script?: boolean; judge_panel?: boolean }
+  sponsors?: SponsorRow[] | null
   error: string | null
 }
 
@@ -152,6 +153,15 @@ export interface Kit {
   post: { text: string; length: number; limit: number; over: boolean; blanks: number }
   evidence_md: string
   badge: { url: string; markdown: string }
+}
+
+export interface SponsorRow {
+  tool: string
+  level: number
+  label: string
+  why: string
+  next_step: string
+  evidence: string[]
 }
 
 export interface DemoScene {
