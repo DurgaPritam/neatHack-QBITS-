@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R2Y5QWQJVEHR2SGHTVYT3P",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "backend/app/db.py",
+    "backend/app/kit.py",
+    "backend/app/main.py",
+    "backend/app/tools/rubric.py",
+    "backend/tests/test_kit.py",
+    "backend/tests/test_rubric.py",
+    "deploy/Caddyfile",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/api.ts",
+    "frontend/src/components/Countdown.tsx",
+    "frontend/src/components/SubmissionKit.tsx",
+    "frontend/src/index.css",
+    "frontend/src/labels.ts",
+    "frontend/src/pages/Audit.tsx",
+    "frontend/src/pages/Home.tsx",
+    "frontend/vite.config.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 34116,
+    "cache_read_tokens": 3560964,
+    "output_tokens": 21968,
+    "api_call_count": 22
+  }
+}

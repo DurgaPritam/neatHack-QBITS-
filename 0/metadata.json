@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R2Y5QWQJVEHR2SGHTVYT3P",
+  "session_id": "d2edd35e-4e8d-4a1d-8879-cf122952a488",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-12T12:55:57.478152Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "backend/app/db.py",
+    "backend/app/kit.py",
+    "backend/app/main.py",
+    "backend/app/tools/rubric.py",
+    "backend/tests/test_kit.py",
+    "backend/tests/test_rubric.py",
+    "deploy/Caddyfile",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/api.ts",
+    "frontend/src/components/Countdown.tsx",
+    "frontend/src/components/SubmissionKit.tsx",
+    "frontend/src/index.css",
+    "frontend/src/labels.ts",
+    "frontend/src/pages/Audit.tsx",
+    "frontend/src/pages/Home.tsx",
+    "frontend/vite.config.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-5-5",
+  "turn_id": "1a3e867a12d5",
+  "checkpoint_transcript_start": 2883,
+  "transcript_lines_at_start": 2883,
+  "compact_transcript_start": 413,
+  "token_usage": {
+    "input_tokens": 44,
+    "cache_creation_tokens": 34116,
+    "cache_read_tokens": 3560964,
+    "output_tokens": 21968,
+    "api_call_count": 22
+  },
+  "session_metrics": {
+    "turn_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-12T12:55:57.365245Z",
+    "agent_lines": 429,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 429,
+    "total_lines_changed": 432,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
