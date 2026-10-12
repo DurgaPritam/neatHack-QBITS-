@@ -298,3 +298,15 @@ button { font: inherit; }
 .glass-kind-fallback, .glass-kind-retry { background: rgba(255, 210, 63, .15); color: var(--warn); }
 .glass-kind-failed { background: rgba(255, 77, 46, .15); color: var(--bad); }
 .glass-note { overflow-wrap: anywhere; }
+
+.page-headline { font-size: clamp(36px, 6vw, 60px); }
+.plan-line { font-size: 20px; font-weight: 800; margin: 0 0 8px; min-height: 1.4em; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.stat-card { background: var(--panel); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 4px; height: 128px; box-sizing: border-box; }
+.stat-value { font-size: 32px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+.stat-label { font-weight: 700; }
+.stat-sub { min-height: 1.4em; }
+.plain-list { margin: 0 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.footer-links { display: block; margin-top: 6px; }
+.footer-links a { color: var(--muted); }

@@ -44,7 +44,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, costs, db, extras, history, kit, limits, replay, sponsors
+from app import budget, config, costs, db, extras, history, kit, limits, replay, sponsors, transparency
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import LLM, POOL, configured_models
@@ -451,6 +451,15 @@ def examples() -> list[dict]:
 
 
 SHOWCASE_MIN, SHOWCASE_MAX = 3, 6
+
+
+@app.get("/api/transparency")
+def transparency_stats(response: Response) -> dict:
+    """Live aggregate numbers vs the cfo.ai plan (FEATURE_TRANSPARENCY). Cached 5 minutes; no repo names."""
+    if not extras.enabled("transparency"):
+        raise HTTPException(404, "transparency is switched off")
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return transparency.get()
 
 
 @app.get("/api/showcase")

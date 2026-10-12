@@ -370,3 +370,18 @@ test('glass box: how this verdict was made, collapsed until opened', async ({ pa
   await expect(box).toContainText('fallback')
   await expect(box).not.toContainText('Error code')
 })
+
+test('transparency page: live aggregates, plan vs actual, sponsor links, no repo names', async ({ page }) => {
+  await watchLayoutShift(page)
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Transparency' }).click()
+  await expect(page).toHaveURL(/\/transparency$/)
+  await expect(page.getByTestId('plan-vs-actual')).toContainText(/plan \$0\.0095|No audits with LLM calls yet/)
+  await expect(page.locator('.stat-card')).toHaveCount(8)
+  await expect(page.getByRole('link', { name: 'cfo.ai model' })).toHaveAttribute('href', 'https://cfo.ai/s/xBCsLLiMtconXUBf')
+  await expect(page.getByRole('link', { name: 'our Entire project page' })).toHaveAttribute('href', /entire\.io\/gh\//)
+  await expect(page.getByTestId('transparency')).toContainText('every audit is traced')
+  await expect(page.getByTestId('transparency')).not.toContainText('openai/swarm')
+  await page.waitForTimeout(800)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})

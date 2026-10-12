@@ -116,6 +116,9 @@ export default function Home() {
 
       <footer className="footer">
         Reads your repo through the GitHub API only. Never runs your code. No accounts.
+        <span className="footer-links">
+          <Link to="/transparency">Transparency</Link>
+        </span>
       </footer>
     </main>
   )

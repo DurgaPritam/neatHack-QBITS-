@@ -177,6 +177,30 @@ export interface GlassBox {
   traced_with: string
 }
 
+export interface PhaseStats {
+  audits: number
+  avg_tokens: number | null
+  avg_cost_usd: number | null
+  avg_seconds: number | null
+}
+
+export interface Transparency {
+  generated_at: string
+  audits: number
+  audits_that_ran: number
+  reused_results: number
+  unique_repos: number
+  quick: PhaseStats
+  deep: PhaseStats
+  fallback_rate: number | null
+  tokens_saved_by_reuse: number
+  plan: { cost_per_audit_usd: number; quick_usd: number; deep_usd: number; deep_share: number; url: string }
+  actual: { cost_per_audit_usd: number | null; deep_share: number | null }
+  plan_vs_actual: string
+  pricing: string
+  links: { cfo_ai: string; entire: string; neatlogs: string }
+}
+
 export interface SponsorRow {
   tool: string
   level: number
@@ -319,6 +343,7 @@ export const api = {
     request<AdminOverview>('/api/admin/overview', { headers: { 'X-Admin-Token': token } }),
   examples: () => request<Example[]>('/api/examples'),
   showcase: () => request<Example[]>('/api/showcase'),
+  transparency: () => request<Transparency>('/api/transparency'),
   kit: (id: string) => request<Kit>(`/api/audits/${encodeURIComponent(id)}/kit`),
   demoScript: (id: string) => request<DemoScript>(`/api/audits/${encodeURIComponent(id)}/demo-script`),
   judgePanel: (id: string) => request<JudgePanel>(`/api/audits/${encodeURIComponent(id)}/judge-panel`),

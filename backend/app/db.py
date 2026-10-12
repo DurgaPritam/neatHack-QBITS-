@@ -425,6 +425,16 @@ def put_extra(audit_id: str, kind: str, stamp: str, body: dict) -> None:
         _db().commit()
 
 
+def transparency_rows() -> list[dict]:
+    """Real, visible, non-example audits with a result (for aggregate stats only)."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT id, repo_key, cached_from, steps, result FROM audits WHERE run_kind = 'real' AND is_example = 0 "
+            "AND hidden = 0 AND result IS NOT NULL").fetchall()
+    return [{"repo_key": r["repo_key"], "cached_from": r["cached_from"], "steps": json.loads(r["steps"] or "[]"),
+             "result": json.loads(r["result"]) if r["result"] else None} for r in rows]
+
+
 def set_showcase(audit_id: str, on: bool) -> None:
     with _lock:
         _db().execute("UPDATE audits SET showcase = ? WHERE id = ?", (1 if on else 0, audit_id))
