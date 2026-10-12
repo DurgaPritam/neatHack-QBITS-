@@ -215,6 +215,22 @@ export default function AdminPage() {
             )}
           </section>
 
+          <section className="panel" data-testid="admin-duplicates">
+            <h2 className="panel-title">Near-duplicate READMEs ({data.readme_duplicates?.length ?? 0})</h2>
+            <p className="muted small">
+              Admin only, never shown publicly. Text fingerprint similarity between audited repos' READMEs; a match
+              needs a human look (shared templates and forks are common).
+            </p>
+            {(data.readme_duplicates ?? []).length === 0 ? <p className="muted">None above 80% similarity.</p> : (
+              <table className="admin-table">
+                <thead><tr><th>Repo</th><th>Repo</th><th>Similarity</th></tr></thead>
+                <tbody>{(data.readme_duplicates ?? []).map((d) => (
+                  <tr key={`${d.a}|${d.b}`}><td>{d.a}</td><td>{d.b}</td><td>{Math.round(d.similarity * 100)}%</td></tr>
+                ))}</tbody>
+              </table>
+            )}
+          </section>
+
           <section className="panel">
             <h2 className="panel-title">Per day</h2>
             <p className="muted small" data-testid="admin-unique">

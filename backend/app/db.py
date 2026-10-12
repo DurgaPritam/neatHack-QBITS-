@@ -435,6 +435,20 @@ def transparency_rows() -> list[dict]:
              "result": json.loads(r["result"]) if r["result"] else None} for r in rows]
 
 
+def readme_fingerprints() -> list[tuple[str, list[int]]]:
+    """Latest README fingerprint per repo (real, non-example audits) for the admin near-duplicate list."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT repo_key, result FROM audits WHERE run_kind = 'real' AND is_example = 0 AND result IS NOT NULL "
+            "AND cached_from IS NULL ORDER BY created_at").fetchall()
+    latest: dict[str, list[int]] = {}
+    for r in rows:
+        fp = ((json.loads(r["result"]) or {}).get("integrity") or {}).get("fingerprint")
+        if r["repo_key"] and fp:
+            latest[r["repo_key"]] = fp
+    return list(latest.items())
+
+
 def set_showcase(audit_id: str, on: bool) -> None:
     with _lock:
         _db().execute("UPDATE audits SET showcase = ? WHERE id = ?", (1 if on else 0, audit_id))

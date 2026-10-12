@@ -56,3 +56,18 @@ def test_scorecard_on_every_result_and_flag(client, monkeypatch):  # noqa: F811
     assert [r["tool"] for r in card] == ["neatlogs", "Entire", "cfo.ai"] and all(r["next_step"] for r in card)
     monkeypatch.setenv("FEATURE_SPONSOR_SCORECARD", "0")
     assert client.get(f"/api/audits/{aid}").json()["sponsors"] is None
+
+
+def test_integrity_caps_sponsor_levels():
+    link = "https://entire.io/gh/someone/else/commit/" + "0" * 40
+    report = rep(chk("entire_checkpoints", "pass", data={"checkpoint_link": link}),
+                 chk("neatlogs_sdk", "pass"), chk("neatlogs_traces", "pass", ["docs/t.png"]))
+    assert S.scorecard(report)[1]["level"] == 3
+    report["integrity"] = {"signals": [
+        {"id": "links_this_repo", "status": "look", "evidence": [link], "reason": "points elsewhere"},
+        {"id": "screenshots", "status": "look", "evidence": [], "reason": "the same image is used twice"}]}
+    n, e, _ = S.scorecard(report)
+    assert e["level"] == 2 and "different repo" in e["why"] and e["capped_by_integrity"]
+    assert n["level"] == 2 and "screenshots need a look" in n["why"]
+    report["integrity"]["signals"][0]["status"] = "ok"                     # cleared: the level comes back
+    assert S.scorecard(report)[1]["level"] == 3

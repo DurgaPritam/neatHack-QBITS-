@@ -114,5 +114,31 @@ def cfo(report: dict) -> dict:
                 "Feed real measured numbers (cost per run, usage) into the plan and note what changed.", links)
 
 
+def _signal(report: dict, sid: str) -> dict | None:
+    return next((s for s in (report.get("integrity") or {}).get("signals", []) if s["id"] == sid), None)
+
+
+def _cap(row: dict, level: int, why: str, next_step: str) -> dict:
+    """An integrity signal that needs a look caps the level: that evidence can't count until it's cleared."""
+    if row["level"] <= level:
+        return row
+    return {**row, "level": level, "label": LEVELS[level], "why": why, "next_step": next_step, "capped_by_integrity": True}
+
+
 def scorecard(report: dict) -> list[dict]:
-    return [neatlogs(report), entire(report), cfo(report)]
+    n, e, c = neatlogs(report), entire(report), cfo(report)
+    links = _signal(report, "links_this_repo")
+    foreign = [u for u in (links or {}).get("evidence", []) if "entire.io" in u] if (links or {}).get("status") == "look" else []
+    link = ((next((x for x in report.get("checks", []) if x["id"] == "entire_checkpoints"), {}) or {}).get("data") or {}).get("checkpoint_link")
+    if foreign and (link in foreign or not link):
+        e = _cap(e, 2, "the README's Entire link points to a different repo (see Integrity checks), so it can't count",
+                 "Link a checkpoint from this repo: entire.io/gh/OWNER/REPO/commit/SHA.")
+    cps = _signal(report, "checkpoints_real")
+    if (cps or {}).get("status") == "look":
+        e = _cap(e, 2, "a quoted checkpoint ID needs a look (see Integrity checks): " + cps["reason"][:120],
+                 "Quote checkpoint IDs that exist in this repo's pushed refs.")
+    shots = _signal(report, "screenshots")
+    if (shots or {}).get("status") == "look" and n["level"] >= 3:
+        n = _cap(n, 2, "the trace screenshots need a look (see Integrity checks): " + shots["reason"][:120],
+                 "Use a real, full-size screenshot of each trace (one file per run).")
+    return [n, e, c]

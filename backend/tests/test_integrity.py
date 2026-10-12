@@ -3,6 +3,7 @@ import struct
 import zlib
 
 from app import integrity as I
+from tests.test_api import client  # noqa: F401  (fixture)
 
 IN, EARLY, LATE = 2109222474347446272, 2105598595691446272, 2109947250078646272          # X ids: Oct 11, Oct 1, Oct 13
 D_IN, D_EARLY = 1558781204889600000, 1555157326233600000                                  # Discord ids: Oct 11, Oct 1
@@ -135,3 +136,18 @@ def test_evaluate_never_scored_and_neutral():
     text = str(r).lower()
     for word in ("fake", "cheat", "fraud"):
         assert word not in text
+
+
+def test_admin_readme_duplicates_never_public(client):  # noqa: F811
+    from app import db
+    from tests.test_api import post, wait_for
+    text = " ".join(f"word{i}" for i in range(300))
+    for i, repo in enumerate(("team1/app", "team2/copy", "team3/other")):
+        body = text if i < 2 else " ".join(f"other{i}" for i in range(300))
+        db.create(f"fp{i:010d}", f"https://github.com/{repo}", repo, None, "real", status="complete",
+                  result={"integrity": {"signals": [], "fingerprint": I.fingerprint(body)}})
+    dups = client.get("/api/admin/overview", headers={"X-Admin-Token": "test-admin-token"}).json()["readme_duplicates"]
+    assert dups == [{"a": "team1/app", "b": "team2/copy", "similarity": 1.0}]
+    public = client.get("/api/audits/fp0000000000").json()
+    assert "fingerprint" not in public["result"]["integrity"]
+    assert client.get("/api/admin/overview").status_code == 401

@@ -274,6 +274,7 @@ test('admin page: token kept in memory, overview tables', async ({ page }) => {
   await expect(page.getByText('Tokens saved by reuse')).toBeVisible()
   await expect(page.getByRole('heading', { name: /Projects/ })).toBeVisible()
   await expect(page.getByTestId('admin-unique')).toHaveText(/\d+ visible roasts · \d+ unique repos/)  // admin keeps it
+  await expect(page.getByTestId('admin-duplicates')).toContainText('Near-duplicate READMEs')
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage) + document.cookie))
     .not.toContain('e2e-admin')
   await shot(page, 'm6-admin')

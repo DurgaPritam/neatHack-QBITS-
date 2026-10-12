@@ -395,6 +395,20 @@ def admin_metrics() -> dict:
     return {**db.metrics(), "deep_queue": queues.deep.length(), "llm_mode": replay.mode()}
 
 
+def readme_duplicates(threshold: float = 0.8) -> list[dict]:
+    """Admin only: pairs of audited repos whose READMEs are near-duplicates. Never shown publicly."""
+    if not integrity.enabled():
+        return []
+    fps = db.readme_fingerprints()
+    out = []
+    for i, (a, fa) in enumerate(fps):
+        for b, fb in fps[i + 1:]:
+            sim = integrity.similarity(fa, fb)
+            if sim >= threshold:
+                out.append({"a": a, "b": b, "similarity": round(sim, 2)})
+    return sorted(out, key=lambda x: -x["similarity"])[:50]
+
+
 @app.get("/api/admin/overview", dependencies=[Depends(require_admin)])
 def admin_overview() -> dict:
     """Everything the /admin page shows, in one call."""
@@ -402,6 +416,7 @@ def admin_overview() -> dict:
     metrics = db.metrics()
     deep_by_repo = {k.split(":", 1)[1]: v for k, v in db.today_counters("deep_repo:").items()}
     return {
+        "readme_duplicates": readme_duplicates(),
         "budget": {**POOL.budget(models), "reserve_pct": POOL.reserve_pct, "snapshot": POOL.snapshot(),
                    "state": budget_state()},
         "deep": {"used_today": db.today_count("deep_started"), "daily_cap": limits.DEEP_DAILY_CAP,

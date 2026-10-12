@@ -277,6 +277,7 @@ export interface Example {
 }
 
 export interface AdminOverview {
+  readme_duplicates?: { a: string; b: string; similarity: number }[]
   budget: {
     public_available: boolean
     public_tokens: { used: number; cap: number }
