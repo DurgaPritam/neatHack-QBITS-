@@ -17,7 +17,7 @@ WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
 WINDOW_END = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)   # 23:55 IST
 
 # Bump when check logic changes: cached audits from an older version are not reused.
-CHECKS_VERSION = "2026-10-12.1"  # integrity checks added
+CHECKS_VERSION = "2026-10-12.2"  # demo length: 1 s YouTube API rounding
 
 WEIGHTS = {
     "agent": 0.30,
@@ -367,7 +367,8 @@ def check_demo_video(links: list[dict], videos_meta: list[dict] | None = None, r
                       [l["url"] for l in videos], data={"duration_status": "dead_link"})
     meta = [m for m in (videos_meta or []) if m["url"] in {l["url"] for l in live}]
     known = [m for m in meta if m["status"] == "known"]
-    short = [m for m in known if m["duration_s"] <= MAX_DEMO_SECONDS]
+    # The YouTube Data API rounds a partial second up (a 180.4 s video is PT3M1S): allow that one second.
+    short = [m for m in known if m["duration_s"] <= MAX_DEMO_SECONDS + (1 if m.get("source") == "youtube_api" else 0)]
     limit = fmt_duration(MAX_DEMO_SECONDS)
     if short:
         m = min(short, key=lambda v: v["duration_s"])
