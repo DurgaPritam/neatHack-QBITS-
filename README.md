@@ -41,11 +41,19 @@ preview).
 - **[/built-with](https://3-82-224-157.sslip.io/built-with)**: our build story from git and Entire:
   commits, every checkpoint linked on entire.io, and the before/after improvements linked to their
   commits and checkpoints.
+- **Integrity checks** (separate section, never part of the score): does the evidence match what
+  we can observe? X and Discord post dates decoded from their IDs, the demo video's publish date
+  (YouTube Data API), entire.io/GitHub links that point to another repo, quoted checkpoint IDs vs
+  pushed refs, commit dates vs push times, single-commit code dumps, commits dated before the repo
+  existed, reused or placeholder screenshots, and before/after % / × math. Each says ok, "needs a
+  human look" or "couldn't check", with the reason, the evidence and how to clear it if it's innocent
+  (a rebase, a template). Near-duplicate READMEs across repos are listed on /admin only. Eval:
+  9/9 faked fixtures flagged, 9/9 innocent look-alikes cleared; this repo: 10/10 ok.
 - Also today: no more layout shift (live audit CLS 0.90 → 0), opt-in "Fresh off the grill" feed,
   submission post draft, README badge and a copy-paste Evidence section.
 
 Each feature has a flag, on by default (`FEATURE_DEMO_SCRIPT`, `FEATURE_JUDGE_PANEL`,
-`FEATURE_SPONSOR_SCORECARD`, `FEATURE_GLASS_BOX`, `FEATURE_TRANSPARENCY`, `FEATURE_ARI_PROMPT`,
+`FEATURE_SPONSOR_SCORECARD`, `FEATURE_GLASS_BOX`, `FEATURE_TRANSPARENCY`, `FEATURE_ARI_PROMPT`, `FEATURE_INTEGRITY`,
 and `VITE_FEATURE_BUILT_WITH` at build time), and every deploy keeps the previous version for
 `scripts/rollback.sh`. Attaching "this verdict is wrong" feedback to the neatlogs trace was left
 out: neatlogs' feedback endpoints accept only a user's OAuth token, not a project API key.

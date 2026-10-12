@@ -405,6 +405,7 @@ backup written ([`531f542`](https://github.com/DurgaPritam/neatHack-QBITS-/commi
 | /transparency (`FEATURE_TRANSPARENCY`) | `test_transparency.py` (aggregates, no repo names, 5-min cache) + e2e | first numbers: $0.0072 per audit vs the plan's $0.0095 (25% under); quick $0.0028, deep $0.0127 |
 | cfo.ai prompt for Ari (`FEATURE_ARI_PROMPT`) | `test_ari.py` (invented numbers become [___], template fallback) + e2e | this repo: LLM-written, every number from our README, 1 blank |
 | /built-with (`VITE_FEATURE_BUILT_WITH`) | `test_built_with.py` + e2e | 97 pushed commits, 41 with Entire checkpoints (entire.io links), 11 improvements linked to commits |
+| Integrity checks (`FEATURE_INTEGRITY`, never scored) | `test_integrity.py` (every signal, with false-positive cases) + `python -m evals.integrity`: 9/9 faked fixtures flagged, 9/9 innocent look-alikes cleared ([results](backend/evals/results/2026-10-12-integrity.json)) + e2e | this repo, audit [`7b4b8738ac72`](https://3-82-224-157.sslip.io/a/7b4b8738ac72): 10/10 ok (2 X posts in the window, 71/106 commits matched to pushes after the start, largest commit 18% of lines); sponsor levels unchanged |
 
 Not built: attaching "this verdict is wrong" feedback to the matching neatlogs trace. neatlogs'
 Public API has `POST /traces/{traceId}/feedback`, but every feedback write needs a user's OAuth
