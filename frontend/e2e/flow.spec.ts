@@ -3,15 +3,31 @@ import { expect, test, type Page } from '@playwright/test'
 // Full flow against the real backend in LLM_MODE=replay (no LLM tokens). GitHub is live.
 const SHOTS = process.env.E2E_SHOTS ?? 'e2e-shots'
 
+// Cumulative layout shift, counted from page load (shifts right after a click or key press don't count).
+async function watchLayoutShift(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __cls: number }
+    w.__cls = 0
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as unknown as { value: number; hadRecentInput: boolean }[])
+        if (!e.hadRecentInput) w.__cls += e.value
+    }).observe({ type: 'layout-shift', buffered: true })
+  })
+}
+const layoutShift = (page: Page) => page.evaluate(() => (window as unknown as { __cls: number }).__cls)
+
 async function shot(page: Page, name: string) {
   await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true })
 }
 
 test('home: headline, live counter, three saved examples', async ({ page }) => {
+  await watchLayoutShift(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Get roasted before the judges do' })).toBeVisible()
   await expect(page.getByTestId('counter')).toContainText(/\d+ roasts? · \d+ repos?/)
   await expect(page.getByTestId('example')).toHaveCount(3)
+  await page.waitForTimeout(1000)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
   await shot(page, 'home-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
   await shot(page, 'home-mobile')
@@ -71,6 +87,7 @@ test('saved example: score, categories, roast, fixes, claims with evidence, feed
 })
 
 test('new audit: live log, quick result, deep check with queue, deep badge', async ({ page }) => {
+  await watchLayoutShift(page)
   await page.goto('/')
   await page.getByLabel('GitHub repo URL').fill('https://github.com/openai/swarm')
   await page.getByRole('button', { name: 'Roast my repo' }).click()
@@ -84,9 +101,14 @@ test('new audit: live log, quick result, deep check with queue, deep badge', asy
   await page.getByRole('button', { name: 'Run deep check' }).click()
   await expect(page.getByTestId('deep-status')).toBeVisible()
   await shot(page, 'new-deep-queued')
-  await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete', { timeout: 60_000 })
+  // the finished deep check waits behind a button instead of reflowing the page under the reader
+  await expect(page.getByTestId('deep-ready')).toContainText('Deep check done', { timeout: 60_000 })
+  await page.getByRole('button', { name: 'Show the full result' }).click()
+  await expect(page.getByTestId('deep-badge')).toHaveText('Deep check complete')
   await expect(page.locator('.claims .claim').first()).toBeVisible()
   await expect(page.getByText('Pulling claims out of the README')).toBeVisible()
+  await expect(page.getByTestId('deep-done')).toContainText('Deep check complete')  // the panel stays put
+  expect(await layoutShift(page)).toBeLessThan(0.1)       // the page doesn't jump as results arrive
   await shot(page, 'new-deep-done')
 })
 

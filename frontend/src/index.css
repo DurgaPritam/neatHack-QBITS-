@@ -63,8 +63,10 @@ button { font: inherit; }
 .link-button:hover { color: var(--gold); }
 .button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 
-.counter { font-size: 20px; margin: 22px 0 0; }
-.counter strong { color: var(--gold); font-size: 30px; font-weight: 900; }
+.counter { font-size: 20px; margin: 22px 0 0; min-height: 40px; line-height: 40px; }
+/* digits all one width, so a ticking counter never nudges the text after it */
+.counter, .score-num, .example-score, .cat-pts, .step-time { font-variant-numeric: tabular-nums; }
+.counter strong { color: var(--gold); font-size: 30px; font-weight: 900; line-height: 1; }
 .inline-error { color: var(--bad); font-weight: 700; margin: 10px 0 0; }
 .muted { color: var(--muted); }
 .small { font-size: 14px; }
@@ -78,6 +80,7 @@ button { font: inherit; }
 .section-title { font-size: 26px; font-weight: 900; margin: 32px 0 14px; }
 .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .example-card {
+  min-height: 210px; box-sizing: border-box;
   display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: var(--radius);
   background: var(--panel); border: 2px solid var(--line); color: var(--ink); text-decoration: none;
   transition: transform .12s, border-color .12s;
@@ -85,7 +88,9 @@ button { font: inherit; }
 .example-card:hover { transform: translateY(-3px) rotate(-.4deg); border-color: var(--flame); color: var(--ink); }
 .example-score { font-size: 54px; font-weight: 900; line-height: 1; }
 .example-repo { font-weight: 800; font-size: 17px; word-break: break-word; }
-.example-roast { color: var(--muted); font-size: 15px; line-height: 1.45; }
+.example-roast { color: var(--muted); font-size: 15px; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.example-skeleton { background: linear-gradient(90deg, var(--panel), var(--line) 50%, var(--panel)); opacity: .45; }
 .footer { color: var(--muted); font-size: 14px; margin-top: 40px; text-align: center; }
 
 /* ---------- audit page ---------- */
@@ -122,7 +127,7 @@ button { font: inherit; }
 .tone-muted { color: var(--muted); }
 
 .roast-panel { border-color: var(--flame); background: linear-gradient(135deg, #2a1416, var(--panel) 60%); }
-.roast { font-size: clamp(21px, 3.2vw, 30px); font-weight: 800; line-height: 1.35; margin: 0; }
+.roast { font-size: clamp(21px, 3.2vw, 30px); font-weight: 800; line-height: 1.35; margin: 0; min-height: calc(3 * 1.35em); }
 .roast-style { color: var(--muted); font-style: italic; margin: 10px 0 0; }
 .best { margin-top: 18px; padding: 14px 16px; border-radius: 12px; background: rgba(46, 204, 113, .1); border-left: 6px solid var(--good); }
 .best-label { font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--good); }
@@ -150,9 +155,11 @@ button { font: inherit; }
 .feedback-sent { color: var(--good); font-weight: 700; font-size: 14px; }
 .feedback-error { color: var(--bad); font-size: 14px; }
 
-.deep-panel { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-color: var(--gold); }
+.deep-panel { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-color: var(--gold);
+  min-height: 132px; box-sizing: border-box; }  /* same height queued, running and done: nothing below moves */
 .deep-panel p { margin: 0; max-width: 560px; line-height: 1.45; }
 
+.panel-title .spinner { width: 14px; height: 14px; margin-right: 4px; vertical-align: -1px; }
 .steplog ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
 .step { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .step-icon { width: 18px; font-weight: 900; }
@@ -197,7 +204,7 @@ button { font: inherit; }
   .big-button { width: 100%; }
   .button-row { flex-direction: column; }
   .fixes li { flex-direction: column; gap: 6px; }
-  .deep-panel { flex-direction: column; align-items: stretch; }
+  .deep-panel { flex-direction: column; align-items: stretch; justify-content: center; min-height: 236px; }
 }
 .check-advice { margin: 4px 0 0; }
 .check p { overflow-wrap: anywhere; }

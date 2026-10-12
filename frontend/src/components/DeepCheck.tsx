@@ -3,13 +3,42 @@ import { api, ApiError, type Audit, type Stats } from '../api'
 import { formatWait } from '../labels'
 
 // "Run deep check": queue the claim verification, then show position and ETA until it's done.
-export default function DeepCheck({ audit, stats, onQueued }: { audit: Audit; stats: Stats | null; onQueued: () => void }) {
+export default function DeepCheck({ audit, stats, onQueued, ready = null, onShow }: {
+  audit: Audit
+  stats: Stats | null
+  onQueued: () => void
+  ready?: Audit | null // a finished deep result, waiting for the reader to show it
+  onShow?: () => void
+}) {
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  // Once this page has shown the deep panel, it stays (with a "done" line) so nothing below it jumps up.
+  const [shown, setShown] = useState(false)
   const deep = audit.phases.deep
 
-  if (audit.status === 'complete') return null
+  if (ready) {
+    const claims = ready.result?.agent?.claims?.length ?? 0
+    return (
+      <section className="panel deep-panel" data-testid="deep-ready">
+        <span>
+          ✓ Deep check done: {claims} {claims === 1 ? 'claim' : 'claims'} checked against the code, score{' '}
+          {ready.result?.score.score ?? '?'}.
+        </span>
+        <button className="big-button" onClick={onShow}>Show the full result</button>
+      </section>
+    )
+  }
+  if (audit.status === 'complete') {
+    if (!shown) return null
+    const claims = audit.result?.agent?.claims?.length ?? 0
+    return (
+      <section className="panel deep-panel" data-testid="deep-done">
+        <span>✓ Deep check complete: {claims} {claims === 1 ? 'claim' : 'claims'} checked against the code. Each one is listed with its evidence above.</span>
+      </section>
+    )
+  }
   if (deep === 'skipped') return null
+  if (!shown) setShown(true)
 
   if (['queued', 'running', 'waiting_budget'].includes(deep)) {
     const q = audit.queue

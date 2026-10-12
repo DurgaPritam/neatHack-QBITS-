@@ -93,20 +93,21 @@ export default function Home() {
         {stats && <BudgetBanner state={stats.budget_state} waitS={stats.deep_wait_s} />}
       </header>
 
-      {examples.length > 0 && (
-        <section className="examples">
-          <h2 className="section-title">Fresh off the grill</h2>
-          <div className="example-grid">
-            {examples.map((e) => (
-              <Link key={e.id} to={`/a/${e.id}`} className="example-card" data-testid="example">
-                <span className={`example-score tone-${scoreTone(e.score)}`}>{e.score ?? '?'}</span>
-                <span className="example-repo">{e.repo}</span>
-                {e.roast && <span className="example-roast">“{e.roast.length > 160 ? e.roast.slice(0, 157) + '…' : e.roast}”</span>}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="examples">
+        <h2 className="section-title">Fresh off the grill</h2>
+        <div className="example-grid">
+          {/* placeholders hold the grid's height until the roasts load: the footer never jumps */}
+          {examples.length === 0 &&
+            [0, 1, 2].map((i) => <div key={i} className="example-card example-skeleton" aria-hidden />)}
+          {examples.map((e) => (
+            <Link key={e.id} to={`/a/${e.id}`} className="example-card" data-testid="example">
+              <span className={`example-score tone-${scoreTone(e.score)}`}>{e.score ?? '?'}</span>
+              <span className="example-repo">{e.repo}</span>
+              {e.roast && <span className="example-roast">“{e.roast.length > 160 ? e.roast.slice(0, 157) + '…' : e.roast}”</span>}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <footer className="footer">
         Reads your repo through the GitHub API only. Never runs your code. No accounts.

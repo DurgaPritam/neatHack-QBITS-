@@ -24,12 +24,24 @@ export default function AuditPage() {
   const [removed, setRemoved] = useState(false)
   const [offline, setOffline] = useState(false)
   const [tick, setTick] = useState(0)
+  // A finished deep check rewrites the result above where the reader is looking; hold it until they ask.
+  const [pending, setPending] = useState<Audit | null>(null)
+  const shown = useRef<Audit | null>(null)
   const timer = useRef<number | undefined>(undefined)
+
+  const show = (a: Audit) => {
+    shown.current = a
+    setAudit(a)
+  }
 
   const poll = useCallback(async () => {
     try {
       const a = await api.getAudit(id)
-      setAudit(a)
+      const prev = shown.current
+      if (prev?.result && prev.status !== 'complete' && a.status === 'complete') {
+        setPending(a)
+        show({ ...prev, steps: a.steps, phases: a.phases })
+      } else show(a)
       setOffline(false)
       return a
     } catch (e) {
@@ -116,11 +128,30 @@ export default function AuditPage() {
         <p className="notice notice-warn">In line: {audit.queue.position - 1} audit(s) ahead of you.</p>
       )}
 
+      {/* Before the quick result, the live step log holds the result's place; the result then replaces it
+          (and a fresh log mounts at the bottom) instead of pushing it down the page: no layout shift. */}
+      {!report && audit?.status !== 'failed' && !offline && (
+        <StepLog key="live" steps={audit?.steps ?? []} live />
+      )}
+
       {report && audit && audit.status !== 'failed' && (
         <>
           <History audit={audit} />
           <Result audit={audit} />
-          {!report.score.gated && <DeepCheck audit={audit} stats={stats} onQueued={() => setTick((t) => t + 1)} />}
+          {!report.score.gated && (
+            <DeepCheck
+              audit={audit}
+              stats={stats}
+              onQueued={() => setTick((t) => t + 1)}
+              ready={pending}
+              onShow={() => {
+                if (!pending) return
+                show(pending)
+                setPending(null)
+                window.scrollTo({ top: 0 })
+              }}
+            />
+          )}
           {!report.score.gated && (
             <RoastCard
               auditId={audit.id}
@@ -134,9 +165,12 @@ export default function AuditPage() {
         </>
       )}
 
-      {audit && <StepLog steps={audit.steps} live={live || ACTIVE_DEEP.includes(audit.phases.deep)} />}
-      {audit && <RemovalLink auditId={audit.id} onRemoved={() => setRemoved(true)} />}
-      {!audit && !offline && <StepLog steps={[]} live />}
+      {audit && (report || audit.status === 'failed') && (
+        <StepLog key="log" steps={audit.steps} live={live || ACTIVE_DEEP.includes(audit.phases.deep)} />
+      )}
+      {audit && (report || audit.status === 'failed') && (
+        <RemovalLink auditId={audit.id} onRemoved={() => setRemoved(true)} />
+      )}
     </main>
   )
 }

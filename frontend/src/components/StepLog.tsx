@@ -7,7 +7,9 @@ export default function StepLog({ steps, live }: { steps: Step[]; live: boolean 
   const labels = numberedLabels(steps.map((s) => s.name))
   return (
     <section className="panel steplog" aria-live="polite">
-      <h2 className="panel-title">{live ? 'Judging in progress' : 'What the judge did'}</h2>
+      <h2 className="panel-title">
+        {live && <span className="spinner" aria-hidden />} {live ? 'Judging in progress' : 'What the judge did'}
+      </h2>
       <ol>
         {steps.map((s, i) => (
           <li key={i} className={`step step-${s.status}`}>
@@ -17,12 +19,6 @@ export default function StepLog({ steps, live }: { steps: Step[]; live: boolean 
             {s.duration_ms > 400 && <span className="step-time">{(s.duration_ms / 1000).toFixed(1)}s</span>}
           </li>
         ))}
-        {live && (
-          <li className="step step-running">
-            <span className="spinner" aria-hidden />
-            <span className="step-label">Working…</span>
-          </li>
-        )}
       </ol>
     </section>
   )
