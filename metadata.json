@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4R2HBW1H98PA6YHPRBWG76N",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "backend/app/db.py",
+    "backend/app/limits.py",
+    "backend/app/main.py",
+    "backend/tests/test_api.py",
+    "frontend/e2e/flow.spec.ts",
+    "frontend/src/api.ts",
+    "frontend/src/components/ShowcaseToggle.tsx",
+    "frontend/src/index.css",
+    "frontend/src/pages/Audit.tsx",
+    "frontend/src/pages/Home.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 30,
+    "cache_creation_tokens": 20073,
+    "cache_read_tokens": 2021357,
+    "output_tokens": 11934,
+    "api_call_count": 15
+  }
+}
