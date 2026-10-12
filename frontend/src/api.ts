@@ -180,7 +180,6 @@ export interface JudgePanel {
 
 export interface Stats {
   total_audits: number
-  unique_repos: number
   completed_audits: number
   budget_state: 'normal' | 'busy' | 'cooling'
   deep_queue: number
@@ -224,7 +223,7 @@ export interface AdminOverview {
     cached_from: string | null; hidden: number; created_at: string; score: number | null; tokens: number | null
   }[]
   feedback: { id: number; audit_id: string; repo_url: string; check_id: string; note: string; created_at: string }[]
-  metrics: { days: Record<string, number | string>[]; totals: Record<string, number> }
+  metrics: { days: Record<string, number | string>[]; totals: Record<string, number>; roasts?: number; unique_repos?: number }
   llm_mode: string
 }
 

@@ -217,6 +217,10 @@ export default function AdminPage() {
 
           <section className="panel">
             <h2 className="panel-title">Per day</h2>
+            <p className="muted small" data-testid="admin-unique">
+              {fmt(data.metrics.roasts ?? 0)} visible roasts · {fmt(data.metrics.unique_repos ?? 0)} unique repos
+              (real runs; examples, tests and removed audits excluded)
+            </p>
             <div className="table-scroll">
               <table className="admin-table">
                 <thead><tr><th>Day</th><th>Audits</th><th>Reused</th><th>Complete</th><th>Deep</th><th>Tokens saved</th><th>Public tokens</th><th>Cards</th></tr></thead>

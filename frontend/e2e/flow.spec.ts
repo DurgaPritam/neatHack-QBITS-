@@ -24,10 +24,11 @@ test('home: headline, live counter, three saved examples', async ({ page }) => {
   await watchLayoutShift(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Get roasted before the judges do' })).toBeVisible()
-  await expect(page.getByTestId('counter')).toContainText(/\d+ roasts? · \d+ repos?/)
+  await expect(page.getByTestId('counter')).toHaveText(/^\d+ roasts?$/)
   await expect(page.getByTestId('example')).toHaveCount(3)
   await page.waitForTimeout(1000)
   expect(await layoutShift(page)).toBeLessThan(0.1)
+  await expect(page.getByTestId('deadline')).toHaveCount(0)              // countdown removed
   await shot(page, 'home-desktop')
   await page.setViewportSize({ width: 390, height: 844 })
   await shot(page, 'home-mobile')
@@ -182,7 +183,7 @@ test('home when the API is down', async ({ page }) => {
 test('busy and cooling banners', async ({ page }) => {
   for (const [state, text] of [['busy', 'Busy right now'], ['cooling', 'The roast oven is cooling']] as const) {
     await page.route('**/api/stats', (route) =>
-      route.fulfill({ json: { total_audits: 3, unique_repos: 2, completed_audits: 3, budget_state: state, deep_queue: 6, deep_wait_s: 420, llm_mode: 'replay' } }))
+      route.fulfill({ json: { total_audits: 3, completed_audits: 3, budget_state: state, deep_queue: 6, deep_wait_s: 420, llm_mode: 'replay' } }))
     await page.goto('/')
     await expect(page.getByTestId('budget-banner')).toContainText(text)
     await page.unroute('**/api/stats')
@@ -272,6 +273,7 @@ test('admin page: token kept in memory, overview tables', async ({ page }) => {
   await expect(page.getByText('Deep checks today')).toBeVisible()
   await expect(page.getByText('Tokens saved by reuse')).toBeVisible()
   await expect(page.getByRole('heading', { name: /Projects/ })).toBeVisible()
+  await expect(page.getByTestId('admin-unique')).toHaveText(/\d+ visible roasts · \d+ unique repos/)  // admin keeps it
   expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage) + document.cookie))
     .not.toContain('e2e-admin')
   await shot(page, 'm6-admin')
@@ -301,16 +303,6 @@ test('"Show my roast on the homepage": off by default, opted-in roast leads the 
   await page.getByTestId('showcase-toggle').getByRole('checkbox').uncheck()   // and back off
   await page.goto('/')
   await expect(page.locator('[data-example="opted-in"]')).toHaveCount(0)
-})
-
-test('deadline countdown, then "Submissions closed"', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-10-12T13:24:50Z'))   // 18:54:50 IST: 5h 00m 10s left
-  await page.goto('/')
-  await expect(page.getByTestId('deadline')).toHaveText('⏳ Submissions close in 05h 00m 10s')
-  await page.clock.setFixedTime(new Date('2026-10-12T13:24:55Z'))
-  await expect(page.getByTestId('deadline')).toContainText('05h 00m 05s')
-  await page.clock.setFixedTime(new Date('2026-10-12T18:25:00Z'))   // 23:55 IST
-  await expect(page.getByTestId('deadline')).toHaveText('Submissions closed')
 })
 
 test('submit tonight: post draft with blanks + counter, badge snippet, Evidence section with TODOs', async ({ page, context }) => {

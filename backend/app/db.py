@@ -356,7 +356,7 @@ def metrics() -> dict:
     rows = [{"day": d, **v} for d, v in sorted(days.items())]
     keys = sorted({k for r in rows for k in r if k != "day"})
     totals = {k: sum(r.get(k, 0) for r in rows) for k in keys}
-    return {"days": rows, "totals": totals, "hidden_audits": hidden}
+    return {"days": rows, "totals": totals, "hidden_audits": hidden, **audience()}
 
 
 def mark_interrupted() -> int:
@@ -466,11 +466,16 @@ def stats() -> dict:
         total, real, done = _db().execute(
             "SELECT COUNT(*), SUM(run_kind = 'real'), SUM(status = 'complete' AND run_kind = 'real') "
             "FROM audits WHERE is_example = 0 AND hidden = 0").fetchone()  # built-in examples aren't visitors' audits
-        repos = _db().execute(
-            "SELECT COUNT(DISTINCT repo_key) FROM audits "
-            "WHERE is_example = 0 AND hidden = 0 AND run_kind = 'real' AND repo_key IS NOT NULL").fetchone()[0]
-    return {"total_audits": real or 0, "unique_repos": repos or 0, "completed_audits": done or 0,
-            "including_test_runs": total or 0}
+    return {"total_audits": real or 0, "completed_audits": done or 0, "including_test_runs": total or 0}
+
+
+def audience() -> dict:
+    """Admin-only evidence: visible real roasts and the unique repos behind them (no examples/tests)."""
+    with _lock:
+        roasts, repos = _db().execute(
+            "SELECT COUNT(*), COUNT(DISTINCT repo_key) FROM audits "
+            "WHERE is_example = 0 AND hidden = 0 AND run_kind = 'real'").fetchone()
+    return {"roasts": roasts or 0, "unique_repos": repos or 0}
 
 
 def add_roast(repo_key: str | None, style: str, roast: str) -> None:

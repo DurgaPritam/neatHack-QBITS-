@@ -96,14 +96,3 @@ export function xLength(text: string): number {
   return text.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length
 }
 
-// neatHack submissions close 2026-10-12 23:55 IST (18:25 UTC).
-export const DEADLINE = Date.parse('2026-10-12T18:25:00Z')
-
-export function countdown(now: number, deadline = DEADLINE): string | null {
-  const s = Math.floor((deadline - now) / 1000)
-  if (s <= 0) return null
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const d = Math.floor(s / 86400)
-  const h = Math.floor((s % 86400) / 3600)
-  return `${d > 0 ? `${d}d ` : ''}${pad(h)}h ${pad(Math.floor((s % 3600) / 60))}m ${pad(s % 60)}s`
-}

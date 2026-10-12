@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError, looksLikeRepo, type Example, type Stats } from '../api'
 import { scoreTone } from '../labels'
 import BudgetBanner from '../components/BudgetBanner'
-import Countdown from '../components/Countdown'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -83,15 +82,12 @@ export default function Home() {
           </button>
         </form>
         {error && <p className="inline-error" role="alert">{error}</p>}
-        <Countdown />
         <p className="counter" data-testid="counter">
           {statsDown ? (
             <span className="muted">Can't reach the server right now.</span>
           ) : stats ? (
             <>
               <strong>{stats.total_audits.toLocaleString()}</strong> {stats.total_audits === 1 ? 'roast' : 'roasts'}
-              {' · '}
-              <strong>{(stats.unique_repos ?? 0).toLocaleString()}</strong> {stats.unique_repos === 1 ? 'repo' : 'repos'}
             </>
           ) : (
             <span className="muted">&nbsp;</span>
