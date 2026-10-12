@@ -13,6 +13,26 @@ preview).
 
 > 🎬 **Demo video (≤ 3 min):** _link coming Monday, Oct 12_
 
+## New tonight (Oct 12)
+
+- **Demo script generator**: "Write my 3-minute demo script" on the result page. One LLM call,
+  grounded only in the audit's facts: 7 timed scenes (3:00 total) with what to show and what to
+  say, covering architecture, neatlogs (runtime + reasoning), Entire (implementation), cfo.ai and
+  the before/after result. Missing evidence is always a TODO (code decides, not the model), links
+  that aren't in the audit are removed, and it falls back to a template when the AI budget is out.
+- **Judge panel** under the score: an Observability, a Dev-workflow and a Business judge (generic
+  personas, never real people), each with one sentence of praise and one specific fix from the audit.
+- **MCP server** ([mcp/](mcp/README.md)): `audit_repo`, `deep_check`, `get_result` and `next_fix`
+  for Claude Code, Cursor or any MCP client, over our public API and its rate limits.
+- **GitHub Action** ([docs/github-action.md](docs/github-action.md)): score and top fixes in the job
+  summary on every push; never blocks a build. Running on this repo.
+- Also today: "N roasts · M repos" counter, no more layout shift (live audit CLS 0.90 → 0), opt-in
+  "Fresh off the grill" feed, submission post draft, README badge, copy-paste Evidence section and
+  a deadline countdown.
+
+Each server feature has a flag (`FEATURE_DEMO_SCRIPT`, `FEATURE_JUDGE_PANEL`, on by default), and
+every deploy keeps the previous version for `scripts/rollback.sh`.
+
 ## How it works
 
 ```mermaid

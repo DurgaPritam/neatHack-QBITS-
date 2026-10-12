@@ -222,3 +222,14 @@ last two fixes target. A further confirmation run was blocked by the day's Groq 
 
 ## Building in public (#neatHack)
 - Launch thread on X (#neatHack): https://x.com/PritamLite/status/2109287438342582620
+## Final evening (Oct 12): features behind flags, each deployed only after all tests passed
+
+| Feature | Tests | Verified in production |
+|---|---|---|
+| Demo script generator (`FEATURE_DEMO_SCRIPT`) | `test_extras.py` (template, LLM output kept to code's scenes/times/TODOs, invented links removed incl. bare domains, budget fallback, flag, cache) + e2e | Our audit `618e804d2f91`: LLM-written, 3:00, 7 scenes, 0 TODOs |
+| Judge panel (`FEATURE_JUDGE_PANEL`) | `test_extras.py` + e2e (3 personas, CLS < 0.1) | Same audit: 3 personas, each praise + fix grounded in the audit (e.g. "Record a demo video …") |
+| MCP server (`mcp/`) | `mcp/test_prejudge_mcp.py`: offline + end to end over stdio | E2E against production: audit_repo → 75/100, next_fix → demo video, deep_check → already ran |
+| GitHub Action (`docs/prejudge.yml`) | `test_github_action.py`: the workflow's own bash step vs a stub API (success, MIN_SCORE gate, 429, outage) | The same step against production for this repo: 75/100 + top fixes in the summary; then enabled |
+
+Rollback: `scripts/deploy.sh` tags the running image `prejudge-backend:previous` and keeps
+`site.previous` + `.env.previous`; `scripts/rollback.sh` restores them.
