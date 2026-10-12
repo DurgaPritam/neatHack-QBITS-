@@ -17,7 +17,7 @@ WINDOW_START = datetime(2026, 10, 10, 7, 0, tzinfo=timezone.utc)   # 12:30 IST
 WINDOW_END = datetime(2026, 10, 12, 18, 25, tzinfo=timezone.utc)   # 23:55 IST
 
 # Bump when check logic changes: cached audits from an older version are not reused.
-CHECKS_VERSION = "2026-10-11.5"
+CHECKS_VERSION = "2026-10-12.1"  # integrity checks added
 
 WEIGHTS = {
     "agent": 0.30,
