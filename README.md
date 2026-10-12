@@ -26,11 +26,29 @@ preview).
   for Claude Code, Cursor or any MCP client, over our public API and its rate limits.
 - **GitHub Action** ([docs/github-action.md](docs/github-action.md)): score and top fixes in the job
   summary on every push; never blocks a build. Running on this repo.
+- **Sponsor Depth Scorecard** on every result: neatlogs, Entire and cfo.ai each get a level from 1
+  (mentioned) to 4 (used to improve the project), computed from the checks only, with the reason
+  and one next step. When unsure it shows the lower level.
+- **Glass box**, "How this verdict was made": every agent step with its time, tokens and cost (at
+  Groq list price), plus retries, fallbacks and quota waits. Built from our stored step log, the
+  same steps neatlogs traces; no prompts, keys, IPs or raw errors.
+- **[/transparency](https://3-82-224-157.sslip.io/transparency)**: live aggregate numbers (audits,
+  repos, tokens, cost and time per quick and deep audit, fallback rate, tokens saved by reuse)
+  against our [cfo.ai plan](https://cfo.ai/s/xBCsLLiMtconXUBf)'s $0.0095 per audit.
+- **"Write my cfo.ai prompt"**: a ready-to-paste prompt for Ari with the pricing, cost and usage
+  numbers from your README, `[___]` for the rest (the model can't add numbers), and a reminder to
+  export and link the plan.
+- **[/built-with](https://3-82-224-157.sslip.io/built-with)**: our build story from git and Entire:
+  commits, every checkpoint linked on entire.io, and the before/after improvements linked to their
+  commits and checkpoints.
 - Also today: no more layout shift (live audit CLS 0.90 → 0), opt-in "Fresh off the grill" feed,
   submission post draft, README badge and a copy-paste Evidence section.
 
-Each server feature has a flag (`FEATURE_DEMO_SCRIPT`, `FEATURE_JUDGE_PANEL`, on by default), and
-every deploy keeps the previous version for `scripts/rollback.sh`.
+Each feature has a flag, on by default (`FEATURE_DEMO_SCRIPT`, `FEATURE_JUDGE_PANEL`,
+`FEATURE_SPONSOR_SCORECARD`, `FEATURE_GLASS_BOX`, `FEATURE_TRANSPARENCY`, `FEATURE_ARI_PROMPT`,
+and `VITE_FEATURE_BUILT_WITH` at build time), and every deploy keeps the previous version for
+`scripts/rollback.sh`. Attaching "this verdict is wrong" feedback to the neatlogs trace was left
+out: neatlogs' feedback endpoints accept only a user's OAuth token, not a project API key.
 
 ## How it works
 

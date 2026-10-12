@@ -400,6 +400,16 @@ backup written ([`531f542`](https://github.com/DurgaPritam/neatHack-QBITS-/commi
 | Judge panel (`FEATURE_JUDGE_PANEL`) | `test_extras.py` + e2e (3 personas, CLS < 0.1) | same audit: 3 personas, each with praise and a fix grounded in the audit |
 | MCP server ([mcp/](mcp/README.md)) | `mcp/test_prejudge_mcp.py`, offline + end to end over stdio | against production: audit_repo → 75/100, next_fix → demo video |
 | GitHub Action ([docs/prejudge.yml](docs/prejudge.yml)) | `test_github_action.py` against a stub API | same step against production: 75/100 + top fixes in the summary |
+| Sponsor Depth Scorecard (`FEATURE_SPONSOR_SCORECARD`) | `test_sponsors.py` (every level per tool; a level-4 claim must be verified and say what changed) + e2e | this repo: neatlogs 2 (trace links need a login), Entire 3, cfo.ai 3 |
+| Glass box (`FEATURE_GLASS_BOX`) | `test_glass_box.py` (cost basis, retries/fallbacks, no secrets/raw errors leave) + e2e | audit `618e804d2f91`: 27,143 tokens, $0.0200 (quick $0.0027, deep $0.0173), 2 retries, 1 fallback, 2 quota waits |
+| /transparency (`FEATURE_TRANSPARENCY`) | `test_transparency.py` (aggregates, no repo names, 5-min cache) + e2e | first numbers: $0.0072 per audit vs the plan's $0.0095 (25% under); quick $0.0028, deep $0.0127 |
+| cfo.ai prompt for Ari (`FEATURE_ARI_PROMPT`) | `test_ari.py` (invented numbers become [___], template fallback) + e2e | this repo: LLM-written, every number from our README, 1 blank |
+| /built-with (`VITE_FEATURE_BUILT_WITH`) | `test_built_with.py` + e2e | 97 pushed commits, 41 with Entire checkpoints (entire.io links), 11 improvements linked to commits |
+
+Not built: attaching "this verdict is wrong" feedback to the matching neatlogs trace. neatlogs'
+Public API has `POST /traces/{traceId}/feedback`, but every feedback write needs a user's OAuth
+token (`observability:write`); our project API key is read-only there, and the SDK has no feedback
+call ([docs](https://docs.neatlogs.com/api-reference)).
 
 Rollback: `scripts/deploy.sh` keeps the previous image, site and `.env`; `scripts/rollback.sh`
 restores them.
