@@ -11,7 +11,7 @@ copy of the repo, pulls the claims out of your README and tries to prove or disp
 accepted as proof of its own claims. The result is a shareable page with a roast card (PNG + link
 preview).
 
-> 🎬 **Demo video:** https://www.youtube.com/watch?v=m2MebedTm4k · Demo: 3:01
+> 🎬 **Demo video:** https://www.youtube.com/watch?v=m2MebedTm4k · Demo: 3:00
 
 ## New tonight (Oct 12)
 
