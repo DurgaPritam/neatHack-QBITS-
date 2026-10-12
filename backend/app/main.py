@@ -13,6 +13,7 @@ GET  /api/audits/{id}/kit            -> submission post, Evidence section, badge
 GET  /badge/{owner}/{repo}.svg       -> README badge with the latest score
 GET  /api/audits/{id}/demo-script    -> 3-minute demo script (FEATURE_DEMO_SCRIPT)
 GET  /api/audits/{id}/judge-panel    -> three generic judge personas (FEATURE_JUDGE_PANEL)
+GET  /api/audits/{id}/ari-prompt     -> ready-to-paste cfo.ai (Ari) prompt (FEATURE_ARI_PROMPT)
 GET  /r/{id}                         -> share page: Open Graph/Twitter meta, redirects to /a/{id}
 POST /api/audits/{id}/removal        -> hide an audit from public view (admin can restore)
 POST /api/events {name}              -> count a card download or Share-on-X click (no cookies)
@@ -44,7 +45,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, costs, db, extras, history, kit, limits, replay, sponsors, transparency
+from app import ari, budget, config, costs, db, extras, history, kit, limits, replay, sponsors, transparency
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import LLM, POOL, configured_models
@@ -298,7 +299,8 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "result": row["result"],
         "percentiles": _percentiles(row),
         "showcase": bool(row.get("showcase")),
-        "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel")},
+        "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel"),
+                     "ari_prompt": extras.enabled("ari_prompt")},
         "sponsors": _sponsors(row),
         "glass_box": _glass_box(row),
         "error": row["error"],
@@ -544,7 +546,8 @@ async def _extra(audit_id: str, flag: str, request: Request, x_admin_token: str 
     if use_llm and not admin and limits.EXTRAS.hit(client_ip(request)):
         use_llm = False                      # rate limited: the template, not an error
     llm = LLM(StepLog(), priority="high", use_reserve=admin) if use_llm else None
-    body = await getattr(extras, flag)(report, llm)
+    makers = {"demo_script": extras.demo_script, "judge_panel": extras.judge_panel, "ari_prompt": ari.ari_prompt}
+    body = await makers[flag](report, llm)
     db.bump(f"extra_{flag}_{body['source']}")
     if body["source"] == "llm":
         db.put_extra(audit_id, flag, stamp, body)   # a template from a budget gap is retried next time
@@ -554,6 +557,11 @@ async def _extra(audit_id: str, flag: str, request: Request, x_admin_token: str 
 @app.get("/api/audits/{audit_id}/demo-script", responses={404: {"description": "Audit not found or feature off"}})
 async def demo_script(audit_id: str, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
     return await _extra(audit_id, "demo_script", request, x_admin_token)
+
+
+@app.get("/api/audits/{audit_id}/ari-prompt", responses={404: {"description": "Audit not found or feature off"}})
+async def ari_prompt(audit_id: str, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
+    return await _extra(audit_id, "ari_prompt", request, x_admin_token)
 
 
 @app.get("/api/audits/{audit_id}/judge-panel", responses={404: {"description": "Audit not found or feature off"}})

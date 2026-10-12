@@ -144,7 +144,7 @@ export interface Audit {
   result: Report | null
   percentiles?: Percentiles | null
   showcase?: boolean
-  features?: { demo_script?: boolean; judge_panel?: boolean }
+  features?: { demo_script?: boolean; judge_panel?: boolean; ari_prompt?: boolean }
   sponsors?: SponsorRow[] | null
   glass_box?: GlassBox | null
   error: string | null
@@ -227,6 +227,13 @@ export interface DemoScript {
   scenes: DemoScene[]
   todos: number
   text: string
+}
+
+export interface AriPrompt {
+  source: 'llm' | 'template'
+  prompt: string
+  numbers_found: string[]
+  blanks: number
 }
 
 export interface JudgePanel {
@@ -346,6 +353,7 @@ export const api = {
   transparency: () => request<Transparency>('/api/transparency'),
   kit: (id: string) => request<Kit>(`/api/audits/${encodeURIComponent(id)}/kit`),
   demoScript: (id: string) => request<DemoScript>(`/api/audits/${encodeURIComponent(id)}/demo-script`),
+  ariPrompt: (id: string) => request<AriPrompt>(`/api/audits/${encodeURIComponent(id)}/ari-prompt`),
   judgePanel: (id: string) => request<JudgePanel>(`/api/audits/${encodeURIComponent(id)}/judge-panel`),
   setShowcase: (id: string, show: boolean) =>
     request<{ ok: boolean; showcase: boolean }>(`/api/audits/${encodeURIComponent(id)}/showcase`, {

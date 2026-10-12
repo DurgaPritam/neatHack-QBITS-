@@ -310,3 +310,7 @@ button { font: inherit; }
 .plain-list { margin: 0 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
 .footer-links { display: block; margin-top: 6px; }
 .footer-links a { color: var(--muted); }
+
+.ari-panel { margin-top: 18px; }
+.ari-box { height: 360px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ari-text { flex: 1; resize: none; }

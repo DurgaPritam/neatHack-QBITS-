@@ -385,3 +385,16 @@ test('transparency page: live aggregates, plan vs actual, sponsor links, no repo
   await page.waitForTimeout(800)
   expect(await layoutShift(page)).toBeLessThan(0.1)
 })
+
+test('cfo.ai prompt for Ari: README numbers, [___] blanks, export reminder, copy', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await watchLayoutShift(page)
+  await page.goto('/a/4d5dbd1bf972')
+  await page.getByRole('button', { name: 'Write my cfo.ai prompt' }).click()
+  await expect(page.getByTestId('ari-meta')).toContainText(/found in your README · \d+ \[___\] blank/)
+  await expect(page.getByTestId('ari-text')).toHaveValue(/^Hi Ari\. Build a 24-month business plan for openai\/swarm/)
+  await expect(page.getByTestId('ari-text')).toHaveValue(/export it from cfo\.ai, share the link/)
+  await page.getByRole('button', { name: 'Copy prompt' }).click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Hi Ari')
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})

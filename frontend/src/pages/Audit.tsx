@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
+import AriPrompt from '../components/AriPrompt'
 import DemoScript from '../components/DemoScript'
 import GlassBox from '../components/GlassBox'
 import History from '../components/History'
@@ -169,6 +170,7 @@ export default function AuditPage() {
           {!report.score.gated && report.verdict.source !== 'template' && <ShowcaseToggle key={audit.id} audit={audit} />}
           {!report.score.gated && <SubmissionKit auditId={audit.id} status={audit.status} />}
           {!report.score.gated && audit.features?.demo_script && <DemoScript key={audit.id} auditId={audit.id} />}
+          {!report.score.gated && audit.features?.ari_prompt && <AriPrompt key={audit.id} auditId={audit.id} />}
         </>
       )}
 
