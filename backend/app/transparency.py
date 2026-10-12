@@ -33,9 +33,12 @@ def compute() -> dict:
         if (u.get("deep") or {}).get("calls"):
             deep_tok.append(u["deep"]["total_tokens"]); deep_cost.append(costs.usage_cost(u["deep"]))
             if t.get("deep"): deep_ms.append(t["deep"])
-        if u.get("calls"):
+        # older audits keep one usage block without the quick/deep split; no per-model data = can't price it
+        phases = [u[k] for k in ("quick", "deep") if (u.get(k) or {}).get("by_model")] or \
+            ([u] if u.get("by_model") else [])
+        if u.get("calls") and phases:
             llm_audits += 1
-            total_cost += costs.usage_cost(u.get("quick")) + costs.usage_cost(u.get("deep"))
+            total_cost += sum(costs.usage_cost(ph) for ph in phases)
             if any(str(s.get("name", "")).endswith(".fallback") for s in r["steps"] or []):
                 with_fallback += 1
     blended = round(total_cost / llm_audits, 6) if llm_audits else None

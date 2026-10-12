@@ -25,10 +25,15 @@ def test_stats_plan_vs_actual_and_no_names(client):  # noqa: F811
     add("aaaaaaaaaaa2", "otherteam/thing", quick_only)                  # quick only
     add("aaaaaaaaaaa3", "otherteam/thing", quick_only, cached_from="aaaaaaaaaaa2")   # reused: costs nothing
     add("aaaaaaaaaaa4", "tester/x", SWARM, run_kind="test")             # never counted
+    unpriced = copy.deepcopy(quick_only)
+    unpriced["usage"] = {"total_tokens": 900, "calls": 1}                # no per-model split: left out of cost
+    add("aaaaaaaaaaa5", "otherteam/thing", unpriced)
     r = client.get("/api/transparency")
     assert r.headers["cache-control"] == "public, max-age=300"
     s = r.json()
-    assert s["audits"] == 3 and s["audits_that_ran"] == 2 and s["reused_results"] == 1 and s["unique_repos"] == 2
+    assert s["audits"] == 4 and s["audits_that_ran"] == 3 and s["reused_results"] == 1 and s["unique_repos"] == 2
+    expected = (2 * 0.004845 + __import__("app.costs", fromlist=["x"]).usage_cost(SWARM["usage"]["deep"])) / 2
+    assert abs(s["actual"]["cost_per_audit_usd"] - expected) < 1e-5            # the unpriced one isn't a $0 audit
     assert s["quick"]["audits"] == 2 and s["deep"]["audits"] == 1 and s["quick"]["avg_tokens"] == 4048
     assert abs(s["quick"]["avg_cost_usd"] - 0.004845) < 1e-6 and s["fallback_rate"] == 0.5
     assert s["plan"]["cost_per_audit_usd"] == 0.0095 and s["actual"]["deep_share"] == 0.5
