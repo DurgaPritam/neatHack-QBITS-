@@ -111,3 +111,11 @@ def test_endpoint_uses_llm_once_then_cache(client, monkeypatch):  # noqa: F811
     aid2 = post(client, "https://github.com/acme/other").json()["id"]
     wait_for(client, aid2, ("quick_ready",))
     assert client.get(f"/api/audits/{aid2}/judge-panel").json() == {"source": "template", "llm": None}
+
+
+def test_bare_links_are_checked_too():
+    f = extras.facts(GOOD)
+    out = extras._clean("See docs.entire.io/guide and cfo.ai/p/1 and app.neatlogs.com/t/1, also https://cfo.ai/p/1.", f)
+    assert "docs.entire.io" not in out and out.count("[link: TODO]") == 1
+    assert "cfo.ai/p/1 " in out and "app.neatlogs.com/t/1" in out and "https://cfo.ai/p/1." in out
+    assert extras._clean("Version 3.11 of python, e.g. the 3:00 cut.", f) == "Version 3.11 of python, e.g. the 3:00 cut."

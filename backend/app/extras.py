@@ -16,7 +16,7 @@ from app.agent.prompts import SECURITY_RULES, untrusted
 from app.llm import BudgetExhausted, LLM, LLMError
 from app.steps import StepLog
 
-EXTRAS_VERSION = "2026-10-12.1"
+EXTRAS_VERSION = "2026-10-12.2"
 
 
 def enabled(name: str) -> bool:
@@ -72,13 +72,18 @@ def _allowed_urls(f: dict) -> set[str]:
     return {u for v in f["links"].values() for u in v} | {f"https://github.com/{f['repo']}"}
 
 
-_URL = re.compile(r"https?://[^\s)\]>\"']+")
+# full links, and bare ones like "docs.entire.io/guide" or "cfo.ai/s/abc"
+_URL = re.compile(r"(?:https?://|\b(?=[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/))[^\s)\]>\"'`]+", re.I)
+
+
+def _bare(url: str) -> str:
+    return re.sub(r"^https?://(www\.)?", "", url.rstrip(".,;:'\"")).rstrip("/").lower()
 
 
 def _clean(text: str, f: dict, limit: int = 400) -> str:
-    """Drop links the facts don't contain; trim."""
-    allowed = _allowed_urls(f)
-    text = _URL.sub(lambda m: m.group(0) if m.group(0).rstrip(".,;") in allowed else "[link: TODO]", text or "")
+    """Drop links the facts don't contain (with or without https://); trim."""
+    allowed = {_bare(u) for u in _allowed_urls(f)}
+    text = _URL.sub(lambda m: m.group(0) if _bare(m.group(0)) in allowed else "[link: TODO]", text or "")
     return " ".join(text.split())[:limit]
 
 
