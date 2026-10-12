@@ -1,0 +1,30 @@
+<pasted_content id="8f34">
+We have a few hours before submission. Build these 4 features, in this order, each behind
+an env flag (default on), with tests. Deploy after each one only if all tests pass, and keep
+the previous deploy ready to roll back. Hard feature freeze at 9:00 PM IST: stop starting
+new work then, finish what's in progress, and report.
+
+1. Demo script generator: on the result page, "Write my 3-minute demo script". One LLM call,
+   grounded only in the audit facts. Output scenes with times (total <= 3:00), what to show,
+   and what to say; it must explicitly cover neatlogs, Entire and cfo.ai (architecture,
+   implementation, runtime, reasoning, result), and mark missing evidence as TODO instead of
+   inventing it. Copy button. Falls back to a template if the LLM budget is out.
+
+2. Judge panel: three generic personas (Observability judge, Dev-workflow judge,
+   Business judge), each giving one sentence of praise and one specific fix, grounded only in
+   audit facts. Never use real judges' names. Shown under the score; template fallback.
+
+3. MCP server: a small MCP server (stdio, in mcp/ with its own README) wrapping our public API,
+   with tools: audit_repo(repo_url) -> quick result, deep_check(audit_id), get_result(audit_id),
+   next_fix(audit_id) -> the top fix. Respect our rate limits. Add install instructions for
+   Claude Code and Cursor. Test it end to end against production.
+
+4. GitHub Action: a copy-paste workflow (docs/github-action.md + example
+   .github/workflows/prejudge.yml) that calls our API on push and writes the score and top
+   fixes to the job summary. Don't add it as an active workflow in our own repo unless it
+   passes against production.
+
+Add a short "New tonight" section to README.md listing these, and log them in EVIDENCE.md.
+Commit after each (no Co-Authored-By lines), scan for secrets and other teams' names before
+saying it's safe to push, and tell me what's deployed.
+</pasted_content id="8f34">

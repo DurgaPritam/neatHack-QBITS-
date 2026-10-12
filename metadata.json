@@ -3,9 +3,10 @@
   "checkpoint_id": "01M4R8MA0QT713S802N6D1YXSV",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 4,
   "files_touched": [
     "backend/app/db.py",
+    "backend/app/extras.py",
     "backend/app/main.py",
     "frontend/e2e/flow.spec.ts",
     "frontend/src/components/Result.tsx",
@@ -18,13 +19,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 508,
-    "cache_creation_tokens": 1157009,
-    "cache_read_tokens": 79693643,
-    "output_tokens": 405165,
-    "api_call_count": 254
+    "input_tokens": 560,
+    "cache_creation_tokens": 1194144,
+    "cache_read_tokens": 84969469,
+    "output_tokens": 432958,
+    "api_call_count": 278
   }
 }
