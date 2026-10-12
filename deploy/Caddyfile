@@ -10,8 +10,8 @@
 		-Server
 	}
 
-	# API and share pages go to the backend (Caddy sets X-Forwarded-For to the real client IP)
-	@backend path /api/* /r/*
+	# API, share pages and README badges go to the backend (Caddy sets X-Forwarded-For to the real client IP)
+	@backend path /api/* /r/* /badge/*
 	handle @backend {
 		reverse_proxy backend:8000
 	}

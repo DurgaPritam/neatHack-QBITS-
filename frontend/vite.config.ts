@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
       '/api': backend,
       '/r': backend,
+      '/badge': backend,
     },
   },
 })

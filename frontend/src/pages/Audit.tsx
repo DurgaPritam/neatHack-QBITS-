@@ -8,6 +8,7 @@ import ShowcaseToggle from '../components/ShowcaseToggle'
 import Result from '../components/Result'
 import RoastCard from '../components/RoastCard'
 import StepLog from '../components/StepLog'
+import SubmissionKit from '../components/SubmissionKit'
 
 const POLL_MS = 1500
 const ACTIVE_DEEP = ['queued', 'running', 'waiting_budget']
@@ -164,6 +165,7 @@ export default function AuditPage() {
             />
           )}
           {!report.score.gated && report.verdict.source !== 'template' && <ShowcaseToggle key={audit.id} audit={audit} />}
+          {!report.score.gated && <SubmissionKit auditId={audit.id} status={audit.status} />}
         </>
       )}
 

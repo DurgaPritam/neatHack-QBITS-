@@ -40,6 +40,9 @@ def test_entire_trailers_and_readme_link():
     # README quotes a checkpoint ID that really exists
     c = rubric.check_entire([], "Checkpoint 01KXGTTNGCEACC83QZEJ5YAF0D", [], commits, refs, "me/app")
     assert c["status"] == "pass" and "matches the repo" in c["detail"]
+    # the copy-paste Evidence section gets a real link + ID (built from the tagged commit)
+    assert c["data"]["checkpoint_link"] == "https://entire.io/gh/me/app/commit/abc123def456" + "0" * 28
+    assert c["data"]["checkpoint_id"] == "01KXGTTNGCEACC83QZEJ5YAF0D"
     c = rubric.check_entire([], "", [link("https://entire.io/gh/Me/App/commit/abc")], None, refs, "me/app")
     assert c["status"] == "pass"
     # a README ID that isn't in git proves nothing

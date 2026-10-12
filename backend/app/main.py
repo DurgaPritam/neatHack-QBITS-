@@ -9,6 +9,8 @@ GET  /api/examples                   -> saved example audits for the home page
 GET  /api/showcase                   -> 'Fresh off the grill': opted-in roasts, topped up with examples
 POST /api/audits/{id}/showcase       -> {show} opt in/out of the homepage feed (default off)
 GET  /api/audits/{id}/card.png       -> 1200x630 roast card (link previews)
+GET  /api/audits/{id}/kit            -> submission post, Evidence section, badge Markdown
+GET  /badge/{owner}/{repo}.svg       -> README badge with the latest score
 GET  /r/{id}                         -> share page: Open Graph/Twitter meta, redirects to /a/{id}
 POST /api/audits/{id}/removal        -> hide an audit from public view (admin can restore)
 POST /api/events {name}              -> count a card download or Share-on-X click (no cookies)
@@ -29,6 +31,7 @@ import csv
 import hmac
 import io
 import json
+import re
 import html
 import uuid
 from contextlib import asynccontextmanager
@@ -39,7 +42,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, db, history, limits, replay
+from app import budget, config, db, history, kit, limits, replay
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
 from app.llm import POOL, configured_models
@@ -472,6 +475,34 @@ def card_png(audit_id: str) -> Response:
     png = render_card(site=site, **_card_bits(row))
     cache = "public, max-age=300" if row["status"] == "complete" else "no-store"
     return Response(png, media_type="image/png", headers={"Cache-Control": cache})
+
+
+@app.get("/api/audits/{audit_id}/kit", responses={404: {"description": "Audit not found"}})
+def submission_kit(audit_id: str) -> dict:
+    """Copy-paste helpers: the submission post, a README Evidence section and the score badge."""
+    row = _get(audit_id)
+    report = row["result"] or {}
+    _, front = _site_urls()
+    api = config.env("PUBLIC_API_URL", "http://localhost:8000").rstrip("/")
+    full = (report.get("repo") or {}).get("full_name") or row["repo_key"] or ""
+    result_url = f"{front}/a/{audit_id}"
+    badge = f"{api}/badge/{full}.svg"
+    return {"post": kit.submission_post(report), "evidence_md": kit.evidence_markdown(report, result_url),
+            "badge": {"url": badge, "markdown": f"[![PreJudge score]({badge})]({result_url})"}}
+
+
+_REPO_PART = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+
+
+@app.get("/badge/{owner}/{repo}.svg", responses={200: {"content": {"image/svg+xml": {}}}})
+def badge(owner: str, repo: str) -> Response:
+    """README badge with the repo's latest score; 'not roasted' if there's none (or it was removed)."""
+    if not (_REPO_PART.match(owner) and _REPO_PART.match(repo)):
+        raise HTTPException(400, "bad repo name")
+    row = db.latest_scored(f"{owner}/{repo}")
+    score = ((row or {}).get("result") or {}).get("score", {}).get("score") if row else None
+    return Response(kit.badge_svg(score), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=300", "X-Robots-Tag": "noindex"})
 
 
 @app.get("/r/{audit_id}", response_class=HTMLResponse, responses={404: {"description": "Audit not found"}})

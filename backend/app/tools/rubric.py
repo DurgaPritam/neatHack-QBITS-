@@ -260,6 +260,12 @@ def check_entire(tree_paths: list[str], readme: str, links: list[dict], commits:
         c = tagged[0]
         example = f"https://entire.io/gh/{repo_full_name}/commit/{c['full_sha']} (checkpoint {c['checkpoint']})"
     data = {"checkpoint_ids": sorted(known)[:10], "readme_ids": readme_ids}
+    live_links = [l["url"] for l in cp_links if l["ok"] is not False]
+    if live_links or (tagged and repo_full_name):  # for the copy-paste Evidence section
+        data["checkpoint_link"] = live_links[0] if live_links else \
+            f"https://entire.io/gh/{repo_full_name}/commit/{tagged[0]['full_sha']}"
+        data["checkpoint_id"] = next((i for i in known if i in data["checkpoint_link"]), None) or \
+            (tagged[0]["checkpoint"] if tagged else (sorted(known) or [None])[0])
 
     if found:
         evidence = ([f"{c['sha']} Entire-Checkpoint: {c['checkpoint']}" for c in tagged[:3]]

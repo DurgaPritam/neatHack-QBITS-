@@ -394,6 +394,16 @@ def seed_examples(folder: Path | None = None) -> int:
     return added
 
 
+def latest_scored(repo_key: str) -> dict | None:
+    """The repo's newest visible audit with a score (for the README badge)."""
+    with _lock:
+        r = _db().execute(
+            "SELECT * FROM audits WHERE repo_key = ? AND hidden = 0 AND run_kind = 'real' AND result IS NOT NULL "
+            "AND status IN ('quick_ready', 'complete') ORDER BY updated_at DESC, created_at DESC LIMIT 1",
+            (repo_key.lower(),)).fetchone()
+    return _row(r)
+
+
 def set_showcase(audit_id: str, on: bool) -> None:
     with _lock:
         _db().execute("UPDATE audits SET showcase = ? WHERE id = ?", (1 if on else 0, audit_id))

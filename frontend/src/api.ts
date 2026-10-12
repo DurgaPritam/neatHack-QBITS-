@@ -147,6 +147,12 @@ export interface Audit {
   error: string | null
 }
 
+export interface Kit {
+  post: { text: string; length: number; limit: number; over: boolean; blanks: number }
+  evidence_md: string
+  badge: { url: string; markdown: string }
+}
+
 export interface Stats {
   total_audits: number
   unique_repos: number
@@ -257,6 +263,7 @@ export const api = {
     request<AdminOverview>('/api/admin/overview', { headers: { 'X-Admin-Token': token } }),
   examples: () => request<Example[]>('/api/examples'),
   showcase: () => request<Example[]>('/api/showcase'),
+  kit: (id: string) => request<Kit>(`/api/audits/${encodeURIComponent(id)}/kit`),
   setShowcase: (id: string, show: boolean) =>
     request<{ ok: boolean; showcase: boolean }>(`/api/audits/${encodeURIComponent(id)}/showcase`, {
       method: 'POST',

@@ -302,3 +302,32 @@ test('"Show my roast on the homepage": off by default, opted-in roast leads the 
   await page.goto('/')
   await expect(page.locator('[data-example="opted-in"]')).toHaveCount(0)
 })
+
+test('deadline countdown, then "Submissions closed"', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-12T13:24:50Z'))   // 18:54:50 IST: 5h 00m 10s left
+  await page.goto('/')
+  await expect(page.getByTestId('deadline')).toHaveText('⏳ Submissions close in 05h 00m 10s')
+  await page.clock.setFixedTime(new Date('2026-10-12T13:24:55Z'))
+  await expect(page.getByTestId('deadline')).toContainText('05h 00m 05s')
+  await page.clock.setFixedTime(new Date('2026-10-12T18:25:00Z'))   // 23:55 IST
+  await expect(page.getByTestId('deadline')).toHaveText('Submissions closed')
+})
+
+test('submit tonight: post draft with blanks + counter, badge snippet, Evidence section with TODOs', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/a/4d5dbd1bf972')                                       // openai/swarm example
+  const post = page.getByTestId('kit-post')
+  await expect(post).toHaveValue(/^Team: \[___\]\nName: \[___\]\nProject: swarm[^\n]*\nRepo: https:\/\/github\.com\/openai\/swarm\nDemo: [^\n]+\n#neatHack$/)
+  await expect(page.getByTestId('kit-blanks')).toContainText('[___] blank')
+  await post.fill('Team: QBITS\nName: Pritam\nProject: ' + 'x'.repeat(300) + '\n#neatHack')
+  await expect(page.getByTestId('kit-count')).toContainText('too long')
+  await expect(page.getByTestId('kit-badge')).toHaveText(/^\[!\[PreJudge score\]\(.+\/badge\/openai\/swarm\.svg\)\]\(.+\/a\/4d5dbd1bf972\)$/)
+  const evidence = page.getByTestId('kit-evidence')
+  await expect(evidence).toHaveValue(/^## Evidence/)
+  await expect(evidence).toHaveValue(/⚠️ TODO/)
+  await page.getByTestId('kit').getByRole('button', { name: 'Copy' }).last().click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^## Evidence/)
+  const badge = await page.request.get('/badge/openai/swarm.svg')
+  expect(badge.headers()['content-type']).toContain('image/svg+xml')
+  expect(await badge.text()).toMatch(/\d+\/100/)
+})
