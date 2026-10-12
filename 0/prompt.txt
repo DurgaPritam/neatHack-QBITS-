@@ -1,0 +1,11 @@
+<pasted_content id="a983">
+Remove two things from the public home page:
+1. The "N roasts · M repos" counter.
+2. The "Submissions close in ..." countdown.
+
+Keep the underlying stats in /api/admin/metrics and the /admin page (we still use them
+as evidence), but remove or stop calling anything on the public page that only existed
+for these two elements. Make sure removing them causes no layout shift (CLS stays 0 on
+desktop and mobile) and the spacing still looks balanced. Update the e2e tests, run all
+tests, deploy, commit (no Co-Authored-By lines), and tell me when it's safe to push.
+</pasted_content id="a983">
