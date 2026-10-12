@@ -13,6 +13,7 @@
 | M2: primary model gpt-oss-120b → qwen3.8-27b (parallel tool calls), 3-turn cap, condensed final answer (openai/swarm) | 40,086 tokens, 106s, verification failed (0/8 claims checked, no estimates), 16 failed LLM calls | 19,066 tokens, 52s, 5/7 claims verified with file:line evidence, estimates cited | neatlogs session = audit id `4c5f0f5b9cf9` (after) |
 | README can't verify its own claims (grounding rule) | 3 claims "verified" citing only README.md | 0 circular verifications | — |
 | Localhost URLs = unknown, not dead; roast must match results (langchain-ai/open_deep_research) | 5/33 dead links (2 were 127.0.0.1 dev URLs); roast called a live video link "dead" | 3/33 dead; roast accurate | audit ids `53fe70e82c21` (before) → `f2b5f750984e` (after) |
+| Moving screen: live step log swapped instead of pushed, fixed-height deep panel that holds the finished result behind "Show the full result", fixed-height example cards, tabular digits (`frontend/e2e/cls.mjs`, Chrome) | Cumulative layout shift: live audit 0.90 desktop / 0.51 mobile; home 0.005 / 0.035 | 0 / 0 on every page and width (home, finished audit, live audit with deep check); no horizontal overflow | e2e asserts CLS < 0.1 |
 
 ## M2 full audits (python -m app.cli <repo> --full)
 | Repo | Score | Claims verified | Tokens | Time | Audit id |
