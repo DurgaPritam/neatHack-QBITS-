@@ -1,0 +1,11 @@
+aws ssh is added
+
+---
+
+<task-notification>
+<task-id>bppbtb644</task-id>
+<tool-use-id>toolu_01Vd5jn2bxeESS6CG39R85yr</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-durgapritamsuggisetti-Documents-Hackathon-neatlogs/d2edd35e-4e8d-4a1d-8879-cf122952a488/tasks/bppbtb644.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait until SSH to the server is reachable" completed (exit code 0)</summary>
+</task-notification>
