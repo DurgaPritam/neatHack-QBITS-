@@ -1,6 +1,6 @@
 # PreJudge: get roasted before the judges do
 
-**Live: https://3-82-224-157.sslip.io** · neatHack (Oct 10–12, 2026) · team QBITS
+**Live: https://3-82-224-157.sslip.io** · neatHack (Oct 10–12, 2026) · team QBITS (Durga Pritam Suggisetti, Soujanya Chatti)
 
 PreJudge is an AI agent that audits a hackathon submission before the real judges see it. Paste a
 public GitHub repo URL and in about 5 seconds you get a judge-readiness score (0–100) mapped to the
@@ -26,9 +26,8 @@ preview).
   for Claude Code, Cursor or any MCP client, over our public API and its rate limits.
 - **GitHub Action** ([docs/github-action.md](docs/github-action.md)): score and top fixes in the job
   summary on every push; never blocks a build. Running on this repo.
-- Also today: "N roasts · M repos" counter, no more layout shift (live audit CLS 0.90 → 0), opt-in
-  "Fresh off the grill" feed, submission post draft, README badge, copy-paste Evidence section and
-  a deadline countdown.
+- Also today: no more layout shift (live audit CLS 0.90 → 0), opt-in "Fresh off the grill" feed,
+  submission post draft, README badge and a copy-paste Evidence section.
 
 Each server feature has a flag (`FEATURE_DEMO_SCRIPT`, `FEATURE_JUDGE_PANEL`, on by default), and
 every deploy keeps the previous version for `scripts/rollback.sh`.
@@ -158,8 +157,19 @@ break-even 9 months earlier (v2 → v3).
 
 ## Evidence
 
-All numbers come from real runs. Audit ids double as neatlogs session ids. The full log is in
-[EVIDENCE.md](EVIDENCE.md).
+All numbers come from real runs. Audit ids double as neatlogs session ids. The full, judge-ready
+evidence page is [EVIDENCE.md](EVIDENCE.md), organised by the judging criteria:
+
+| Criterion | Evidence |
+|---|---|
+| Summary and best evidence | [EVIDENCE §1](EVIDENCE.md#1-summary) |
+| The agent (30%): how it works, failure and recovery runs, milestones | [EVIDENCE §2](EVIDENCE.md#2-the-agent-30) |
+| neatlogs, Entire and cfo.ai (25%) | [neatlogs](EVIDENCE.md#neatlogs) · [Entire](EVIDENCE.md#entire) · [cfo.ai](EVIDENCE.md#cfoai) |
+| Before/after improvements, self-audit score progression | [EVIDENCE §4](EVIDENCE.md#4-beforeafter-improvements) |
+| Demo video (20%) | [EVIDENCE §5](EVIDENCE.md#5-demo-video-20) |
+| Building in public (15%), production usage | [EVIDENCE §6](EVIDENCE.md#6-building-in-public-15) |
+| Usefulness and originality (10%) | [EVIDENCE §7](EVIDENCE.md#7-usefulness-and-originality-10) |
+| Security and privacy | [EVIDENCE §8](EVIDENCE.md#8-security-and-privacy) |
 
 ### Before → after
 
@@ -219,6 +229,8 @@ Trace links (these need a neatlogs login, so screenshots follow):
 ## Building in public
 
 - **#neatHack launch thread on X:** https://x.com/PritamLite/status/2109287438342582620
+- **Feature update on X:** https://x.com/PritamLite/status/2109658774336409974
+- Production usage and other teams' progress (anonymous): [EVIDENCE §6](EVIDENCE.md#6-building-in-public-15)
 
 ## Run it yourself
 
@@ -230,7 +242,7 @@ cd ../frontend && npm install && npm run dev      # http://localhost:5173
 ```
 
 - CLI: `cd backend && .venv/bin/python -m app.cli <repo_url> --full`
-- Tests: `cd backend && .venv/bin/python -m pytest` (226 tests) and `cd frontend && ./e2e/run.sh`
+- Tests: `cd backend && .venv/bin/python -m pytest` (266 tests) and `cd frontend && ./e2e/run.sh`
   (Playwright, replay mode, no LLM tokens)
 - Deploy: [DEPLOY.md](DEPLOY.md) (EC2, Docker Compose, Caddy HTTPS, daily backups)
 
