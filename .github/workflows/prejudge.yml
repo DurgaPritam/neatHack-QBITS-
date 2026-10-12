@@ -1,0 +1,75 @@
+# PreJudge: score this repo against the neatHack rubric on every push and put the score and the
+# top fixes in the job summary. Copy to .github/workflows/prejudge.yml. Needs no secrets; the repo
+# must be public. It never fails your build (set MIN_SCORE to fail below a score).
+name: PreJudge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prejudge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prejudge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PREJUDGE_API: https://3-82-224-157.sslip.io
+      MIN_SCORE: "0"
+    steps:
+      - name: Audit with PreJudge
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="${PREJUDGE_API%/}"
+          REPO="https://github.com/${GITHUB_REPOSITORY}"
+          SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+          code=$(curl -sS -o created.json -w '%{http_code}' -X POST "$API/api/audits" \
+            -H 'Content-Type: application/json' -H 'User-Agent: prejudge-action/0.1' \
+            -d "{\"repo_url\": \"$REPO\"}") || code=000
+          if [ "$code" != 200 ] && [ "$code" != 201 ] && [ "$code" != 202 ]; then
+            msg=$(jq -r '.detail // empty' created.json 2>/dev/null || true)
+            echo "### PreJudge: couldn't start an audit (HTTP $code)" >> "$SUMMARY"
+            echo "${msg:-PreJudge did not answer.} Try again later; this check never blocks your build." >> "$SUMMARY"
+            exit 0
+          fi
+          ID=$(jq -r .id created.json)
+          for _ in $(seq 1 60); do
+            curl -sS "$API/api/audits/$ID" -o audit.json || true
+            status=$(jq -r '.status // "queued"' audit.json 2>/dev/null || echo queued)
+            case "$status" in quick_ready|complete|failed) break ;; esac
+            sleep 4
+          done
+          if [ "$status" != quick_ready ] && [ "$status" != complete ]; then
+            echo "### PreJudge: the audit didn't finish in time ($status)" >> "$SUMMARY"
+            echo "See $API/a/$ID" >> "$SUMMARY"; exit 0
+          fi
+          SCORE=$(jq -r '.result.score.score' audit.json)
+          KIND="Quick check"
+          if [ "$status" = complete ]; then KIND="Deep check"; fi
+          SHA="${GITHUB_SHA:-unknown}"
+          {
+            echo "## 🔥 PreJudge: $SCORE/100"
+            echo
+            echo "$KIND of ${SHA:0:7} · [full result]($API/a/$ID)"
+            jq -r '.result.progress.text // empty | "\n**\(.)**"' audit.json
+            echo
+            jq -r '.result.verdict.roast // empty | "> \(.)"' audit.json
+            echo
+            echo "| Category | Points |"
+            echo "|---|---|"
+            jq -r '.result.score.categories[] | "| \(.id) | \(.points) / \(.max_points)\(if .not_scored then " (not scored)" else "" end) |"' audit.json
+            echo
+            echo "### Top fixes"
+            jq -r '(.result.verdict.fixes // []) | if length == 0 then "Nothing left to fix. 🎉" else .[:3] | to_entries[] | "\(.key + 1). **\(.value.title)** (+\(.value.points) pts): \(.value.fix)" end' audit.json
+          } >> "$SUMMARY"
+          echo "PreJudge score: $SCORE/100 ($API/a/$ID)"
+          if [ "${MIN_SCORE:-0}" -gt 0 ] && [ "$SCORE" -lt "$MIN_SCORE" ]; then
+            echo "::error::PreJudge score $SCORE is below MIN_SCORE=$MIN_SCORE"; exit 1
+          fi
