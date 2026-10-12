@@ -1,0 +1,1 @@
+mv ~/Downloads/neatlogs-*.jpeg ~/Documents/Hackathon/neatlogs/evidence/
