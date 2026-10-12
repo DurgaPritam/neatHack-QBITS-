@@ -252,7 +252,9 @@ The self-audits caught three bugs in PreJudge itself:
 
 ## 5. Demo video (20%)
 
-**TODO:** link and length (≤ 3:00).
+- Video: https://www.youtube.com/watch?v=m2MebedTm4k ("PreJudge - Get Roasted Before The Judges Do")
+- Length: **3:01** (181 s), published 2026-10-12 17:51 UTC (23:21 IST), both read from the YouTube Data API.
+- Covers neatlogs, Entire and cfo.ai.
 
 ---
 
