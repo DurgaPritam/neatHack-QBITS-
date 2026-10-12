@@ -80,16 +80,17 @@ button { font: inherit; }
 .section-title { font-size: 26px; font-weight: 900; margin: 32px 0 14px; }
 .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .example-card {
-  min-height: 210px; box-sizing: border-box;
+  height: 230px; box-sizing: border-box; overflow: hidden;
   display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: var(--radius);
   background: var(--panel); border: 2px solid var(--line); color: var(--ink); text-decoration: none;
   transition: transform .12s, border-color .12s;
 }
 .example-card:hover { transform: translateY(-3px) rotate(-.4deg); border-color: var(--flame); color: var(--ink); }
 .example-score { font-size: 54px; font-weight: 900; line-height: 1; }
-.example-repo { font-weight: 800; font-size: 17px; word-break: break-word; }
+.example-repo { font-weight: 800; font-size: 17px; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .example-roast { color: var(--muted); font-size: 15px; line-height: 1.45;
-  display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .example-skeleton { background: linear-gradient(90deg, var(--panel), var(--line) 50%, var(--panel)); opacity: .45; }
 .footer { color: var(--muted); font-size: 14px; margin-top: 40px; text-align: center; }
 
@@ -238,3 +239,7 @@ button { font: inherit; }
 .admin-table a { color: var(--cool); }
 .row-hot td { background: rgba(255, 77, 46, .12); }
 .admin-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+
+.section-sub { margin: -8px 0 14px; }
+.showcase-toggle { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 14px 4px 0; cursor: pointer; }
+.showcase-toggle input { width: 18px; height: 18px; accent-color: var(--flame); transform: translateY(3px); }

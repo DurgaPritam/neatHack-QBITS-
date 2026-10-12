@@ -143,6 +143,7 @@ export interface Audit {
   steps: Step[]
   result: Report | null
   percentiles?: Percentiles | null
+  showcase?: boolean
   error: string | null
 }
 
@@ -162,6 +163,7 @@ export interface Example {
   score: number | null
   roast: string | null
   style: string | null
+  example?: boolean
 }
 
 export interface AdminOverview {
@@ -254,6 +256,12 @@ export const api = {
   adminOverview: (token: string) =>
     request<AdminOverview>('/api/admin/overview', { headers: { 'X-Admin-Token': token } }),
   examples: () => request<Example[]>('/api/examples'),
+  showcase: () => request<Example[]>('/api/showcase'),
+  setShowcase: (id: string, show: boolean) =>
+    request<{ ok: boolean; showcase: boolean }>(`/api/audits/${encodeURIComponent(id)}/showcase`, {
+      method: 'POST',
+      body: JSON.stringify({ show }),
+    }),
 }
 
 // A bare per-day counter (no cookies, nothing about the viewer). Never blocks or throws.

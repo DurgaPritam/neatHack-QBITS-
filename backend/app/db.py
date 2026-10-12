@@ -93,7 +93,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     have = {r[1] for r in conn.execute("PRAGMA table_info(audits)")}
     for col, ddl in (("phase_quick", "TEXT DEFAULT 'queued'"), ("phase_deep", "TEXT DEFAULT 'waiting'"),
                      ("is_example", "INTEGER DEFAULT 0"), ("hidden", "INTEGER DEFAULT 0"),
-                     ("hidden_at", "TEXT"), ("hidden_reason", "TEXT"), ("commit_sha", "TEXT")):
+                     ("hidden_at", "TEXT"), ("hidden_reason", "TEXT"), ("commit_sha", "TEXT"),
+                     ("showcase", "INTEGER DEFAULT 0")):  # team opted in to the homepage feed (default off)
         if col not in have:
             conn.execute(f"ALTER TABLE audits ADD COLUMN {col} {ddl}")
     conn.execute("UPDATE audits SET status = 'complete' WHERE status = 'done'")  # M2 naming
@@ -391,6 +392,35 @@ def seed_examples(folder: Path | None = None) -> int:
                steps=report["steps"], result=report)
         added += 1
     return added
+
+
+def set_showcase(audit_id: str, on: bool) -> None:
+    with _lock:
+        _db().execute("UPDATE audits SET showcase = ? WHERE id = ?", (1 if on else 0, audit_id))
+        _db().commit()
+
+
+def showcase(limit: int = 6) -> list[dict]:
+    """The newest opted-in roast per repo: real, finished, not removed, never a built-in example."""
+    with _lock:
+        rows = _db().execute(
+            "SELECT a.* FROM audits a JOIN ("
+            "  SELECT repo_key, MAX(updated_at) AS at FROM audits"
+            "  WHERE showcase = 1 AND hidden = 0 AND is_example = 0 AND run_kind = 'real'"
+            "  AND status IN ('quick_ready', 'complete') AND result IS NOT NULL GROUP BY repo_key"
+            ") latest ON latest.repo_key = a.repo_key AND latest.at = a.updated_at "
+            "WHERE a.showcase = 1 AND a.hidden = 0 AND a.is_example = 0 AND a.run_kind = 'real' "
+            "ORDER BY a.updated_at DESC LIMIT ?", (limit * 2,)).fetchall()
+    out, seen = [], set()
+    for r in map(_row, rows):
+        if r["repo_key"] in seen:
+            continue
+        verdict = (r["result"] or {}).get("verdict") or {}
+        if not verdict.get("roast") or verdict.get("source") == "template":
+            continue  # quick-facts placeholders aren't roasts
+        seen.add(r["repo_key"])
+        out.append(r)
+    return out[:limit]
 
 
 def examples(limit: int = 3) -> list[dict]:

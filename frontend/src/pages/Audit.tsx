@@ -4,6 +4,7 @@ import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
 import History from '../components/History'
 import RemovalLink from '../components/RemovalLink'
+import ShowcaseToggle from '../components/ShowcaseToggle'
 import Result from '../components/Result'
 import RoastCard from '../components/RoastCard'
 import StepLog from '../components/StepLog'
@@ -162,6 +163,7 @@ export default function AuditPage() {
               delta={report.progress?.delta}
             />
           )}
+          {!report.score.gated && report.verdict.source !== 'template' && <ShowcaseToggle key={audit.id} audit={audit} />}
         </>
       )}
 

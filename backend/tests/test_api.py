@@ -390,3 +390,41 @@ def test_results_from_older_check_logic_are_not_reused(client):
     db.update(first["id"], result={**row["result"], "checks_version": "old"})
     again = post(client, "https://github.com/acme/demo").json()
     assert again["cached"] is False and again["id"] != first["id"]
+
+
+def test_showcase_is_opt_in_and_tops_up_with_examples(client):
+    examples = {e["id"] for e in client.get("/api/examples").json()}
+    feed = client.get("/api/showcase").json()
+    assert {f["id"] for f in feed} == examples and all(f["example"] for f in feed)   # nobody opted in yet
+    a = post(client, "https://github.com/acme/demo").json()["id"]
+    b = post(client, "https://github.com/acme/other").json()["id"]
+    wait_for(client, a, ("quick_ready",)); wait_for(client, b, ("quick_ready",))
+    assert client.get(f"/api/audits/{a}").json()["showcase"] is False            # default off
+    assert not any(f["id"] in (a, b) for f in client.get("/api/showcase").json())  # never without opting in
+    assert client.post(f"/api/audits/{a}/showcase", json={"show": True}).json() == {"ok": True, "showcase": True}
+    feed = client.get("/api/showcase").json()
+    assert feed[0]["id"] == a and not feed[0]["example"] and feed[0]["roast"] == "quick roast"
+    assert b not in {f["id"] for f in feed} and len(feed) == 3                   # 1 opted in + 2 examples
+    db.set_hidden(a, True, "removed")                                             # removed: gone from the feed
+    assert a not in {f["id"] for f in client.get("/api/showcase").json()}
+    db.set_hidden(a, False)
+    client.post(f"/api/audits/{a}/showcase", json={"show": False})                # opt out again
+    assert a not in {f["id"] for f in client.get("/api/showcase").json()}
+    assert client.post(f"/api/audits/{next(iter(examples))}/showcase", json={"show": False}).status_code == 400
+
+
+def test_showcase_feed_newest_per_repo_max_six_no_templates_or_tests(client):
+    ids = []
+    for i in range(8):
+        aid = post(client, f"https://github.com/acme/r{i}").json()["id"]
+        wait_for(client, aid, ("quick_ready",))
+        client.post(f"/api/audits/{aid}/showcase", json={"show": True})
+        ids.append(aid)
+        time.sleep(1.01)  # updated_at has second resolution
+    flaky = post(client, "https://github.com/acme/flaky").json()["id"]   # template roast: not a roast
+    test_run = post(client, "https://github.com/acme/t", body={"run_kind": "test"}).json()["id"]
+    for x in (flaky, test_run):
+        wait_for(client, x, ("quick_ready",))
+        client.post(f"/api/audits/{x}/showcase", json={"show": True})
+    feed = client.get("/api/showcase").json()
+    assert [f["id"] for f in feed] == ids[::-1][:6] and not any(f["example"] for f in feed)

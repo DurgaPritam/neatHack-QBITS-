@@ -278,3 +278,27 @@ test('admin page: token kept in memory, overview tables', async ({ page }) => {
   await page.reload()
   await expect(page.getByTestId('admin-login')).toBeVisible() // forgotten on reload
 })
+
+test('"Show my roast on the homepage": off by default, opted-in roast leads the feed', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('[data-example="opted-in"]')).toHaveCount(0)
+  await page.getByLabel('GitHub repo URL').fill('https://github.com/openai/swarm')
+  await page.getByRole('button', { name: 'Roast my repo' }).click()
+  const box = page.getByTestId('showcase-toggle').getByRole('checkbox')
+  await expect(box).not.toBeChecked()
+  await box.check()
+  await expect(box).toBeChecked()
+  const id = page.url().split('/a/')[1]
+  await watchLayoutShift(page)
+  await page.goto('/')
+  const first = page.getByTestId('example').first()
+  await expect(first).toHaveAttribute('data-example', 'opted-in')
+  await expect(first).toHaveAttribute('href', `/a/${id}`)
+  await expect(page.getByTestId('example')).toHaveCount(3)          // topped up with built-in examples
+  await page.waitForTimeout(1000)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+  await page.goto(`/a/${id}`)
+  await page.getByTestId('showcase-toggle').getByRole('checkbox').uncheck()   // and back off
+  await page.goto('/')
+  await expect(page.locator('[data-example="opted-in"]')).toHaveCount(0)
+})

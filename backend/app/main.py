@@ -6,6 +6,8 @@ GET  /api/audits/{id}                -> status, phases, queue position + ETA, st
 POST /api/audits/{id}/feedback       -> "this verdict is wrong" for a check or claim
 GET  /api/stats                      -> public counter + budget state (normal | busy | cooling)
 GET  /api/examples                   -> saved example audits for the home page
+GET  /api/showcase                   -> 'Fresh off the grill': opted-in roasts, topped up with examples
+POST /api/audits/{id}/showcase       -> {show} opt in/out of the homepage feed (default off)
 GET  /api/audits/{id}/card.png       -> 1200x630 roast card (link previews)
 GET  /r/{id}                         -> share page: Open Graph/Twitter meta, redirects to /a/{id}
 POST /api/audits/{id}/removal        -> hide an audit from public view (admin can restore)
@@ -289,6 +291,7 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "steps": row["steps"] if admin else public_steps(row["steps"]),  # raw errors: admins only
         "result": row["result"],
         "percentiles": _percentiles(row),
+        "showcase": bool(row.get("showcase")),
         "error": row["error"],
     }
 
@@ -404,15 +407,44 @@ def stats() -> dict:
             "deep_wait_s": round(queues.deep.avg_s * queues.deep.length()), "llm_mode": replay.mode()}
 
 
+def _feed_item(row: dict, example: bool) -> dict:
+    r = row["result"] or {}
+    return {"id": row["id"], "repo": (r.get("repo") or {}).get("full_name") or row["repo_url"],
+            "score": (r.get("score") or {}).get("score"), "roast": (r.get("verdict") or {}).get("roast"),
+            "style": (r.get("verdict") or {}).get("style"), "status": row["status"], "example": example}
+
+
 @app.get("/api/examples")
 def examples() -> list[dict]:
-    out = []
-    for row in db.examples():
-        r = row["result"] or {}
-        out.append({"id": row["id"], "repo": (r.get("repo") or {}).get("full_name") or row["repo_url"],
-                    "score": (r.get("score") or {}).get("score"), "roast": (r.get("verdict") or {}).get("roast"),
-                    "style": (r.get("verdict") or {}).get("style"), "status": row["status"]})
-    return out
+    return [_feed_item(row, True) for row in db.examples()]
+
+
+SHOWCASE_MIN, SHOWCASE_MAX = 3, 6
+
+
+@app.get("/api/showcase")
+def showcase() -> list[dict]:
+    """'Fresh off the grill': the newest roasts whose teams opted in, topped up with the built-in examples."""
+    items = [_feed_item(row, False) for row in db.showcase(SHOWCASE_MAX)]
+    for ex in examples():
+        if len(items) >= SHOWCASE_MIN:
+            break
+        items.append(ex)
+    return items
+
+
+class ShowcaseRequest(BaseModel):
+    show: bool
+
+
+@app.post("/api/audits/{audit_id}/showcase", responses={404: {"description": "Audit not found"}})
+def set_showcase(audit_id: str, req: ShowcaseRequest, request: Request) -> dict:
+    row = _get(audit_id)
+    if row.get("is_example"):
+        raise HTTPException(400, "built-in examples are always shown")
+    too_many(limits.SHOWCASE, client_ip(request), "Too many changes.")
+    db.set_showcase(audit_id, req.show)
+    return {"ok": True, "showcase": req.show}
 
 
 def _site_urls() -> tuple[str, str]:

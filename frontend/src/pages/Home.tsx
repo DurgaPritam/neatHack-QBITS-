@@ -26,12 +26,17 @@ export default function Home() {
         if (alive) setStatsDown(true)
       }
     }
+    // "Fresh off the grill": opted-in roasts (topped up with examples), refreshed every 30s. Cards have a
+    // fixed height, so a refresh swaps text in place instead of moving the page.
+    const feed = () => api.showcase().then((e) => alive && setExamples(e)).catch(() => {})
     load()
-    api.examples().then((e) => alive && setExamples(e)).catch(() => {})
+    feed()
     const t = setInterval(load, 10_000)
+    const f = setInterval(feed, 30_000)
     return () => {
       alive = false
       clearInterval(t)
+      clearInterval(f)
     }
   }, [])
 
@@ -95,12 +100,14 @@ export default function Home() {
 
       <section className="examples">
         <h2 className="section-title">Fresh off the grill</h2>
+        <p className="muted small section-sub">Roasts from teams who chose to show theirs, plus a few classics.</p>
         <div className="example-grid">
           {/* placeholders hold the grid's height until the roasts load: the footer never jumps */}
           {examples.length === 0 &&
             [0, 1, 2].map((i) => <div key={i} className="example-card example-skeleton" aria-hidden />)}
           {examples.map((e) => (
-            <Link key={e.id} to={`/a/${e.id}`} className="example-card" data-testid="example">
+            <Link key={e.id} to={`/a/${e.id}`} className="example-card" data-testid="example"
+                  data-example={e.example ? 'builtin' : 'opted-in'}>
               <span className={`example-score tone-${scoreTone(e.score)}`}>{e.score ?? '?'}</span>
               <span className="example-repo">{e.repo}</span>
               {e.roast && <span className="example-roast">“{e.roast.length > 160 ? e.roast.slice(0, 157) + '…' : e.roast}”</span>}
