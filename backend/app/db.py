@@ -58,6 +58,13 @@ CREATE TABLE IF NOT EXISTS projects (     -- one row per repo: history and the p
     last_deep_id      TEXT,
     last_deep_version TEXT                         -- check logic version it ran with
 );
+CREATE TABLE IF NOT EXISTS extras (       -- generated demo scripts / judge panels, one per audit version
+    audit_id   TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    stamp      TEXT NOT NULL,                 -- extras version + the audit's updated_at
+    body       TEXT NOT NULL,
+    PRIMARY KEY (audit_id, kind)
+);
 CREATE TABLE IF NOT EXISTS roasts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     repo_key   TEXT,
@@ -402,6 +409,20 @@ def latest_scored(repo_key: str) -> dict | None:
             "AND status IN ('quick_ready', 'complete') ORDER BY updated_at DESC, created_at DESC LIMIT 1",
             (repo_key.lower(),)).fetchone()
     return _row(r)
+
+
+def get_extra(audit_id: str, kind: str, stamp: str) -> dict | None:
+    with _lock:
+        r = _db().execute("SELECT body FROM extras WHERE audit_id = ? AND kind = ? AND stamp = ?",
+                          (audit_id, kind, stamp)).fetchone()
+    return json.loads(r[0]) if r else None
+
+
+def put_extra(audit_id: str, kind: str, stamp: str, body: dict) -> None:
+    with _lock:
+        _db().execute("INSERT OR REPLACE INTO extras (audit_id, kind, stamp, body) VALUES (?, ?, ?, ?)",
+                      (audit_id, kind, stamp, json.dumps(body)))
+        _db().commit()
 
 
 def set_showcase(audit_id: str, on: bool) -> None:

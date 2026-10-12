@@ -144,6 +144,7 @@ export interface Audit {
   result: Report | null
   percentiles?: Percentiles | null
   showcase?: boolean
+  features?: { demo_script?: boolean; judge_panel?: boolean }
   error: string | null
 }
 
@@ -151,6 +152,30 @@ export interface Kit {
   post: { text: string; length: number; limit: number; over: boolean; blanks: number }
   evidence_md: string
   badge: { url: string; markdown: string }
+}
+
+export interface DemoScene {
+  id: string
+  start: string
+  end: string
+  seconds: number
+  topic: string
+  show: string
+  say: string
+  todo: boolean
+}
+
+export interface DemoScript {
+  source: 'llm' | 'template'
+  total: string
+  scenes: DemoScene[]
+  todos: number
+  text: string
+}
+
+export interface JudgePanel {
+  source: 'llm' | 'template'
+  judges: { id: string; title: string; praise: string; fix: string }[]
 }
 
 export interface Stats {
@@ -264,6 +289,8 @@ export const api = {
   examples: () => request<Example[]>('/api/examples'),
   showcase: () => request<Example[]>('/api/showcase'),
   kit: (id: string) => request<Kit>(`/api/audits/${encodeURIComponent(id)}/kit`),
+  demoScript: (id: string) => request<DemoScript>(`/api/audits/${encodeURIComponent(id)}/demo-script`),
+  judgePanel: (id: string) => request<JudgePanel>(`/api/audits/${encodeURIComponent(id)}/judge-panel`),
   setShowcase: (id: string, show: boolean) =>
     request<{ ok: boolean; showcase: boolean }>(`/api/audits/${encodeURIComponent(id)}/showcase`, {
       method: 'POST',

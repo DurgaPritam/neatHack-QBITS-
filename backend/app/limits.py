@@ -50,6 +50,7 @@ DEEP = SlidingWindow(_int("RATE_DEEP_PER_HOUR", 3), 3600)
 EVENTS = SlidingWindow(30, 60)          # card download / share click counters
 REMOVALS = SlidingWindow(10, 3600)
 SHOWCASE = SlidingWindow(30, 3600)
+EXTRAS = SlidingWindow(_int("RATE_EXTRAS_PER_HOUR", 12), 3600)  # LLM-written demo scripts / panels
 DEEP_QUEUE_MAX = _int("DEEP_QUEUE_MAX", 10)
 REPO_COOLDOWN_S = _int("REPO_COOLDOWN_S", 600)
 # Daily budget protection (UTC days). The admin reserve in app.llm stays separate from these.
@@ -107,6 +108,6 @@ def wait_text(seconds: float) -> str:
 
 
 def reset_all() -> None:
-    for w in (AUDITS, DEEP, EVENTS, REMOVALS, SHOWCASE):
+    for w in (AUDITS, DEEP, EVENTS, REMOVALS, SHOWCASE, EXTRAS):
         w.reset()
     HITS.reset()

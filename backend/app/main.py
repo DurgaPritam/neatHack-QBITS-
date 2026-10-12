@@ -11,6 +11,8 @@ POST /api/audits/{id}/showcase       -> {show} opt in/out of the homepage feed (
 GET  /api/audits/{id}/card.png       -> 1200x630 roast card (link previews)
 GET  /api/audits/{id}/kit            -> submission post, Evidence section, badge Markdown
 GET  /badge/{owner}/{repo}.svg       -> README badge with the latest score
+GET  /api/audits/{id}/demo-script    -> 3-minute demo script (FEATURE_DEMO_SCRIPT)
+GET  /api/audits/{id}/judge-panel    -> three generic judge personas (FEATURE_JUDGE_PANEL)
 GET  /r/{id}                         -> share page: Open Graph/Twitter meta, redirects to /a/{id}
 POST /api/audits/{id}/removal        -> hide an audit from public view (admin can restore)
 POST /api/events {name}              -> count a card download or Share-on-X click (no cookies)
@@ -42,10 +44,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app import budget, config, db, history, kit, limits, replay
+from app import budget, config, db, extras, history, kit, limits, replay
 from app.card import render_card
 from app.jobs import DEEP_EST_TOKENS, AuditQueues, cacheable
-from app.llm import POOL, configured_models
+from app.llm import LLM, POOL, configured_models
+from app.steps import StepLog
 from app.public import public_steps
 from app.tools.github import GitHubClient, GitHubError, parse_repo_url
 from app.tools.rubric import CHECKS_VERSION
@@ -295,6 +298,7 @@ def get_audit(audit_id: str, x_admin_token: str | None = Header(default=None)) -
         "result": row["result"],
         "percentiles": _percentiles(row),
         "showcase": bool(row.get("showcase")),
+        "features": {"demo_script": extras.enabled("demo_script"), "judge_panel": extras.enabled("judge_panel")},
         "error": row["error"],
     }
 
@@ -489,6 +493,39 @@ def submission_kit(audit_id: str) -> dict:
     badge = f"{api}/badge/{full}.svg"
     return {"post": kit.submission_post(report), "evidence_md": kit.evidence_markdown(report, result_url),
             "badge": {"url": badge, "markdown": f"[![PreJudge score]({badge})]({result_url})"}}
+
+
+async def _extra(audit_id: str, flag: str, request: Request, x_admin_token: str | None) -> dict:
+    """One LLM call per audit version (cached); the template when the budget, the rate limit or replay says no."""
+    if not extras.enabled(flag):
+        raise HTTPException(404, f"{flag} is switched off")
+    row = _get(audit_id)
+    report = row["result"]
+    if not report:
+        raise HTTPException(409, "the audit has no result yet")
+    stamp = f"{extras.EXTRAS_VERSION}:{row['updated_at']}"
+    if (cached := db.get_extra(audit_id, flag, stamp)):
+        return cached
+    admin = is_admin(x_admin_token)
+    use_llm = replay.mode() != "replay" and (admin or public_budget_ok())
+    if use_llm and not admin and limits.EXTRAS.hit(client_ip(request)):
+        use_llm = False                      # rate limited: the template, not an error
+    llm = LLM(StepLog(), priority="high", use_reserve=admin) if use_llm else None
+    body = await getattr(extras, flag)(report, llm)
+    db.bump(f"extra_{flag}_{body['source']}")
+    if body["source"] == "llm":
+        db.put_extra(audit_id, flag, stamp, body)   # a template from a budget gap is retried next time
+    return body
+
+
+@app.get("/api/audits/{audit_id}/demo-script", responses={404: {"description": "Audit not found or feature off"}})
+async def demo_script(audit_id: str, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
+    return await _extra(audit_id, "demo_script", request, x_admin_token)
+
+
+@app.get("/api/audits/{audit_id}/judge-panel", responses={404: {"description": "Audit not found or feature off"}})
+async def judge_panel(audit_id: str, request: Request, x_admin_token: str | None = Header(default=None)) -> dict:
+    return await _extra(audit_id, "judge_panel", request, x_admin_token)
 
 
 _REPO_PART = re.compile(r"^[A-Za-z0-9._-]{1,100}$")

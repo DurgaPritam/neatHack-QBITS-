@@ -2,6 +2,7 @@ import type { Audit, Check, Claim, Report } from '../api'
 import { evidenceLink } from '../evidence'
 import { CATEGORY_LABELS, CHECK_STATUS, CLAIM_STATUS, scoreTone } from '../labels'
 import FeedbackButton from './FeedbackButton'
+import JudgePanel from './JudgePanel'
 
 function EvidenceRefs({ refs, report }: { refs: string[]; report: Report }) {
   if (!refs.length) return null
@@ -223,6 +224,7 @@ export default function Result({ audit }: { audit: Audit }) {
   return (
     <>
       <ScoreBlock report={report} deep={deep} />
+      {audit.features?.judge_panel && <JudgePanel auditId={audit.id} status={audit.status} />}
       {injection && (
         <p className="notice notice-bad">
           This README tries to instruct the judge (prompt injection). It was ignored and flagged; it can't change the score.

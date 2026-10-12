@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type Audit, type Stats } from '../api'
 import DeepCheck from '../components/DeepCheck'
+import DemoScript from '../components/DemoScript'
 import History from '../components/History'
 import RemovalLink from '../components/RemovalLink'
 import ShowcaseToggle from '../components/ShowcaseToggle'
@@ -166,6 +167,7 @@ export default function AuditPage() {
           )}
           {!report.score.gated && report.verdict.source !== 'template' && <ShowcaseToggle key={audit.id} audit={audit} />}
           {!report.score.gated && <SubmissionKit auditId={audit.id} status={audit.status} />}
+          {!report.score.gated && audit.features?.demo_script && <DemoScript key={audit.id} auditId={audit.id} />}
         </>
       )}
 

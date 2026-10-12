@@ -66,6 +66,12 @@ with open(sys.argv[3], "w") as f:
 print(f"{len(env)} settings")
 PY
 
+step "keeping the running version for scripts/rollback.sh"
+"${SSH[@]}" "cd $REMOTE_DIR && (sudo docker image inspect prejudge-backend:latest >/dev/null 2>&1 \
+  && sudo docker tag prejudge-backend:latest prejudge-backend:previous || true) \
+  && rm -rf site.previous && (test -d site && cp -a site site.previous || true) \
+  && (test -f .env && cp -p .env .env.previous || true)"
+
 step "copying to $HOST:$REMOTE_DIR"
 "${SSH[@]}" "mkdir -p $REMOTE_DIR/site $REMOTE_DIR/backups $REMOTE_DIR/backend"
 rsync -az --delete -e "$RSYNC_SSH" \

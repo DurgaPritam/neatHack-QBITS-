@@ -331,3 +331,21 @@ test('submit tonight: post draft with blanks + counter, badge snippet, Evidence 
   expect(badge.headers()['content-type']).toContain('image/svg+xml')
   expect(await badge.text()).toMatch(/\d+\/100/)
 })
+
+test('judge panel under the score + demo script on request (template in replay mode)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await watchLayoutShift(page)
+  await page.goto('/a/4d5dbd1bf972')
+  const judges = page.getByTestId('judge')
+  await expect(judges).toHaveCount(3)
+  await expect(judges.nth(0)).toContainText('Observability judge')
+  await expect(judges.nth(2)).toContainText('Business judge')
+  await expect(judges.nth(1)).toContainText('🔧')
+  await page.getByRole('button', { name: 'Write my 3-minute demo script' }).click()
+  await expect(page.getByTestId('demo-meta')).toContainText('3:00 total · 7 scenes')
+  await expect(page.getByTestId('demo-scene')).toHaveCount(7)
+  await expect(page.getByTestId('demo-script')).toContainText('TODO: no Entire checkpoint found')   // swarm has none
+  await page.getByRole('button', { name: 'Copy script' }).click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^\[0:00–0:20\]/)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
+})
